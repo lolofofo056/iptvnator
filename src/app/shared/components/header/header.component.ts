@@ -7,10 +7,12 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { open } from '@tauri-apps/plugin-shell';
 import { NgxWhatsNewModule } from 'ngx-whats-new';
 import { HomeComponent } from '../../../home/home.component';
 import { DataService } from '../../../services/data.service';
@@ -35,6 +37,7 @@ import {
         MatDividerModule,
         MatIconModule,
         MatMenuModule,
+        MatToolbarModule,
         MatTooltipModule,
         NgIf,
         NgFor,
@@ -53,6 +56,9 @@ export class HeaderComponent implements OnInit {
 
     /** Environment flag */
     isElectron = this.dataService.isElectron;
+
+    /** Environment flag for Tauri */
+    isTauri = this.dataService.getAppEnvironment() === 'tauri';
 
     /** Visibility flag of the "what is new" modal dialog */
     isDialogVisible$ = this.whatsNewService.dialogState$;
@@ -119,8 +125,12 @@ export class HeaderComponent implements OnInit {
      * Opens the provided URL string in new browser window
      * @param url url to open
      */
-    openUrl(url: string): void {
-        window.open(url, '_blank');
+    async openUrl(url: string): Promise<void> {
+        if (this.isTauri) {
+            await open(url);
+        } else {
+            window.open(url, '_blank');
+        }
     }
 
     /**

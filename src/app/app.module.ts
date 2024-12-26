@@ -1,9 +1,12 @@
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import {
+    HttpClient,
+    provideHttpClient,
+    withInterceptorsFromDi,
+} from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { ServiceWorkerModule } from '@angular/service-worker';
-// NG Translate
 import { EffectsModule } from '@ngrx/effects';
 import { StoreRouterConnectingModule, routerReducer } from '@ngrx/router-store';
 import { StoreModule } from '@ngrx/store';
@@ -11,6 +14,8 @@ import { StoreDevtoolsModule } from '@ngrx/store-devtools';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { NgxIndexedDBModule, NgxIndexedDBService } from 'ngx-indexed-db';
+import { NgxSkeletonLoaderModule } from 'ngx-skeleton-loader';
+import { NgxWhatsNewModule } from 'ngx-whats-new';
 import 'reflect-metadata';
 import { AppConfig } from '../environments/environment';
 import '../polyfills';
@@ -18,9 +23,8 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { dbConfig } from './indexed-db.config';
 import { DataService } from './services/data.service';
-import { ElectronService } from './services/electron.service';
 import { PwaService } from './services/pwa.service';
-import { SharedModule } from './shared/shared.module';
+import { TauriService } from './services/tauri.service';
 import { PlaylistEffects } from './state/effects';
 import { playlistReducer } from './state/reducers';
 
@@ -36,30 +40,36 @@ function isElectron() {
     return !!(window && window.process && (window.process as any).type);
 }
 
+function isTauri() {
+    return '__TAURI_INTERNALS__' in window || '__TAURI__' in window;
+}
+
 /**
  * Conditionally imports the necessary service based on the current environment
- * @param dbService indexed db service
- * @returns
  */
-export function DataFactory(dbService: NgxIndexedDBService, http: HttpClient) {
-    if (isElectron()) {
-        return new ElectronService();
+export function DataFactory() {
+    if (isTauri()) {
+        return new TauriService();
     }
-    return new PwaService(http);
+    return new PwaService();
 }
 
 @NgModule({
     declarations: [AppComponent],
+    bootstrap: [AppComponent],
     imports: [
         AppRoutingModule,
         BrowserAnimationsModule,
         BrowserModule,
-        HttpClientModule,
-        SharedModule,
         AppConfig.environment === 'WEB'
             ? NgxIndexedDBModule.forRoot(dbConfig)
             : [],
+        NgxWhatsNewModule,
         NgxIndexedDBModule.forRoot(dbConfig),
+        NgxSkeletonLoaderModule.forRoot({
+            animation: 'pulse',
+            loadingText: 'This item is actually loading...',
+        }),
         TranslateModule.forRoot({
             loader: {
                 provide: TranslateLoader,
@@ -88,7 +98,7 @@ export function DataFactory(dbService: NgxIndexedDBService, http: HttpClient) {
             useFactory: DataFactory,
             deps: [NgxIndexedDBService, HttpClient],
         },
+        provideHttpClient(withInterceptorsFromDi()),
     ],
-    bootstrap: [AppComponent],
 })
 export class AppModule {}

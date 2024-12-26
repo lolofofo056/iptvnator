@@ -104,7 +104,7 @@
     "VIDEO_PLAYER_PLACEHOLDER": "Select an option",
     "VERSION": "Version",
     "SAVE_CHANGES": "Save changes",
-    "BACK_TO_HOME": "Back to home",
+    "BACK_TO_HOME": "Back",
     "NEW_VERSION_AVAILABLE": "There is a new version available",
     "LATEST_VERSION": "You are using the latest version",
     "LANGUAGE": "Language",
@@ -138,7 +138,11 @@
     "MPV_PLAYER_PATH": "mpv player path",
     "VLC_PLAYER_PATH_LABEL": "VLC path",
     "VLC_PLAYER_PATH_DESCRIPTION": "Set path to VLC player in your system. It will use the provided path to a VLC binary instead of the default path for our system.",
-    "VLC_PLAYER_PATH": "VLC player path"
+    "VLC_PLAYER_PATH": "VLC player path",
+    "REMOTE_CONTROL": "Remote control",
+    "REMOTE_CONTROL_DESCRIPTION": "Enable remote control of the application.",
+    "REMOTE_CONTROL_PORT": "Remote control port",
+    "REMOTE_CONTROL_PORT_DESCRIPTION": "Port used for remote control of the application. Port 3000 is used by default."
   },
   "THEMES": {
     "DARK_THEME": "Dark theme",
@@ -155,7 +159,11 @@
     "NO_FAVORITES": "No favorites yet",
     "USE_STAR_TO_FAVORITE": "Please use 'star' icon to add channels to your favorites.",
     "REMOVE_FAVORITE": "Remove from favorites",
-    "FAVORITES_UPDATED": "Favorites were updated!"
+    "FAVORITES_UPDATED": "Favorites were updated!",
+    "SORT_BY": "Sort by",
+    "SORT_BY_DATE": "Sort by Date Added (Newest First)",
+    "SORT_BY_RATING": "Sort by Rating",
+    "SORT_BY_NAME": "Sort by Name (A-Z)"
   },
   "TOP_MENU": {
     "OPEN_CHANNELS_LIST": "Open channel list",
@@ -164,6 +172,7 @@
     "OPEN_MULTI_EPG": "Open Multi-EPG view"
   },
   "EPG": {
+    "TITLE": "Electronic Program Guide",
     "NEXT_DAY": "Next day",
     "PREVIOUS_DAY": "Previous day",
     "LIVE_NOW": "Live now",
@@ -183,7 +192,8 @@
       "DESCRIPTION": "Description",
       "LANGUAGE": "Language",
       "SHOW_PROGRAM_DETAILS": "Show details about this program"
-    }
+    },
+    "FETCH_SUCCESS": "EPG was fetched successfully"
   },
   "LANGUAGES": {
     "ENGLISH": "English",
@@ -207,7 +217,8 @@
     "BUG_REPORT": "Report a bug",
     "WHAT_IS_NEW": "What is new",
     "ABOUT": "About",
-    "ABOUT_ARIA": "About the application"
+    "ABOUT_ARIA": "About the application",
+    "SUPPORT_PROJECT": "Support project"
   },
   "ABOUT": {
     "TITLE": "About IPTVnator",
@@ -277,5 +288,12 @@
     "STREAM_URL_COPIED": "Stream URL copied to clipboard",
     "COPY_STREAM_URL": "Copy Stream URL"
   },
-  "INFORMATION": "Information"
+  "INFORMATION": "Information",
+  "REMOTE_CONTROL": {
+    "TITLE": "Remote control",
+    "UP_CHANNEL": "Up channel",
+    "DOWN_CHANNEL": "Down channel",
+    "HEADER": "IPTVNator Remote Control",
+    "FOOTER": "IPTVNator Remote Control"
+  }
 }

@@ -138,7 +138,11 @@
     "MPV_PLAYER_PATH": "mpv oynatıcı yolu",
     "VLC_PLAYER_PATH_LABEL": "VLC yolu",
     "VLC_PLAYER_PATH_DESCRIPTION": "Sisteminizdeki VLC oynatıcı yolunu ayarlayın. Sistemimiz için varsayılan yolu kullanmak yerine, sağlanan VLC ikili dosyası yolunu kullanacaktır.",
-    "VLC_PLAYER_PATH": "VLC oynatıcı yolu"
+    "VLC_PLAYER_PATH": "VLC oynatıcı yolu",
+    "REMOTE_CONTROL": "Uzaktan kontrol",
+    "REMOTE_CONTROL_DESCRIPTION": "Uygulamanın uzaktan kontrolünü etkinleştirin.",
+    "REMOTE_CONTROL_PORT": "Uzaktan kontrol portu",
+    "REMOTE_CONTROL_PORT_DESCRIPTION": "Uzaktan kontrol için bir port belirleyin. Varsayılan olarak 3080 kullanılır."
   },
   "THEMES": {
     "DARK_THEME": "Koyu Tema",
@@ -155,7 +159,11 @@
     "NO_FAVORITES": "Henüz favori yok",
     "USE_STAR_TO_FAVORITE": "Kanalları favorilerinize eklemek için lütfen 'yıldız' simgesini kullanın.",
     "REMOVE_FAVORITE": "Favorilerden Kaldır",
-    "FAVORITES_UPDATED": "Favoriler güncellendi!"
+    "FAVORITES_UPDATED": "Favoriler güncellendi!",
+    "SORT_BY": "Sırala",
+    "SORT_BY_DATE": "Eklenme Tarihine Göre Sırala (Önce En Yeni)",
+    "SORT_BY_RATING": "Puana Göre Sırala",
+    "SORT_BY_NAME": "İsmine Göre Sırala (A-Z)"
   },
   "TOP_MENU": {
     "OPEN_CHANNELS_LIST": "Kanal listesini aç",
@@ -207,7 +215,8 @@
     "BUG_REPORT": "Bir hata bildir",
     "WHAT_IS_NEW": "Yenilikler",
     "ABOUT": "Hakkında",
-    "ABOUT_ARIA": "Uygulama Hakkında"
+    "ABOUT_ARIA": "Uygulama Hakkında",
+    "SUPPORT_PROJECT": "Destek projesi"
   },
   "ABOUT": {
     "TITLE": "IPTVnator Hakkında",
@@ -233,7 +242,11 @@
     "RATING": "Değerlendirme",
     "DESCRIPTION": "Açıklama",
     "YEAR": "Yıl",
-    "AGE": "Yaş"
+    "AGE": "Yaş",
+    "EPISODE": "Bölüm",
+    "YOUTUBE_TRAILER": "YouTube Fragmanı",
+    "KINOPOISK_RATING": "Derecelendirme Kinopoisk",
+    "IMDB_RATING": "IMDB'nin derecelendirmesi"
   },
   "PORTALS": {
     "ALL_CATEGORIES": "Tüm kategoriler",
@@ -257,7 +270,15 @@
       },
       "PLAYLIST_SETTINGS": "Oynatma Listesi Ayarları",
       "HOME": "Ana Sayfa",
-      "DELETE": "Sil"
+      "DELETE": "Sil",
+      "EMPTY_CATEGORY": {
+        "TITLE": "Boş kategori",
+        "DESCRIPTION": "Bu kategoride içerik yok, lütfen başka bir kategori seçin veya içerik türünü değiştirin"
+      },
+      "UNKNOWN_ERROR": {
+        "TITLE": "Bir şeyler ters gitti",
+        "DESCRIPTION": "Bilinmeyen hata, lütfen daha sonra tekrar deneyin"
+      }
     },
     "EMPTY_LIST_VIEW": {
       "NO_SEARCH_RESULTS": "Hiçbir şey bulunamadı, arama isteğinizi değiştirmeyi deneyin",
@@ -266,5 +287,12 @@
     "STREAM_URL_COPIED": "Yayın URL'si panoya kopyalandı",
     "COPY_STREAM_URL": "Yayın URL'sini Kopyala"
   },
-  "INFORMATION": "Bilgi"
+  "INFORMATION": "Bilgi",
+  "REMOTE_CONTROL": {
+    "TITLE": "Uzaktan Kontrol",
+    "UP_CHANNEL": "Yukarı Kanal",
+    "DOWN_CHANNEL": "Aşağı Kanal",
+    "HEADER": "IPTVNator Uzaktan Kontrol",
+    "FOOTER": "IPTVNator Uzaktan Kontrol"
+  }
 }

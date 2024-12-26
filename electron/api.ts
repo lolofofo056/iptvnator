@@ -32,6 +32,7 @@ import {
     PLAYLIST_UPDATE_RESPONSE,
     SET_MPV_PLAYER_PATH,
     SET_VLC_PLAYER_PATH,
+    SETTINGS_UPDATE,
     STALKER_REQUEST,
     STALKER_RESPONSE,
     XTREAM_REQUEST,
@@ -40,6 +41,7 @@ import {
 import { Playlist } from '../shared/playlist.interface';
 import { createPlaylistObject } from '../shared/playlist.utils';
 import { ParsedPlaylist } from '../src/typings.d';
+import { Server } from './server';
 
 const fs = require('fs');
 const https = require('https');
@@ -88,7 +90,12 @@ export class Api {
 
     mpv;
 
+    settings;
+
+    server;
+
     constructor(store) {
+        this.server = new Server(this);
         this.store = store;
         this.mpv = this.createMpvInstance();
         this.mpv
@@ -180,7 +187,7 @@ export class Api {
                             args.userAgent || 'localhost',
                             args.referer || 'localhost'
                         );
-                    } 
+                    }
                 }
             )
             .on(IS_PLAYLISTS_MIGRATION_POSSIBLE, (event) => {
@@ -286,6 +293,10 @@ export class Api {
             .on(SET_VLC_PLAYER_PATH, (_event, vlcPlayerPath) => {
                 console.log('... setting vlc player path', vlcPlayerPath);
                 store.set(VLC_PLAYER_PATH, vlcPlayerPath);
+            })
+            .on(SETTINGS_UPDATE, (_event, arg) => {
+                this.settings = arg;
+                this.server.updateSettings();
             });
 
         // listeners for EPG events
@@ -409,7 +420,7 @@ export class Api {
         // Remove trailing slash from referer if it exists
         let originURL: string;
         if (referer?.endsWith('/')) {
-        originURL= referer.slice(0, -1);
+            originURL = referer.slice(0, -1);
         }
 
         session.defaultSession.webRequest.onBeforeSendHeaders(

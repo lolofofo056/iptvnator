@@ -1,4 +1,8 @@
-import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import {
+    CdkDragDrop,
+    DragDropModule,
+    moveItemInArray,
+} from '@angular/cdk/drag-drop';
 import { ScrollingModule } from '@angular/cdk/scrolling';
 import { CommonModule, TitleCasePipe } from '@angular/common';
 import {
@@ -11,7 +15,9 @@ import {
 import { FormsModule } from '@angular/forms';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatListModule } from '@angular/material/list';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -20,6 +26,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import * as _ from 'lodash';
 import { map, skipWhile } from 'rxjs';
 import { Channel } from '../../../../../shared/channel.interface';
+import { EpgService } from '../../../services/epg.service';
 import { FilterPipe } from '../../../shared/pipes/filter.pipe';
 import * as PlaylistActions from '../../../state/actions';
 import {
@@ -34,18 +41,21 @@ import { ChannelListItemComponent } from './channel-list-item/channel-list-item.
     templateUrl: './channel-list-container.component.html',
     styleUrls: ['./channel-list-container.component.scss'],
     imports: [
-        CommonModule,
         ChannelListItemComponent,
-        MatExpansionModule,
-        MatDividerModule,
-        MatListModule,
-        MatIconModule,
-        MatTabsModule,
-        TranslateModule,
-        TitleCasePipe,
+        CommonModule,
+        DragDropModule,
         FilterPipe,
         FormsModule,
+        MatDividerModule,
+        MatExpansionModule,
+        MatFormFieldModule,
+        MatIconModule,
+        MatInputModule,
+        MatListModule,
+        MatTabsModule,
         ScrollingModule,
+        TitleCasePipe,
+        TranslateModule,
     ],
 })
 export class ChannelListContainerComponent {
@@ -112,7 +122,8 @@ export class ChannelListContainerComponent {
     constructor(
         private readonly store: Store,
         private snackBar: MatSnackBar,
-        private translateService: TranslateService
+        private translateService: TranslateService,
+        private epgService: EpgService
     ) {}
 
     /**
@@ -122,6 +133,12 @@ export class ChannelListContainerComponent {
     selectChannel(channel: Channel): void {
         this.selected = channel;
         this.store.dispatch(PlaylistActions.setActiveChannel({ channel }));
+
+        const epgChannelId = channel?.tvg?.id?.trim() || channel?.name.trim();
+
+        if (epgChannelId) {
+            this.epgService.getChannelPrograms(epgChannelId);
+        }
     }
 
     /**

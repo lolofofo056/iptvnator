@@ -7,16 +7,31 @@
 >
     <div class="sidebar">
         <div class="sidebar-content">
-            <mat-selection-list
-                [multiple]="false"
-                [hideSingleSelectionIndicator]="true"
-            >
+            <div class="search-panel">
+                <mat-form-field class="search-bar">
+                    <mat-icon matPrefix>search</mat-icon>
+                    <input
+                        matInput
+                        type="search"
+                        [placeholder]="'CHANNELS.SEARCH_CHANNEL' | translate"
+                        [(ngModel)]="searchString"
+                    />
+                </mat-form-field>
+            </div>
+            <mat-selection-list [multiple]="false">
                 <cdk-virtual-scroll-viewport
-                    itemSize="56"
+                    [itemSize]="56"
                     class="scroll-viewport-portals"
                 >
                     <mat-list-option
-                        *cdkVirtualFor="let item of channels"
+                        *cdkVirtualFor="
+                            let item of channels
+                                | filterBy: searchString() : 'name';
+                            trackBy: trackBy;
+                            templateCacheSize: 0
+                        "
+                        [selected]="item.stream_id === activeLiveStream?.stream_id"
+                        [value]="item"
                         (click)="itemClicked.emit(item)"
                     >
                         <img
@@ -34,15 +49,19 @@
         </div>
     </div>
     @if (player === 'videojs' || player === 'html5') {
-        <div class="video-player">
-            @if (streamUrl) {
+        @if (streamUrl) {
+            <div class="video-player">
                 <app-web-player-view [streamUrl]="streamUrl" />
-            }
-        </div>
+            </div>
+        }
     }
-    <div class="epg">
-        <div class="epg-content">
-            <app-epg-view [epgItems]="epgItems" />
+    @if (streamUrl) {
+        <div class="epg">
+            <div class="epg-content">
+                <app-epg-view [epgItems]="epgItems" />
+            </div>
         </div>
-    </div>
+    } @else {
+        <div class="no-channel-selected">Please select a channel</div>
+    }
 </div>

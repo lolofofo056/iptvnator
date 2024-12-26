@@ -1,9 +1,12 @@
 @if (allPlaylistsLoaded()) {
-    <mat-form-field class="full-width search-field" subscriptSizing="dynamic">
+    <mat-form-field class="search-field" subscriptSizing="dynamic">
+        <mat-icon matPrefix>search</mat-icon>
         <input
             matInput
             #searchQuery
             type="search"
+            spellcheck="false"
+            autocomplete="off"
             [placeholder]="'HOME.PLAYLISTS.SEARCH_PLAYLISTS' | translate"
             (input)="onSearchQueryUpdate(searchQuery.value)"
     /></mat-form-field>
@@ -17,7 +20,7 @@
             <mat-list-item
                 *ngIf="playlists.length === 0; else playlistsTemplate"
             >
-                <mat-icon class="favorites-icon" matListItemAvatar
+                <mat-icon class="favorites-icon" matListItemIcon
                     >search</mat-icon
                 >
                 <div matListItemTitle>
@@ -30,7 +33,7 @@
 
             <ng-template #playlistsTemplate>
                 <mat-list-item (click)="getGlobalFavorites()">
-                    <mat-icon class="favorites-icon" matListItemAvatar
+                    <mat-icon class="favorites-icon" matListItemIcon
                         >star</mat-icon
                     >
                     <div matListItemTitle>
@@ -43,7 +46,6 @@
                         }}
                     </div>
                 </mat-list-item>
-                <mat-divider />
 
                 <app-playlist-item
                     *ngFor="
@@ -58,28 +60,6 @@
                     (refreshClicked)="refreshPlaylist($event)"
                     (removeClicked)="removeClicked($event)"
                 />
-
-                <div *ngIf="isMigrationPossible" id="migration-container">
-                    <p>{{ migrationMessage }}</p>
-                    <button
-                        mat-button
-                        (click)="migratePlaylists()"
-                        class="migration-btn"
-                        color="accent"
-                    >
-                        <mat-icon>playlist_add</mat-icon>
-                        Migrate playlists</button
-                    >&nbsp;
-                    <button
-                        mat-button
-                        (click)="deleteMigratedPlaylists()"
-                        class="migration-btn"
-                        color="accent"
-                    >
-                        <mat-icon>delete</mat-icon>
-                        {{ 'SETTINGS.REMOVE_DIALOG.TITLE' | translate }}
-                    </button>
-                </div>
             </ng-template>
         </mat-nav-list>
     } @placeholder {

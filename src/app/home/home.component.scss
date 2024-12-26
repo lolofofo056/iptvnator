@@ -13,10 +13,8 @@
 }
 
 .recent-playlists {
-    height: calc(100vh - 106px);
+    height: calc(100vh - 100px);
     overflow: auto;
-    width: 100%;
-    display: block;
 }
 
 @media only screen and (max-width: 480px) {
