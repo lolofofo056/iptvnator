@@ -265,8 +265,10 @@ export class ElectronService extends DataService {
     }
 
     private async fetchM3uPlaylistFromUrl(payload: Partial<Playlist>) {
+        const title = payload.title?.trim() || undefined;
+
         window.electron
-            .fetchPlaylistByUrl(payload.url)
+            .fetchPlaylistByUrl(payload.url, title)
             .then((result) => {
                 this.store.dispatch(
                     PlaylistActions.handleAddingPlaylistByUrl({
