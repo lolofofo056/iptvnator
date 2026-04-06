@@ -10,6 +10,7 @@ import {
     signal,
     viewChild,
 } from '@angular/core';
+import { extractDominantColor } from './extract-color';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -143,6 +144,7 @@ export class AudioPlayerComponent {
 
     private store = inject(Store);
     private destroyRef = inject(DestroyRef);
+    private hostEl = inject(ElementRef);
     private fallbackVolume = 1;
 
     constructor() {
@@ -160,6 +162,20 @@ export class AudioPlayerComponent {
             audio.load();
             this.logoError.set(false);
             this.play();
+        });
+
+        effect(() => {
+            const iconUrl = this.displayIcon();
+            this.hostEl.nativeElement.style.removeProperty('--radio-accent');
+            if (!iconUrl) return;
+            extractDominantColor(iconUrl).then((color) => {
+                if (color) {
+                    this.hostEl.nativeElement.style.setProperty(
+                        '--radio-accent',
+                        color
+                    );
+                }
+            });
         });
 
         this.destroyRef.onDestroy(() => {
@@ -226,4 +242,5 @@ export class AudioPlayerComponent {
             ChannelActions.setAdjacentChannelAsActive({ direction })
         );
     }
+
 }
