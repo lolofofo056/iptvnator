@@ -1,4 +1,4 @@
-import { Provider, Injectable, computed, inject, signal } from '@angular/core';
+import { Provider, Injectable, computed, inject } from '@angular/core';
 import {
     PortalCatalogFacade,
     PortalCatalogItemProgress,
@@ -9,18 +9,6 @@ import {
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
 
 const SORT_STORAGE_KEY = 'xtream-category-sort-mode';
-const COLLATOR = new Intl.Collator(undefined, {
-    numeric: true,
-    sensitivity: 'base',
-});
-
-type XtreamCatalogItem = Record<string, unknown> & {
-    added?: string;
-    category_id?: number | string;
-    last_modified?: string;
-    name?: string;
-    title?: string;
-};
 
 @Injectable()
 export class XtreamCatalogFacadeService
@@ -30,7 +18,6 @@ export class XtreamCatalogFacadeService
     private readonly xtreamStore = inject(XtreamStore);
     private savedPageBeforeDetail: number | null = null;
     private loadedPositionsPlaylistId: string | null = null;
-    private readonly routeSearchQuery = signal('');
 
     readonly provider = 'xtream' as const;
     readonly pageSizeOptions = [10, 25, 50, 100] as const;
@@ -38,78 +25,17 @@ export class XtreamCatalogFacadeService
     readonly limit = this.xtreamStore.limit;
     readonly pageIndex = this.xtreamStore.page;
     readonly selectedCategory = this.xtreamStore.getSelectedCategory;
+    readonly paginatedContent = this.xtreamStore.getPaginatedContent;
     readonly selectedItem = this.xtreamStore.selectedItem;
+    readonly totalPages = this.xtreamStore.getTotalPages;
     readonly isPaginatedContentLoading =
         this.xtreamStore.isPaginatedContentLoading;
-    private readonly filteredAndSortedContent = computed(() => {
-        const contentType = this.contentType();
-        const selectedCategoryId = this.xtreamStore.selectedCategoryId();
-        const sortMode = this.contentSortMode();
-        const searchQuery = this.routeSearchQuery().trim().toLocaleLowerCase();
-        const content =
-            contentType === 'live'
-                ? this.xtreamStore.liveStreams()
-                : contentType === 'series'
-                  ? this.xtreamStore.serialStreams()
-                  : this.xtreamStore.vodStreams();
-
-        let items = [...content] as unknown as XtreamCatalogItem[];
-
-        if (selectedCategoryId !== null) {
-            items = items.filter(
-                (item) => Number(item.category_id) === selectedCategoryId
-            );
-        }
-
-        if (
-            selectedCategoryId !== null &&
-            (contentType === 'vod' || contentType === 'series') &&
-            searchQuery.length > 0
-        ) {
-            items = items.filter((item) =>
-                String(item.title ?? item.name ?? '')
-                    .toLocaleLowerCase()
-                    .includes(searchQuery)
-            );
-        }
-
-        return items.sort((left, right) => {
-            const leftDate =
-                contentType === 'series'
-                    ? Number(left.last_modified ?? left.added ?? 0)
-                    : Number(left.added ?? 0);
-            const rightDate =
-                contentType === 'series'
-                    ? Number(right.last_modified ?? right.added ?? 0)
-                    : Number(right.added ?? 0);
-
-            if (sortMode === 'date-asc') {
-                return leftDate - rightDate;
-            }
-
-            if (sortMode === 'date-desc') {
-                return rightDate - leftDate;
-            }
-
-            const leftTitle = String(left.title ?? left.name ?? '');
-            const rightTitle = String(right.title ?? right.name ?? '');
-            const byName = COLLATOR.compare(leftTitle, rightTitle);
-            return sortMode === 'name-desc' ? -byName : byName;
-        });
-    });
-    readonly paginatedContent = computed(() => {
-        const start = this.pageIndex() * this.limit();
-        return this.filteredAndSortedContent().slice(start, start + this.limit());
-    });
-    readonly totalPages = computed(() =>
-        Math.ceil(this.filteredAndSortedContent().length / this.limit())
-    );
     readonly selectedCategoryTitle = computed(() => {
         const category = this.selectedCategory();
         return String(category?.['name'] ?? category?.['title'] ?? '');
     });
-    readonly categoryItemCount = computed(
-        () => this.filteredAndSortedContent().length
+    readonly categoryItemCount = computed(() =>
+        this.xtreamStore.selectItemsFromSelectedCategory().length
     );
     readonly contentSortMode = this.xtreamStore.contentSortMode;
     readonly playlist = computed<PortalCatalogPlaylistMeta | null>(() => {
@@ -160,7 +86,7 @@ export class XtreamCatalogFacadeService
     }
 
     setSearchQuery(query: string): void {
-        this.routeSearchQuery.set(query);
+        this.xtreamStore.setCategorySearchTerm(query);
     }
 
     setPage(page: number): void {

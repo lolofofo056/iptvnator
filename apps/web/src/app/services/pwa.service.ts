@@ -185,6 +185,8 @@ export class PwaService extends DataService {
      * @param payload playlist payload
      */
     fetchFromUrl(payload: Partial<Playlist>): void {
+        const title = payload.title?.trim() || undefined;
+
         this.getPlaylistFromUrl(payload.url)
             .pipe(
                 catchError((error) => {
@@ -199,10 +201,18 @@ export class PwaService extends DataService {
                 })
             )
             .subscribe((response: Playlist) => {
+                const playlist = title
+                    ? {
+                          ...response,
+                          filename: title,
+                          title,
+                      }
+                    : response;
+
                 this.store.dispatch(
                     PlaylistActions.handleAddingPlaylistByUrl({
                         isTemporary: !!payload?.isTemporary,
-                        playlist: response,
+                        playlist,
                     })
                 );
             });
