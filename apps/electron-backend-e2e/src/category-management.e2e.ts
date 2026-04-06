@@ -267,72 +267,98 @@ async function expectVisibleSidebarCategoryNames(
     page: Page,
     expectedNames: string[]
 ): Promise<void> {
-    const categories = page.locator(
-        'app-workspace-context-panel .category-item:visible'
-    );
-    const actualNames: string[] = [];
-    const count = await categories.count();
+    await expect
+        .poll(async () => {
+            const categories = page.locator(
+                'app-workspace-context-panel .category-item:visible'
+            );
+            const actualNames: string[] = [];
+            const count = await categories.count();
 
-    for (let index = 0; index < count; index += 1) {
-        const categoryName =
-            (
-                await categories
-                    .nth(index)
-                    .locator('.nav-item-label')
-                    .textContent()
-            )?.trim() ?? '';
+            for (let index = 0; index < count; index += 1) {
+                const categoryName =
+                    (
+                        await categories
+                            .nth(index)
+                            .locator('.nav-item-label')
+                            .textContent()
+                    )?.trim() ?? '';
 
-        if (categoryName) {
-            actualNames.push(categoryName);
-        }
-    }
+                if (categoryName) {
+                    actualNames.push(categoryName);
+                }
+            }
 
-    expect(actualNames).toEqual(expectedNames);
+            return actualNames;
+        })
+        .toEqual(expectedNames);
 }
 
 async function pickSidebarCategory(
     page: Page
 ): Promise<{ id: string; itemCount: number; name: string }> {
-    const categories = page.locator(
-        'app-workspace-context-panel .category-item:visible'
-    );
-    const count = await categories.count();
-    const candidates: Array<{ id: string; itemCount: number; name: string }> =
-        [];
+    let preferredCandidate:
+        | { id: string; itemCount: number; name: string }
+        | null = null;
 
-    for (let index = 0; index < count; index += 1) {
-        const category = categories.nth(index);
-        const id =
-            (await category.getAttribute('data-category-id'))?.trim() ?? '';
-        const name =
-            (await category.locator('.nav-item-label').textContent())?.trim() ??
-            '';
-        const countText =
-            (await category.locator('.item-count').textContent())?.trim() ?? '';
-        const itemCount = Number.parseInt(countText, 10) || 0;
+    await expect
+        .poll(async () => {
+            const categories = page.locator(
+                'app-workspace-context-panel .category-item:visible'
+            );
+            const count = await categories.count();
+            const candidates: Array<{
+                id: string;
+                itemCount: number;
+                name: string;
+            }> = [];
 
-        if (id && name && itemCount > 0) {
-            candidates.push({ id, itemCount, name });
-        }
-    }
+            for (let index = 0; index < count; index += 1) {
+                const category = categories.nth(index);
+                const id =
+                    (await category.getAttribute('data-category-id'))?.trim() ??
+                    '';
+                const name =
+                    (
+                        await category.locator('.nav-item-label').textContent()
+                    )?.trim() ?? '';
+                const countText =
+                    (
+                        await category.locator('.item-count').textContent()
+                    )?.trim() ?? '';
+                const itemCount = Number.parseInt(countText, 10) || 0;
 
-    const nameCounts = new Map<string, number>();
-    for (const candidate of candidates) {
-        nameCounts.set(
-            candidate.name,
-            (nameCounts.get(candidate.name) ?? 0) + 1
-        );
-    }
+                if (id && name && itemCount > 0) {
+                    candidates.push({ id, itemCount, name });
+                }
+            }
 
-    const preferredCandidate =
-        candidates.find((candidate) => nameCounts.get(candidate.name) === 1) ??
-        candidates[0];
+            if (candidates.length === 0) {
+                preferredCandidate = null;
+                return false;
+            }
 
-    if (!preferredCandidate) {
-        throw new Error('No visible Xtream category with content was found.');
-    }
+            const nameCounts = new Map<string, number>();
+            for (const candidate of candidates) {
+                nameCounts.set(
+                    candidate.name,
+                    (nameCounts.get(candidate.name) ?? 0) + 1
+                );
+            }
 
-    return preferredCandidate;
+            preferredCandidate =
+                candidates.find(
+                    (candidate) => nameCounts.get(candidate.name) === 1
+                ) ?? candidates[0];
+
+            return preferredCandidate !== null;
+        })
+        .toBe(true, {
+            message: 'No visible Xtream category with content was found.',
+            timeout: 15000,
+        });
+
+    return preferredCandidate!;
 }
 
 async function toggleManagedCategory(

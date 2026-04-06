@@ -70,20 +70,6 @@ async function addXtreamPortal(
     await page.waitForURL(/xtreams.*vod/);
 }
 
-/**
- * Clear IndexedDB state between tests so each test starts fresh.
- */
-async function clearStorage(page: Page): Promise<void> {
-    await page.evaluate(async () => {
-        const dbs = await window.indexedDB.databases();
-        await Promise.all(
-            dbs
-                .filter((db) => db.name != null)
-                .map((db) => window.indexedDB.deleteDatabase(db.name!))
-        );
-    });
-}
-
 // ---------------------------------------------------------------------------
 // Test setup
 // ---------------------------------------------------------------------------
@@ -91,9 +77,9 @@ async function clearStorage(page: Page): Promise<void> {
 test.beforeEach(async ({ page, request }) => {
     await request.post(`${MOCK_SERVER}/reset`);
 
+    // Playwright creates a fresh browser context per test, so extra
+    // IndexedDB cleanup here only risks racing with app-managed DB handles.
     await page.goto('/');
-    await clearStorage(page);
-    await page.reload();
 
     await interceptXtreamRequests(page);
 });
