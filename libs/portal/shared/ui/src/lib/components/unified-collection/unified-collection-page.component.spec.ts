@@ -20,7 +20,7 @@ import {
     selectAllPlaylistsMeta,
     selectPlaylistsLoadingFlag,
 } from 'm3u-state';
-import { of } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 import { PlaylistMeta } from 'shared-interfaces';
 import { UnifiedCollectionPageComponent } from './unified-collection-page.component';
 import { UnifiedGridTabComponent } from './unified-grid-tab.component';
@@ -61,13 +61,26 @@ describe('UnifiedCollectionPageComponent', () => {
     let fixture: ComponentFixture<UnifiedCollectionPageComponent>;
     let route: ActivatedRoute & {
         snapshot: {
+            paramMap: ReturnType<typeof convertToParamMap>;
             queryParamMap: ReturnType<typeof convertToParamMap>;
             queryParams: Record<string, unknown>;
             params: Record<string, unknown>;
             data: Record<string, unknown>;
             parent: null;
         };
+        paramMap: ReturnType<
+            BehaviorSubject<ReturnType<typeof convertToParamMap>>['asObservable']
+        >;
+        queryParamMap: ReturnType<
+            BehaviorSubject<ReturnType<typeof convertToParamMap>>['asObservable']
+        >;
+        pathFromRoot: ActivatedRoute[];
     };
+    let routeParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
+    let routeQueryParamMap$: BehaviorSubject<
+        ReturnType<typeof convertToParamMap>
+    >;
+    let workspaceParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
     const playlistsLoaded = signal(false);
     const playlists = signal<PlaylistMeta[]>([]);
     const favoritesData = {
@@ -81,36 +94,83 @@ describe('UnifiedCollectionPageComponent', () => {
         clearRecentItems: jest.fn(),
     };
 
+    function toParamMapRecord(
+        values: Record<string, unknown>
+    ): Record<string, string> {
+        return Object.fromEntries(
+            Object.entries(values)
+                .filter(([, value]) => value != null)
+                .map(([key, value]) => [key, String(value)])
+        );
+    }
+
+    function setRouteParams(params: Record<string, unknown>): void {
+        const nextParamMap = convertToParamMap(toParamMapRecord(params));
+        route.snapshot.params = params;
+        route.snapshot.paramMap = nextParamMap;
+        routeParamMap$.next(nextParamMap);
+    }
+
+    function setRouteQueryParams(queryParams: Record<string, unknown>): void {
+        const nextQueryParamMap = convertToParamMap(
+            toParamMapRecord(queryParams)
+        );
+        route.snapshot.queryParams = queryParams;
+        route.snapshot.queryParamMap = nextQueryParamMap;
+        routeQueryParamMap$.next(nextQueryParamMap);
+    }
+
     beforeEach(async () => {
         playlistsLoaded.set(false);
         playlists.set([]);
         jest.clearAllMocks();
+        routeParamMap$ = new BehaviorSubject(convertToParamMap({}));
+        routeQueryParamMap$ = new BehaviorSubject(convertToParamMap({}));
+        workspaceParamMap$ = new BehaviorSubject(convertToParamMap({}));
+
+        const workspaceRoute = {
+            snapshot: {
+                data: { layout: 'workspace' },
+                paramMap: convertToParamMap({}),
+                params: {},
+            },
+            paramMap: workspaceParamMap$.asObservable(),
+        } as ActivatedRoute;
 
         route = {
             snapshot: {
+                paramMap: convertToParamMap({}),
                 queryParamMap: convertToParamMap({}),
                 queryParams: {},
                 params: {},
                 data: {},
                 parent: null,
             },
-            queryParamMap: of(convertToParamMap({})),
-            pathFromRoot: [
-                {
-                    snapshot: {
-                        data: { layout: 'workspace' },
-                    },
-                },
-            ],
+            paramMap: routeParamMap$.asObservable(),
+            queryParamMap: routeQueryParamMap$.asObservable(),
+            pathFromRoot: [],
         } as ActivatedRoute & {
             snapshot: {
+                paramMap: ReturnType<typeof convertToParamMap>;
                 queryParamMap: ReturnType<typeof convertToParamMap>;
                 queryParams: Record<string, unknown>;
                 params: Record<string, unknown>;
                 data: Record<string, unknown>;
                 parent: null;
             };
+            paramMap: ReturnType<
+                BehaviorSubject<
+                    ReturnType<typeof convertToParamMap>
+                >['asObservable']
+            >;
+            queryParamMap: ReturnType<
+                BehaviorSubject<
+                    ReturnType<typeof convertToParamMap>
+                >['asObservable']
+            >;
+            pathFromRoot: ActivatedRoute[];
         };
+        route.pathFromRoot = [workspaceRoute, route];
 
         await TestBed.configureTestingModule({
             imports: [
@@ -205,9 +265,8 @@ describe('UnifiedCollectionPageComponent', () => {
     });
 
     it('does not reload when local item state changes on empty playlist favorites', async () => {
-        route.snapshot.params = { id: 'playlist-1' };
-        route.snapshot.queryParams = { scope: 'playlist' };
-        route.snapshot.queryParamMap = convertToParamMap({ scope: 'playlist' });
+        setRouteParams({ id: 'playlist-1' });
+        setRouteQueryParams({ scope: 'playlist' });
         playlistsLoaded.set(true);
         playlists.set([
             {
@@ -238,5 +297,64 @@ describe('UnifiedCollectionPageComponent', () => {
         await fixture.whenStable();
 
         expect(favoritesData.getFavorites).toHaveBeenCalledTimes(1);
+    });
+
+    it('reloads favorites when the playlist id changes in place', async () => {
+        setRouteParams({ id: 'playlist-1' });
+        setRouteQueryParams({ scope: 'playlist' });
+        playlistsLoaded.set(true);
+        fixture.componentRef.setInput('portalType', 'm3u');
+        fixture.componentRef.setInput('defaultScope', undefined);
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        expect(favoritesData.getFavorites).toHaveBeenCalledTimes(1);
+        expect(favoritesData.getFavorites).toHaveBeenLastCalledWith(
+            'playlist',
+            'playlist-1',
+            'm3u'
+        );
+
+        setRouteParams({ id: 'playlist-2' });
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        expect(favoritesData.getFavorites).toHaveBeenCalledTimes(2);
+        expect(favoritesData.getFavorites).toHaveBeenLastCalledWith(
+            'playlist',
+            'playlist-2',
+            'm3u'
+        );
+    });
+
+    it('reloads recent items when the playlist id changes in place', async () => {
+        setRouteParams({ id: 'playlist-1' });
+        setRouteQueryParams({ scope: 'playlist' });
+        playlistsLoaded.set(true);
+        fixture.componentRef.setInput('mode', 'recent');
+        fixture.componentRef.setInput('portalType', 'm3u');
+        fixture.componentRef.setInput('defaultScope', undefined);
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        expect(recentData.getRecentItems).toHaveBeenCalledTimes(1);
+        expect(recentData.getRecentItems).toHaveBeenLastCalledWith(
+            'playlist',
+            'playlist-1',
+            'm3u'
+        );
+
+        setRouteParams({ id: 'playlist-2' });
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        expect(recentData.getRecentItems).toHaveBeenCalledTimes(2);
+        expect(recentData.getRecentItems).toHaveBeenLastCalledWith(
+            'playlist',
+            'playlist-2',
+            'm3u'
+        );
     });
 });

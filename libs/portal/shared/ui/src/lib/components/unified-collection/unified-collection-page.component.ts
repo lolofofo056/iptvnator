@@ -2,17 +2,13 @@ import {
     ChangeDetectionStrategy,
     Component,
     computed,
-    DestroyRef,
+    effect,
     inject,
-    Injector,
+    linkedSignal,
     input,
-    OnInit,
     signal,
+    untracked,
 } from '@angular/core';
-import {
-    takeUntilDestroyed,
-    toObservable,
-} from '@angular/core/rxjs-interop';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconButton } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -20,7 +16,6 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { ActivatedRoute } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslatePipe } from '@ngx-translate/core';
-import { distinctUntilChanged } from 'rxjs';
 import {
     clearNavigationStateKeys,
     CollectionContentType,
@@ -29,6 +24,7 @@ import {
     isWorkspaceLayoutRoute,
     OPEN_LIVE_COLLECTION_ITEM_STATE_KEY,
     queryParamSignal,
+    routeParamSignal,
     ScopeToggleService,
     UnifiedCollectionItem,
     UnifiedFavoritesDataService,
@@ -56,14 +52,15 @@ import { UnifiedGridTabComponent } from './unified-grid-tab.component';
         UnifiedLiveTabComponent,
     ],
 })
-export class UnifiedCollectionPageComponent implements OnInit {
+export class UnifiedCollectionPageComponent {
     readonly mode = input<'favorites' | 'recent'>('favorites');
     readonly portalType = input<string>();
+    readonly playlistIdInput = input<string | undefined>(undefined, {
+        alias: 'playlistId',
+    });
     readonly defaultScope = input<CollectionScope>();
 
     private readonly route = inject(ActivatedRoute);
-    private readonly destroyRef = inject(DestroyRef);
-    private readonly injector = inject(Injector);
     private readonly store = inject(Store);
     private readonly scopeService = inject(ScopeToggleService);
     private readonly favoritesData = inject(UnifiedFavoritesDataService);
@@ -73,10 +70,24 @@ export class UnifiedCollectionPageComponent implements OnInit {
         selectPlaylistsLoadingFlag
     );
     readonly isWorkspaceLayout = isWorkspaceLayoutRoute(this.route);
+    private readonly queryScope = queryParamSignal<CollectionScope | null>(
+        this.route,
+        'scope',
+        (value) =>
+            value === 'all' || value === 'playlist' ? value : null
+    );
     private readonly routeSearchTerm = queryParamSignal(
         this.route,
         'q',
         (value) => (value ?? '').trim()
+    );
+    private readonly routePlaylistId = routeParamSignal<string | undefined>(
+        this.route,
+        'id',
+        (value) => value ?? undefined
+    );
+    readonly playlistId = computed(
+        () => this.playlistIdInput() ?? this.routePlaylistId()
     );
     readonly workspaceSearchTerm = computed(() =>
         this.isWorkspaceLayout ? this.routeSearchTerm() : ''
@@ -92,19 +103,27 @@ export class UnifiedCollectionPageComponent implements OnInit {
     readonly skeletonRows = Array.from({ length: 12 }, (_, i) => i);
     readonly skeletonCards = Array.from({ length: 8 }, (_, i) => i);
 
-    readonly playlistId = computed(() => {
-        let current = this.route.snapshot;
-        while (current) {
-            if (current.params['id']) {
-                return current.params['id'] as string;
-            }
-            current = current.parent!;
-        }
-        return undefined;
-    });
-
     readonly scopeKey = computed(() => this.mode());
-    readonly scope = signal<CollectionScope>('playlist');
+    private readonly persistedScope = computed(() =>
+        this.scopeService.getScope(this.scopeKey())()
+    );
+    readonly scope = linkedSignal<CollectionScope>(() => {
+        if (!this.showScopeToggle()) {
+            return 'all';
+        }
+
+        const queryScope = this.queryScope();
+        if (queryScope) {
+            return queryScope;
+        }
+
+        const defaultScope = this.defaultScope();
+        if (defaultScope) {
+            return defaultScope;
+        }
+
+        return this.persistedScope();
+    });
     readonly showScopeToggle = computed(() => Boolean(this.playlistId()));
     readonly effectiveScope = computed<CollectionScope>(() =>
         this.showScopeToggle() ? this.scope() : 'all'
@@ -171,45 +190,17 @@ export class UnifiedCollectionPageComponent implements OnInit {
 
     private loadRequestId = 0;
 
-    ngOnInit(): void {
-        const queryScope = this.route.snapshot.queryParams['scope'] as
-            | CollectionScope
-            | undefined;
-        if (
-            this.showScopeToggle() &&
-            (queryScope === 'all' || queryScope === 'playlist')
-        ) {
-            this.scope.set(queryScope);
-        } else if (this.defaultScope()) {
-            this.scope.set(this.defaultScope()!);
-        } else {
-            const persisted = this.scopeService.getScope(this.scopeKey());
-            this.scope.set(persisted());
-        }
-
-        toObservable(this.loadRequest, {
-            injector: this.injector,
-        })
-            .pipe(
-                distinctUntilChanged(
-                    (previous, current) =>
-                        previous.mode === current.mode &&
-                        previous.portalType === current.portalType &&
-                        previous.playlistId === current.playlistId &&
-                        previous.scope === current.scope &&
-                        previous.reloadKey === current.reloadKey
-                ),
-                takeUntilDestroyed(this.destroyRef)
-            )
-            .subscribe(({ mode, portalType, playlistId, scope }) => {
-                void this.loadData({
-                    mode,
-                    portalType,
-                    playlistId,
-                    scope,
-                });
+    private readonly loadEffect = effect(() => {
+        const { mode, portalType, playlistId, scope } = this.loadRequest();
+        untracked(() => {
+            void this.loadData({
+                mode,
+                portalType,
+                playlistId,
+                scope,
             });
-    }
+        });
+    });
 
     onScopeChange(value: CollectionScope): void {
         if (!this.showScopeToggle()) {
