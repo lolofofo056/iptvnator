@@ -21,6 +21,10 @@ const ACTIVE_PLAYLIST: PlaylistMeta = {
     title: 'Test Xtream',
     username: 'user1',
 } as PlaylistMeta;
+const UPDATED_ACTIVE_PLAYLIST: PlaylistMeta = {
+    ...ACTIVE_PLAYLIST,
+    serverUrl: 'http://localhost:65530',
+} as PlaylistMeta;
 
 const XTREAM_PLAYLIST: XtreamPlaylistData = {
     id: PLAYLIST_ID,
@@ -56,6 +60,7 @@ describe('XtreamWorkspaceRouteSession', () => {
     const selectedContentType = signal<'live' | 'vod' | 'series'>('vod');
     const contentInitBlockReason =
         signal<XtreamContentInitBlockReason | null>(null);
+    let hasUsableOfflineCache = false;
 
     const playlistContext = {
         routeProvider,
@@ -78,6 +83,9 @@ describe('XtreamWorkspaceRouteSession', () => {
         }),
         fetchXtreamPlaylist: jest.fn().mockResolvedValue(undefined),
         checkPortalStatus: jest.fn(),
+        hasUsableOfflineCache: jest.fn().mockImplementation(async () => {
+            return hasUsableOfflineCache;
+        }),
         contentInitBlockReason,
         initializeContent: jest.fn().mockResolvedValue(undefined),
         setSelectedContentType: jest.fn(
@@ -107,6 +115,7 @@ describe('XtreamWorkspaceRouteSession', () => {
         portalStatus.set('active');
         selectedContentType.set('vod');
         contentInitBlockReason.set(null);
+        hasUsableOfflineCache = false;
 
         playlistContext.syncFromUrl.mockImplementation((url: string) => ({
             inWorkspace: true,
@@ -126,6 +135,7 @@ describe('XtreamWorkspaceRouteSession', () => {
         xtreamStore.setCurrentPlaylist.mockClear();
         xtreamStore.fetchXtreamPlaylist.mockClear();
         xtreamStore.checkPortalStatus.mockReset();
+        xtreamStore.hasUsableOfflineCache.mockClear();
         xtreamStore.initializeContent.mockClear();
         xtreamStore.setSelectedContentType.mockClear();
         xtreamStore.setContentInitBlockReason.mockClear();
@@ -200,6 +210,47 @@ describe('XtreamWorkspaceRouteSession', () => {
             expect(xtreamStore.initializeContent).not.toHaveBeenCalled();
         }
     );
+
+    it('allows unavailable portals to initialize cached content', async () => {
+        hasUsableOfflineCache = true;
+        activePlaylist.set(UPDATED_ACTIVE_PLAYLIST);
+        xtreamStore.checkPortalStatus.mockImplementation(async () => {
+            portalStatus.set('unavailable');
+            return 'unavailable';
+        });
+
+        TestBed.inject(XtreamWorkspaceRouteSession);
+        await flushEffects();
+        await flushEffects();
+
+        expect(xtreamStore.checkPortalStatus).toHaveBeenCalled();
+        expect(xtreamStore.hasUsableOfflineCache).toHaveBeenCalled();
+        expect(xtreamStore.setContentInitBlockReason).toHaveBeenCalledWith(
+            null
+        );
+        expect(xtreamStore.initializeContent).toHaveBeenCalled();
+    });
+
+    it('rebootstraps the current Xtream playlist when its connection details change', async () => {
+        activePlaylist.set(UPDATED_ACTIVE_PLAYLIST);
+        xtreamStore.checkPortalStatus.mockImplementation(async () => {
+            portalStatus.set('active');
+            return 'active';
+        });
+
+        TestBed.inject(XtreamWorkspaceRouteSession);
+        await flushEffects();
+        await flushEffects();
+
+        expect(xtreamStore.resetStore).toHaveBeenCalledWith(PLAYLIST_ID);
+        expect(xtreamStore.setCurrentPlaylist).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: PLAYLIST_ID,
+                serverUrl: UPDATED_ACTIVE_PLAYLIST.serverUrl,
+            })
+        );
+        expect(xtreamStore.checkPortalStatus).toHaveBeenCalled();
+    });
 
     it('does not clear a cancelled block while an active portal bootstrap finishes', async () => {
         xtreamStore.checkPortalStatus.mockImplementation(async () => {

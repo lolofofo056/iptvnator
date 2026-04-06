@@ -68,6 +68,48 @@ function toContentInitBlockReason(
     }
 }
 
+function hasPlaylistConnectionChanges(
+    currentPlaylist: XtreamPlaylistData | null,
+    nextPlaylist: XtreamPlaylistData | null
+): boolean {
+    if (!currentPlaylist || !nextPlaylist) {
+        return false;
+    }
+
+    return (
+        currentPlaylist.serverUrl !== nextPlaylist.serverUrl ||
+        currentPlaylist.username !== nextPlaylist.username ||
+        currentPlaylist.password !== nextPlaylist.password ||
+        currentPlaylist.userAgent !== nextPlaylist.userAgent ||
+        currentPlaylist.referrer !== nextPlaylist.referrer ||
+        currentPlaylist.origin !== nextPlaylist.origin
+    );
+}
+
+function getXtreamRouteCategoryId(
+    url: string,
+    section: PortalRailSection | null
+): number | null {
+    if (
+        section !== 'live' &&
+        section !== 'vod' &&
+        section !== 'series'
+    ) {
+        return null;
+    }
+
+    const path = url.split('?')[0] ?? '';
+    const segments = path.split('/').filter(Boolean);
+    const categorySegment = segments[4];
+
+    if (!categorySegment) {
+        return null;
+    }
+
+    const categoryId = Number(categorySegment);
+    return Number.isNaN(categoryId) ? null : categoryId;
+}
+
 @Injectable()
 export class XtreamWorkspaceRouteSession {
     private readonly destroyRef = inject(DestroyRef);
@@ -150,7 +192,8 @@ export class XtreamWorkspaceRouteSession {
             playlistId &&
                 routePlaylist &&
                 (currentPlaylist?.id !== playlistId ||
-                    this.currentPlaylistUpdateDate !== routePlaylistUpdateDate)
+                    this.currentPlaylistUpdateDate !== routePlaylistUpdateDate ||
+                    hasPlaylistConnectionChanges(currentPlaylist, routePlaylist))
         );
         let portalStatus = this.xtreamStore.portalStatus();
 
@@ -168,7 +211,14 @@ export class XtreamWorkspaceRouteSession {
 
             await this.xtreamStore.fetchXtreamPlaylist();
             portalStatus = await this.xtreamStore.checkPortalStatus();
-            const nextBlockReason = toContentInitBlockReason(portalStatus);
+            const hasUsableOfflineCache =
+                portalStatus === 'unavailable'
+                    ? await this.xtreamStore.hasUsableOfflineCache()
+                    : false;
+            const nextBlockReason =
+                portalStatus === 'unavailable' && hasUsableOfflineCache
+                    ? null
+                    : toContentInitBlockReason(portalStatus);
             const currentBlockReason =
                 this.xtreamStore.contentInitBlockReason();
 
@@ -182,7 +232,16 @@ export class XtreamWorkspaceRouteSession {
 
         const section = this.syncRouteState(routeSection);
 
-        if (isImportDrivenSection(section) && portalStatus !== 'active') {
+        const canUseOfflineCache =
+            portalStatus === 'unavailable'
+                ? await this.xtreamStore.hasUsableOfflineCache()
+                : false;
+
+        if (
+            isImportDrivenSection(section) &&
+            portalStatus !== 'active' &&
+            !canUseOfflineCache
+        ) {
             return;
         }
 
@@ -199,6 +258,10 @@ export class XtreamWorkspaceRouteSession {
         if (section === 'vod' || section === 'live' || section === 'series') {
             this.xtreamStore.setSelectedContentType(section);
         }
+
+        this.xtreamStore.setSelectedCategory(
+            getXtreamRouteCategoryId(this.router.url, section)
+        );
 
         return section;
     }
