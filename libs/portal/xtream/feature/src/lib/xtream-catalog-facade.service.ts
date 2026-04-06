@@ -29,6 +29,7 @@ export class XtreamCatalogFacadeService
 {
     private readonly xtreamStore = inject(XtreamStore);
     private savedPageBeforeDetail: number | null = null;
+    private loadedPositionsPlaylistId: string | null = null;
     private readonly routeSearchQuery = signal('');
 
     readonly provider = 'xtream' as const;
@@ -135,7 +136,8 @@ export class XtreamCatalogFacadeService
         }
 
         const playlistId = this.xtreamStore.currentPlaylist()?.id;
-        if (playlistId) {
+        if (playlistId && this.loadedPositionsPlaylistId !== playlistId) {
+            this.loadedPositionsPlaylistId = playlistId;
             this.xtreamStore.loadAllPositions(playlistId);
         }
 

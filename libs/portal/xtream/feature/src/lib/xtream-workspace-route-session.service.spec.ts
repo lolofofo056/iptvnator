@@ -35,6 +35,12 @@ const XTREAM_PLAYLIST: XtreamPlaylistData = {
     password: 'secret',
     type: 'xtream',
 };
+const XTREAM_PLAYLIST_WITH_NULL_OPTIONALS = {
+    ...XTREAM_PLAYLIST,
+    origin: null,
+    referrer: null,
+    userAgent: null,
+} as XtreamPlaylistData;
 
 async function flushEffects(): Promise<void> {
     await Promise.resolve();
@@ -59,6 +65,7 @@ describe('XtreamWorkspaceRouteSession', () => {
     const portalStatus = signal<PortalStatusType>('active');
     const selectedContentType = signal<'live' | 'vod' | 'series'>('vod');
     const selectedCategoryId = signal<number | null>(null);
+    const isContentInitialized = signal(false);
     const contentInitBlockReason =
         signal<XtreamContentInitBlockReason | null>(null);
     let hasUsableOfflineCache = false;
@@ -78,6 +85,7 @@ describe('XtreamWorkspaceRouteSession', () => {
             playlistId.set(nextPlaylistId ?? null);
             currentPlaylist.set(null);
             selectedContentType.set('vod');
+            isContentInitialized.set(false);
         }),
         setCurrentPlaylist: jest.fn((playlist: XtreamPlaylistData | null) => {
             currentPlaylist.set(playlist);
@@ -87,8 +95,11 @@ describe('XtreamWorkspaceRouteSession', () => {
         hasUsableOfflineCache: jest.fn().mockImplementation(async () => {
             return hasUsableOfflineCache;
         }),
+        isContentInitialized,
         contentInitBlockReason,
-        initializeContent: jest.fn().mockResolvedValue(undefined),
+        initializeContent: jest.fn().mockImplementation(async () => {
+            isContentInitialized.set(true);
+        }),
         setSelectedContentType: jest.fn(
             (type: 'live' | 'vod' | 'series') => {
                 selectedContentType.set(type);
@@ -114,11 +125,12 @@ describe('XtreamWorkspaceRouteSession', () => {
         routeProvider.set('xtreams');
         routePlaylistId.set(PLAYLIST_ID);
         activePlaylist.set(ACTIVE_PLAYLIST);
-        currentPlaylist.set(XTREAM_PLAYLIST);
-        playlistId.set(PLAYLIST_ID);
+        currentPlaylist.set(null);
+        playlistId.set(null);
         portalStatus.set('active');
         selectedContentType.set('vod');
         selectedCategoryId.set(null);
+        isContentInitialized.set(false);
         contentInitBlockReason.set(null);
         hasUsableOfflineCache = false;
 
@@ -198,6 +210,73 @@ describe('XtreamWorkspaceRouteSession', () => {
         ).toBeGreaterThan(xtreamStore.resetStore.mock.invocationCallOrder[0]);
     });
 
+    it('does not bootstrap again when the store already holds the active playlist', async () => {
+        router.url = `/workspace/xtreams/${PLAYLIST_ID}/vod/101`;
+        currentPlaylist.set(XTREAM_PLAYLIST);
+        playlistId.set(PLAYLIST_ID);
+        isContentInitialized.set(true);
+
+        TestBed.inject(XtreamWorkspaceRouteSession);
+        await flushEffects();
+
+        expect(xtreamStore.setSelectedContentType).toHaveBeenCalledWith('vod');
+        expect(xtreamStore.setSelectedCategory).toHaveBeenCalledWith(101);
+        expect(xtreamStore.resetStore).not.toHaveBeenCalled();
+        expect(xtreamStore.fetchXtreamPlaylist).not.toHaveBeenCalled();
+        expect(xtreamStore.checkPortalStatus).not.toHaveBeenCalled();
+        expect(xtreamStore.initializeContent).not.toHaveBeenCalled();
+    });
+
+    it('does not treat null and undefined Xtream connection metadata as a playlist change', async () => {
+        router.url = `/workspace/xtreams/${PLAYLIST_ID}/vod/101`;
+        currentPlaylist.set(XTREAM_PLAYLIST_WITH_NULL_OPTIONALS);
+        playlistId.set(PLAYLIST_ID);
+        isContentInitialized.set(true);
+
+        TestBed.inject(XtreamWorkspaceRouteSession);
+        await flushEffects();
+
+        expect(xtreamStore.resetStore).not.toHaveBeenCalled();
+        expect(xtreamStore.fetchXtreamPlaylist).not.toHaveBeenCalled();
+        expect(xtreamStore.checkPortalStatus).not.toHaveBeenCalled();
+        expect(xtreamStore.initializeContent).not.toHaveBeenCalled();
+    });
+
+    it('does not reinitialize content when switching categories in an initialized playlist', async () => {
+        router.url = `/workspace/xtreams/${PLAYLIST_ID}/vod/101`;
+        xtreamStore.checkPortalStatus.mockImplementation(async () => {
+            portalStatus.set('active');
+            return 'active';
+        });
+
+        TestBed.inject(XtreamWorkspaceRouteSession);
+        await flushEffects();
+        await flushEffects();
+
+        expect(isContentInitialized()).toBe(true);
+
+        xtreamStore.resetStore.mockClear();
+        xtreamStore.fetchXtreamPlaylist.mockClear();
+        xtreamStore.checkPortalStatus.mockClear();
+        xtreamStore.initializeContent.mockClear();
+        xtreamStore.setSelectedContentType.mockClear();
+        xtreamStore.setSelectedCategory.mockClear();
+
+        router.url = `/workspace/xtreams/${PLAYLIST_ID}/vod/202`;
+        routerEvents.next(
+            new NavigationEnd(1, router.url, router.url)
+        );
+        await flushEffects();
+
+        expect(xtreamStore.setSelectedContentType).toHaveBeenCalledWith('vod');
+        expect(xtreamStore.setSelectedCategory).toHaveBeenCalledWith(202);
+        expect(selectedCategoryId()).toBe(202);
+        expect(xtreamStore.resetStore).not.toHaveBeenCalled();
+        expect(xtreamStore.fetchXtreamPlaylist).not.toHaveBeenCalled();
+        expect(xtreamStore.checkPortalStatus).not.toHaveBeenCalled();
+        expect(xtreamStore.initializeContent).not.toHaveBeenCalled();
+    });
+
     it.each(['expired', 'inactive', 'unavailable'] as const)(
         'blocks %s portals before import-driven initialization starts',
         async (status) => {
@@ -239,6 +318,8 @@ describe('XtreamWorkspaceRouteSession', () => {
 
     it('rebootstraps the current Xtream playlist when its connection details change', async () => {
         activePlaylist.set(UPDATED_ACTIVE_PLAYLIST);
+        currentPlaylist.set(XTREAM_PLAYLIST);
+        playlistId.set(PLAYLIST_ID);
         xtreamStore.checkPortalStatus.mockImplementation(async () => {
             portalStatus.set('active');
             return 'active';

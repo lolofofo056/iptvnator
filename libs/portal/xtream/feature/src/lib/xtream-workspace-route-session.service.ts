@@ -76,13 +76,39 @@ function hasPlaylistConnectionChanges(
         return false;
     }
 
+    const currentUserAgent = currentPlaylist.userAgent ?? null;
+    const nextUserAgent = nextPlaylist.userAgent ?? null;
+    const currentReferrer = currentPlaylist.referrer ?? null;
+    const nextReferrer = nextPlaylist.referrer ?? null;
+    const currentOrigin = currentPlaylist.origin ?? null;
+    const nextOrigin = nextPlaylist.origin ?? null;
+
     return (
         currentPlaylist.serverUrl !== nextPlaylist.serverUrl ||
         currentPlaylist.username !== nextPlaylist.username ||
         currentPlaylist.password !== nextPlaylist.password ||
-        currentPlaylist.userAgent !== nextPlaylist.userAgent ||
-        currentPlaylist.referrer !== nextPlaylist.referrer ||
-        currentPlaylist.origin !== nextPlaylist.origin
+        currentUserAgent !== nextUserAgent ||
+        currentReferrer !== nextReferrer ||
+        currentOrigin !== nextOrigin
+    );
+}
+
+function shouldBootstrapXtreamPlaylist(
+    playlistId: string | null,
+    routePlaylist: XtreamPlaylistData | null,
+    storePlaylistId: string | null,
+    currentPlaylist: XtreamPlaylistData | null
+): boolean {
+    const currentPlaylistUpdateDate = currentPlaylist?.updateDate ?? null;
+    const routePlaylistUpdateDate = routePlaylist?.updateDate ?? null;
+
+    return Boolean(
+        playlistId &&
+            routePlaylist &&
+            (storePlaylistId !== playlistId ||
+                currentPlaylist?.id !== playlistId ||
+                currentPlaylistUpdateDate !== routePlaylistUpdateDate ||
+                hasPlaylistConnectionChanges(currentPlaylist, routePlaylist))
     );
 }
 
@@ -117,8 +143,6 @@ export class XtreamWorkspaceRouteSession {
     private readonly router = inject(Router);
     private readonly xtreamStore = inject(XtreamStore);
 
-    private currentPlaylistId: string | null = null;
-    private currentPlaylistUpdateDate: number | null = null;
     private syncInFlight = false;
     private syncPending = false;
 
@@ -186,26 +210,20 @@ export class XtreamWorkspaceRouteSession {
             routeContext.provider === 'xtreams'
                 ? toXtreamPlaylistData(this.playlistContext.activePlaylist())
                 : null;
+        const storePlaylistId = this.xtreamStore.playlistId();
         const currentPlaylist = this.xtreamStore.currentPlaylist();
-        const routePlaylistUpdateDate = routePlaylist?.updateDate ?? null;
-        const needsPlaylistBootstrap = Boolean(
-            playlistId &&
-                routePlaylist &&
-                (currentPlaylist?.id !== playlistId ||
-                    this.currentPlaylistUpdateDate !== routePlaylistUpdateDate ||
-                    hasPlaylistConnectionChanges(currentPlaylist, routePlaylist))
+        const shouldBootstrapPlaylist = shouldBootstrapXtreamPlaylist(
+            playlistId,
+            routePlaylist,
+            storePlaylistId,
+            currentPlaylist
         );
         let portalStatus = this.xtreamStore.portalStatus();
+        let didBootstrapPlaylist = false;
 
-        if (
-            playlistId &&
-            (this.currentPlaylistId !== playlistId || needsPlaylistBootstrap)
-        ) {
-            if (this.currentPlaylistId !== playlistId || needsPlaylistBootstrap) {
-                this.xtreamStore.resetStore(playlistId);
-                this.currentPlaylistId = playlistId;
-                this.currentPlaylistUpdateDate = routePlaylistUpdateDate;
-            }
+        if (playlistId && shouldBootstrapPlaylist) {
+            this.xtreamStore.resetStore(playlistId);
+            didBootstrapPlaylist = true;
 
             this.xtreamStore.setCurrentPlaylist(routePlaylist);
 
@@ -245,7 +263,10 @@ export class XtreamWorkspaceRouteSession {
             return;
         }
 
-        await this.initializeCurrentSectionContent(section);
+        await this.initializeCurrentSectionContent(
+            section,
+            didBootstrapPlaylist
+        );
     }
 
     private syncRouteState(
@@ -267,7 +288,8 @@ export class XtreamWorkspaceRouteSession {
     }
 
     private async initializeCurrentSectionContent(
-        section: PortalRailSection | null
+        section: PortalRailSection | null,
+        didBootstrapPlaylist: boolean
     ): Promise<void> {
         const playlist = this.xtreamStore.currentPlaylist();
         const playlistId = this.xtreamStore.playlistId();
@@ -277,7 +299,8 @@ export class XtreamWorkspaceRouteSession {
         }
 
         if (
-            isImportDrivenSection(section)
+            isImportDrivenSection(section) &&
+            (didBootstrapPlaylist || !this.xtreamStore.isContentInitialized())
         ) {
             await this.xtreamStore.initializeContent();
         }
