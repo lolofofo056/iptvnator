@@ -58,6 +58,7 @@ describe('XtreamWorkspaceRouteSession', () => {
     const playlistId = signal<string | null>(PLAYLIST_ID);
     const portalStatus = signal<PortalStatusType>('active');
     const selectedContentType = signal<'live' | 'vod' | 'series'>('vod');
+    const selectedCategoryId = signal<number | null>(null);
     const contentInitBlockReason =
         signal<XtreamContentInitBlockReason | null>(null);
     let hasUsableOfflineCache = false;
@@ -93,6 +94,9 @@ describe('XtreamWorkspaceRouteSession', () => {
                 selectedContentType.set(type);
             }
         ),
+        setSelectedCategory: jest.fn((categoryId: number | null) => {
+            selectedCategoryId.set(categoryId);
+        }),
         setContentInitBlockReason: jest.fn(
             (reason: XtreamContentInitBlockReason | null) => {
                 contentInitBlockReason.set(reason);
@@ -114,6 +118,7 @@ describe('XtreamWorkspaceRouteSession', () => {
         playlistId.set(PLAYLIST_ID);
         portalStatus.set('active');
         selectedContentType.set('vod');
+        selectedCategoryId.set(null);
         contentInitBlockReason.set(null);
         hasUsableOfflineCache = false;
 
@@ -138,6 +143,7 @@ describe('XtreamWorkspaceRouteSession', () => {
         xtreamStore.hasUsableOfflineCache.mockClear();
         xtreamStore.initializeContent.mockClear();
         xtreamStore.setSelectedContentType.mockClear();
+        xtreamStore.setSelectedCategory.mockClear();
         xtreamStore.setContentInitBlockReason.mockClear();
 
         await TestBed.configureTestingModule({
