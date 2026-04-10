@@ -252,6 +252,34 @@ class EpgService {
 - Multi-EPG modal view
 - Channel info overlay
 - External player support (MPV, VLC) in Electron
+- M3U archive/catch-up playback for supported replay schemes
+
+### Archive / Catch-Up Playback
+
+- The shared EPG UI only shows the archive replay badge when the host confirms
+  that the selected M3U channel has a playable replay scheme. Archive days
+  alone are not enough.
+- M3U catch-up support is resolved in `m3u-utils` from channel metadata and
+  the archived program start time.
+- Supported replay precedence:
+  1. `catchup.source` if it is an HTTP(S) URL. IPTVNator rewrites or appends
+     standard `utc` and `lutc` query params on that URL.
+  2. Legacy same-stream shift playback when `catchup.type === 'shift'`. In
+     that case IPTVNator rewrites or appends `utc` and `lutc` on `channel.url`.
+  3. Legacy same-stream shift fallback when no explicit catch-up mode is
+     declared, archive-day metadata exists (`tvg.rec`, `timeshift`, or
+     `catchup.days`), and `channel.url` itself is an HTTP(S) stream URL. This
+     covers providers that only advertise archive retention such as
+     `tvg-rec="7"` but still expect standard `utc` and `lutc` query params on
+     the live URL.
+- `tvg.rec`, `timeshift`, and `catchup.days` still define the archive window
+  shown in the EPG, but replay remains unavailable when the provider declares a
+  different explicit catch-up scheme that IPTVNator does not understand or when
+  the stream URL itself is not an HTTP(S) replay target.
+- Active replay is stored separately from the selected channel in
+  `playlistState.activePlaybackUrl`. Inline and external players use
+  `activePlaybackUrl ?? activeChannel.url`, and returning to live playback
+  clears the override.
 
 ## Interfaces
 
@@ -272,11 +300,24 @@ interface Channel {
     epgParams?: string;
     timeshift?: string;
     catchup?: { type?: string; source?: string; days?: string };
+    radio: string;
     http: {
         referrer: string;
         'user-agent': string;
         origin: string;
     };
+}
+```
+
+### Playlist State Additions
+
+```typescript
+interface PlaylistState {
+    active: Channel | undefined;
+    activePlaybackUrl: string | null;
+    currentEpgProgram: EpgProgram | undefined;
+    epgAvailable: boolean;
+    channels: Channel[];
 }
 ```
 
