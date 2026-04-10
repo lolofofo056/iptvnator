@@ -5,6 +5,7 @@ import { EpgProgram } from 'shared-interfaces';
 
 export interface PlaylistState {
     active: Channel | undefined;
+    activePlaybackUrl: string | null;
     currentEpgProgram: EpgProgram | undefined;
     epgAvailable: boolean;
     channels: Channel[]; // TODO: use entity store
@@ -13,6 +14,7 @@ export interface PlaylistState {
 
 export const initialState: PlaylistState = {
     active: undefined,
+    activePlaybackUrl: null,
     currentEpgProgram: undefined,
     epgAvailable: false,
     channels: [],

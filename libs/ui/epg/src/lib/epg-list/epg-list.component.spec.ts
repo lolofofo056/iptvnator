@@ -20,8 +20,8 @@ let requestAnimationFrameQueue: FrameRequestCallback[] = [];
 })
 class StubEpgListItemComponent {
     readonly item = input<EpgProgram>();
-    readonly timeNow = input('');
-    readonly timeshiftUntil = input('');
+    readonly isLive = input(false);
+    readonly showArchiveBadge = input(false);
 }
 
 describe('EpgListComponent', () => {
@@ -213,6 +213,30 @@ describe('EpgListComponent', () => {
         flushAnimationFrames();
 
         expect(scrollToSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows archived rows as clickable only when archive playback is supported', () => {
+        const programs = buildPrograms();
+        fixture.componentRef.setInput('controlledPrograms', programs);
+        fixture.componentRef.setInput('archivePlaybackAvailable', false);
+
+        fixture.detectChanges();
+
+        expect(component.canActivateProgram(programs[0])).toBe(false);
+        expect(component.canActivateProgram(programs[1])).toBe(true);
+        expect(
+            fixture.nativeElement.querySelectorAll('.program-item.clickable')
+                .length
+        ).toBe(1);
+
+        fixture.componentRef.setInput('archivePlaybackAvailable', true);
+        fixture.detectChanges();
+
+        expect(component.canActivateProgram(programs[0])).toBe(true);
+        expect(
+            fixture.nativeElement.querySelectorAll('.program-item.clickable')
+                .length
+        ).toBe(2);
     });
 });
 

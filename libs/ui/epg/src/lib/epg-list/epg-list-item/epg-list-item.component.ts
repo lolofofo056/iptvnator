@@ -19,11 +19,11 @@ export class EpgListItemComponent {
     /** EPG Program to render */
     @Input() item!: EpgProgram;
 
-    /** Actual time */
-    @Input() timeNow!: string;
+    /** Whether the program is currently live */
+    @Input() isLive = false;
 
-    /** Aviability of the timeshift function until date */
-    @Input() timeshiftUntil!: string;
+    /** Whether archive playback is available for the program */
+    @Input() showArchiveBadge = false;
 
     /**
      * Opens the dialog with details about the selected program

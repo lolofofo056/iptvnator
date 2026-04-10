@@ -48,6 +48,7 @@ export class EpgListComponent {
     readonly controlledChannel = input<Channel | null>(null);
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
+    readonly archivePlaybackAvailable = input<boolean | null>(null);
     readonly programActivated = output<EpgProgramActivationEvent>();
 
     private readonly store = inject(Store);
@@ -64,7 +65,7 @@ export class EpgListComponent {
     readonly programList = viewChild<ElementRef<HTMLElement>>('programList');
     readonly selectedDate = signal(moment().format(DATE_FORMAT));
     readonly timeNow = signal(new Date().toISOString());
-    readonly todayDate = signal(moment().format(DATE_FORMAT));
+    readonly currentTimeMs = computed(() => Date.parse(this.timeNow()));
 
     readonly isControlled = computed(
         () =>
@@ -106,6 +107,9 @@ export class EpgListComponent {
             .subtract(this.archiveDays(), 'days')
             .toISOString()
     );
+    readonly archivePlaybackEnabled = computed(
+        () => this.archivePlaybackAvailable() ?? (this.archiveDays() > 0)
+    );
     readonly filteredItems = computed(() =>
         [...this.items()]
             .filter(
@@ -136,9 +140,7 @@ export class EpgListComponent {
         effect(() => {
             const programs = this.items();
             const channel = this.displayChannel();
-
-            this.timeNow.set(new Date().toISOString());
-            this.todayDate.set(moment().format(DATE_FORMAT));
+            this.currentTimeMs();
 
             if (!this.isControlled()) {
                 this.store.dispatch(
@@ -182,7 +184,7 @@ export class EpgListComponent {
 
     activateProgram(program: EpgProgram): void {
         const isLive = this.isProgramPlaying(program);
-        const isTimeshift = this.isProgramArchived(program);
+        const isTimeshift = this.canPlayArchivedProgram(program);
 
         if (!isLive && !isTimeshift) {
             return;
@@ -198,7 +200,7 @@ export class EpgListComponent {
         }
 
         if (isLive) {
-            this.store.dispatch(EpgActions.resetActiveEpgProgram());
+            this.store.dispatch(EpgActions.returnToLivePlayback());
         } else {
             this.store.dispatch(EpgActions.setActiveEpgProgram({ program }));
         }
@@ -207,11 +209,17 @@ export class EpgListComponent {
     }
 
     canActivateProgram(program: EpgProgram): boolean {
-        return this.isProgramPlaying(program) || this.isProgramArchived(program);
+        return (
+            this.isProgramPlaying(program) || this.canPlayArchivedProgram(program)
+        );
+    }
+
+    canPlayArchivedProgram(program: EpgProgram): boolean {
+        return this.archivePlaybackEnabled() && this.isProgramArchived(program);
     }
 
     calculateProgress(program: EpgProgram): number {
-        const now = Date.now();
+        const now = this.currentTimeMs();
         const start = getProgramTimeMs(program.start, program.startTimestamp);
         const stop = getProgramTimeMs(program.stop, program.stopTimestamp);
         const total = stop - start;
@@ -221,7 +229,7 @@ export class EpgListComponent {
     }
 
     isProgramPlaying(program: EpgProgram): boolean {
-        const now = Date.now();
+        const now = this.currentTimeMs();
         const start = getProgramTimeMs(program.start, program.startTimestamp);
         const stop = getProgramTimeMs(program.stop, program.stopTimestamp);
         return now >= start && now <= stop;
@@ -232,7 +240,7 @@ export class EpgListComponent {
             return false;
         }
 
-        const now = Date.now();
+        const now = this.currentTimeMs();
         const start = getProgramTimeMs(program.start, program.startTimestamp);
         const stop = getProgramTimeMs(program.stop, program.stopTimestamp);
         const archiveLimit = Date.parse(this.timeshiftUntil());
@@ -241,7 +249,7 @@ export class EpgListComponent {
     }
 
     private findCurrentProgram(programs: EpgProgram[]): EpgProgram | undefined {
-        const now = Date.now();
+        const now = this.currentTimeMs();
         return programs.find((program) => {
             const start = getProgramTimeMs(
                 program.start,

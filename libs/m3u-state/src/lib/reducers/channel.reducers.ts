@@ -11,6 +11,7 @@ export const channelReducers = [
             return {
                 ...state,
                 active: { ...channel, epgParams: '' } as Channel,
+                activePlaybackUrl: null,
             };
         }
     ),
@@ -18,6 +19,7 @@ export const channelReducers = [
         return {
             ...state,
             active: undefined,
+            activePlaybackUrl: null,
         };
     }),
     on(ChannelActions.setChannels, (state, action): PlaylistState => {

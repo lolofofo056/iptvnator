@@ -4,7 +4,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MomentDatePipe } from '@iptvnator/pipes';
-import { TranslateModule } from '@ngx-translate/core';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import moment from 'moment';
 import { MockModule, MockPipe } from 'ng-mocks';
 import { EpgProgram } from 'shared-interfaces';
@@ -59,6 +59,7 @@ describe('EpgListItemComponent', () => {
     let component: EpgListItemComponent;
     let fixture: ComponentFixture<EpgListItemComponent>;
     let dialog: MatDialog;
+    let translate: TranslateService;
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
@@ -76,6 +77,20 @@ describe('EpgListItemComponent', () => {
     beforeEach(() => {
         fixture = TestBed.createComponent(EpgListItemComponent);
         dialog = TestBed.inject(MatDialog);
+        translate = TestBed.inject(TranslateService);
+        translate.setTranslation(
+            'en',
+            {
+                EPG: {
+                    TIMESHIFT_AVAILABLE: 'Archive playback is available',
+                },
+                XTREAM: {
+                    PLAY: 'Play',
+                },
+            },
+            true
+        );
+        translate.use('en');
         component = fixture.componentInstance;
         component.item = EPG_PROGRAM_ITEM;
         fixture.detectChanges();
@@ -93,5 +108,22 @@ describe('EpgListItemComponent', () => {
             data: {},
             width: '800px',
         });
+    });
+
+    it('renders an archive playback chip with replay icon and label', () => {
+        fixture = TestBed.createComponent(EpgListItemComponent);
+        component = fixture.componentInstance;
+        component.item = EPG_PROGRAM_ITEM;
+        component.showArchiveBadge = true;
+        fixture.detectChanges();
+
+        const chip = fixture.nativeElement.querySelector('.archive-playback');
+        const icon = fixture.nativeElement.querySelector(
+            '.archive-playback__icon'
+        );
+
+        expect(chip).not.toBeNull();
+        expect(chip.textContent).toContain('Play');
+        expect(icon.textContent.trim()).toBe('replay');
     });
 });

@@ -1,13 +1,13 @@
 import { inject } from '@angular/core';
 import { signalStoreFeature, withMethods } from '@ngrx/signals';
 import { DataService } from 'services';
-import { StalkerSessionService } from '../../stalker-session.service';
 import {
     EpgItem,
     Playlist,
     STALKER_REQUEST,
     StalkerPortalActions,
 } from 'shared-interfaces';
+import { StalkerSessionService } from '../../stalker-session.service';
 
 interface EpgStoreContext {
     currentPlaylist(): Playlist | undefined;
@@ -66,18 +66,18 @@ export function withStalkerEpg() {
                         } else {
                             response =
                                 await dataService.sendIpcEvent<StalkerEpgResponse>(
-                                STALKER_REQUEST,
-                                {
-                                    url: playlist.portalUrl,
-                                    macAddress: playlist.macAddress,
-                                    params: queryParams,
-                                }
-                            );
+                                    STALKER_REQUEST,
+                                    {
+                                        url: playlist.portalUrl,
+                                        macAddress: playlist.macAddress,
+                                        params: queryParams,
+                                    }
+                                );
                         }
 
                         const epgData = Array.isArray(response?.js)
                             ? response.js
-                            : response?.js?.data ?? [];
+                            : (response?.js?.data ?? []);
                         const items = Array.isArray(epgData) ? epgData : [];
 
                         return items.map((item) => ({
