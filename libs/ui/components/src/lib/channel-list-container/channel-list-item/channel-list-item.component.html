@@ -6,6 +6,7 @@
     cdkDragPreviewContainer="parent"
     [class.active]="selected()"
     (click)="clicked.emit()"
+    (contextmenu)="onContextMenu($event)"
     data-test-id="channel-item"
 >
     @if (isDraggable()) {

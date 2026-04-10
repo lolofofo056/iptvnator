@@ -1,0 +1,109 @@
+<h2 mat-dialog-title>{{ 'CHANNELS.DETAILS_DIALOG.TITLE' | translate }}</h2>
+
+<mat-dialog-content class="channel-details-dialog mat-typography">
+    <p class="dialog-description">
+        {{ 'CHANNELS.DETAILS_DIALOG.DESCRIPTION' | translate }}
+    </p>
+
+    <section class="details-section">
+        <h3 class="section-title">
+            {{ 'CHANNELS.DETAILS_DIALOG.SUMMARY' | translate }}
+        </h3>
+        <dl class="details-grid">
+            @for (field of summaryFields; track field.labelKey) {
+                <div class="detail-row">
+                    <dt>{{ field.labelKey | translate }}</dt>
+                    <dd
+                        [class.empty]="field.empty"
+                        [class.monospace]="field.monospace"
+                        [class.wrap]="field.wrap"
+                    >
+                        @if (field.valueKey) {
+                            {{ field.valueKey | translate: field.translateParams }}
+                        } @else {
+                            {{ field.value }}
+                        }
+                    </dd>
+                </div>
+            }
+        </dl>
+    </section>
+
+    <section class="details-section">
+        <h3 class="section-title">
+            {{ 'CHANNELS.DETAILS_DIALOG.TVG' | translate }}
+        </h3>
+        <dl class="details-grid">
+            @for (field of tvgFields; track field.labelKey) {
+                <div class="detail-row">
+                    <dt>{{ field.labelKey | translate }}</dt>
+                    <dd
+                        [class.empty]="field.empty"
+                        [class.monospace]="field.monospace"
+                        [class.wrap]="field.wrap"
+                    >
+                        @if (field.valueKey) {
+                            {{ field.valueKey | translate: field.translateParams }}
+                        } @else {
+                            {{ field.value }}
+                        }
+                    </dd>
+                </div>
+            }
+        </dl>
+    </section>
+
+    <section class="details-section">
+        <h3 class="section-title">
+            {{ 'CHANNELS.DETAILS_DIALOG.CATCHUP' | translate }}
+        </h3>
+        <dl class="details-grid">
+            @for (field of catchupFields; track field.labelKey) {
+                <div class="detail-row">
+                    <dt>{{ field.labelKey | translate }}</dt>
+                    <dd
+                        [class.empty]="field.empty"
+                        [class.monospace]="field.monospace"
+                        [class.wrap]="field.wrap"
+                    >
+                        @if (field.valueKey) {
+                            {{ field.valueKey | translate: field.translateParams }}
+                        } @else {
+                            {{ field.value }}
+                        }
+                    </dd>
+                </div>
+            }
+        </dl>
+    </section>
+
+    <section class="details-section">
+        <h3 class="section-title">
+            {{ 'CHANNELS.DETAILS_DIALOG.HTTP' | translate }}
+        </h3>
+        <dl class="details-grid">
+            @for (field of httpFields; track field.labelKey) {
+                <div class="detail-row">
+                    <dt>{{ field.labelKey | translate }}</dt>
+                    <dd
+                        [class.empty]="field.empty"
+                        [class.monospace]="field.monospace"
+                        [class.wrap]="field.wrap"
+                    >
+                        @if (field.valueKey) {
+                            {{ field.valueKey | translate: field.translateParams }}
+                        } @else {
+                            {{ field.value }}
+                        }
+                    </dd>
+                </div>
+            }
+        </dl>
+    </section>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+    <button mat-button mat-dialog-close>
+        {{ 'CLOSE' | translate }}
+    </button>
+</mat-dialog-actions>

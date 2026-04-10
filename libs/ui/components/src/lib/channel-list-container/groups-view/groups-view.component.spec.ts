@@ -3,6 +3,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslateModule } from '@ngx-translate/core';
 import { Channel } from 'shared-interfaces';
+import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { GroupsViewComponent } from './groups-view.component';
 
 function createChannel(
@@ -38,6 +39,7 @@ function createChannel(
 describe('GroupsViewComponent', () => {
     let fixture: ComponentFixture<GroupsViewComponent>;
     let component: GroupsViewComponent;
+    let dialog: { open: jest.Mock };
 
     const sportsCenter = createChannel(
         'sports-1',
@@ -92,6 +94,10 @@ describe('GroupsViewComponent', () => {
     });
 
     beforeEach(async () => {
+        dialog = {
+            open: jest.fn(),
+        };
+
         await TestBed.configureTestingModule({
             imports: [
                 GroupsViewComponent,
@@ -101,9 +107,7 @@ describe('GroupsViewComponent', () => {
             providers: [
                 {
                     provide: MatDialog,
-                    useValue: {
-                        open: jest.fn(),
-                    },
+                    useValue: dialog,
                 },
             ],
         }).compileComponents();
@@ -253,6 +257,39 @@ describe('GroupsViewComponent', () => {
             channel: movieClassic,
             event: clickEvent,
         });
+    });
+
+    it('positions the context menu at the viewport click and opens channel details from the selected group pane', async () => {
+        const openMenuSpy = jest
+            .spyOn(component.contextMenuTrigger(), 'openMenu')
+            .mockImplementation();
+
+        component.onChannelContextMenu(
+            movieClassic,
+            {
+                clientX: 212,
+                clientY: 264,
+            } as MouseEvent
+        );
+        await Promise.resolve();
+
+        expect(component.contextMenuChannel()).toBe(movieClassic);
+        expect(component.contextMenuPosition()).toEqual({
+            x: '212px',
+            y: '264px',
+        });
+        expect(openMenuSpy).toHaveBeenCalled();
+
+        component.openChannelDetails();
+
+        expect(dialog.open).toHaveBeenCalledWith(
+            ChannelDetailsDialogComponent,
+            expect.objectContaining({
+                data: movieClassic,
+                maxWidth: '720px',
+                width: 'calc(100vw - 32px)',
+            })
+        );
     });
 
     it('emits total sidebar width requests while resizing the groups rail', () => {

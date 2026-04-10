@@ -41,6 +41,7 @@ export class ChannelListItemComponent {
     readonly showFavoriteButton = input(false);
     readonly showAuxActionButton = input(false);
     readonly showProgramInfoButton = input(true);
+    readonly showDetailsContextMenu = input(false);
     readonly isFavorite = input(false);
     readonly selected = input(false);
     readonly showEpg = input(true);
@@ -54,6 +55,7 @@ export class ChannelListItemComponent {
     readonly clicked = output<void>();
     readonly favoriteToggled = output<MouseEvent>();
     readonly auxActionClicked = output<MouseEvent>();
+    readonly contextMenuRequested = output<MouseEvent>();
 
     constructor() {
         effect(() => {
@@ -106,6 +108,16 @@ export class ChannelListItemComponent {
     onAuxActionClick(event: MouseEvent): void {
         event.stopPropagation();
         this.auxActionClicked.emit(event);
+    }
+
+    onContextMenu(event: MouseEvent): void {
+        if (!this.showDetailsContextMenu()) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+        this.contextMenuRequested.emit(event);
     }
 
     showLogoFallback(): boolean {

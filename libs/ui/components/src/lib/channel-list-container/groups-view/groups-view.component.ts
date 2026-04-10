@@ -10,12 +10,16 @@ import {
     input,
     output,
     signal,
+    viewChild,
 } from '@angular/core';
 import { ScrollingModule } from '@angular/cdk/scrolling';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { TranslatePipe } from '@ngx-translate/core';
 import { Channel, EpgProgram } from 'shared-interfaces';
 import { EnrichedChannel } from '../all-channels-view/all-channels-view.component';
+import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
 import { ResizableDirective } from '../../resizable/resizable.directive';
 
@@ -34,6 +38,7 @@ interface FilteredGroupView {
     imports: [
         ChannelListItemComponent,
         MatIconModule,
+        MatMenuModule,
         ResizableDirective,
         ScrollingModule,
         TitleCasePipe,
@@ -41,7 +46,12 @@ interface FilteredGroupView {
     ],
 })
 export class GroupsViewComponent {
+    private readonly dialog = inject(MatDialog);
     private readonly hostEl = inject(ElementRef<HTMLElement>);
+
+    readonly contextMenuTrigger = viewChild.required<MatMenuTrigger>(
+        'contextMenuTrigger'
+    );
 
     /** Grouped channels object */
     readonly groupedChannels = input.required<{ [key: string]: Channel[] }>();
@@ -82,6 +92,11 @@ export class GroupsViewComponent {
 
     readonly selectedGroupKey = signal<string | null>(null);
     readonly itemSize = computed(() => (this.shouldShowEpg() ? 68 : 48));
+    readonly contextMenuChannel = signal<Channel | null>(null);
+    readonly contextMenuPosition = signal({
+        x: '0px',
+        y: '0px',
+    });
 
     private previousActiveChannelUrl: string | undefined;
     private preservedContentWidth = 0;
@@ -292,6 +307,37 @@ export class GroupsViewComponent {
 
     onFavoriteToggle(channel: Channel, event: MouseEvent): void {
         this.favoriteToggled.emit({ channel, event });
+    }
+
+    onChannelContextMenu(channel: Channel, event: MouseEvent): void {
+        this.contextMenuChannel.set(channel);
+        this.contextMenuPosition.set({
+            x: `${event.clientX}px`,
+            y: `${event.clientY}px`,
+        });
+
+        const trigger = this.contextMenuTrigger();
+        if (trigger.menuOpen) {
+            trigger.closeMenu();
+        }
+
+        queueMicrotask(() => {
+            this.contextMenuTrigger().openMenu();
+        });
+    }
+
+    openChannelDetails(): void {
+        const channel = this.contextMenuChannel();
+        if (!channel) {
+            return;
+        }
+
+        this.contextMenuTrigger().closeMenu();
+        this.dialog.open(ChannelDetailsDialogComponent, {
+            data: channel,
+            maxWidth: '720px',
+            width: 'calc(100vw - 32px)',
+        });
     }
 
     /**
