@@ -46,6 +46,13 @@
     flex-shrink: 0;
 }
 
+.groups-nav-header__content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
 .groups-nav-title {
     margin: 0;
     font-size: 0.94rem;
@@ -80,6 +87,13 @@
     min-height: 0;
     padding-top: 0;
     padding-inline: 0 2px;
+}
+
+.groups-nav-empty {
+    padding: 16px 12px;
+    color: var(--app-muted-color, var(--mat-sys-on-surface-variant));
+    font-size: 0.82rem;
+    line-height: 1.4;
 }
 
 .group-nav-item {
@@ -124,6 +138,17 @@
         width: 100% !important;
         max-width: 100% !important;
     }
+}
+
+.groups-content-empty-state {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    text-align: center;
 }
 
 .groups-view-empty-state {
