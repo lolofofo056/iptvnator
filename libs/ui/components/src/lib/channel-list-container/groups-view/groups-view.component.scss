@@ -1,3 +1,4 @@
+@use '@angular/material' as mat;
 @use '../../../../../styles/portal-sidebar';
 @use '../../../../../styles/panel-header' as panel;
 @use '../../../../../../../apps/web/src/nav-list.scss';
@@ -56,6 +57,10 @@
 .groups-content-header {
     @include panel.standard-panel-header();
     border-top-left-radius: inherit;
+}
+
+.groups-content-header button {
+    @include mat.form-field-density(-5);
 }
 
 .category-meta {

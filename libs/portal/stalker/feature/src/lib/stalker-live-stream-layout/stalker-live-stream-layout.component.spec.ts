@@ -51,6 +51,7 @@ class StubEpgListComponent {
     readonly controlledChannel = input<unknown>(null);
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
+    readonly archivePlaybackAvailable = input<boolean | null>(null);
 }
 
 @Component({
