@@ -8,6 +8,7 @@ export interface PlaylistState {
     activePlaybackUrl: string | null;
     currentEpgProgram: EpgProgram | undefined;
     epgAvailable: boolean;
+    channelsLoading: boolean;
     channels: Channel[]; // TODO: use entity store
     playlists: PlaylistMetaState;
 }
@@ -17,6 +18,7 @@ export const initialState: PlaylistState = {
     activePlaybackUrl: null,
     currentEpgProgram: undefined,
     epgAvailable: false,
+    channelsLoading: false,
     channels: [],
     playlists: initialPlaylistMetaState,
 };

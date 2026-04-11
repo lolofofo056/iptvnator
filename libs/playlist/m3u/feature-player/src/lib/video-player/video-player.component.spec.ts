@@ -12,6 +12,7 @@ import {
     selectActive,
     selectActivePlaybackUrl,
     selectChannels,
+    selectChannelsLoading,
     selectCurrentEpgProgram,
 } from 'm3u-state';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
@@ -37,6 +38,7 @@ describe('VideoPlayerComponent', () => {
     const activeChannel = signal<Channel | null>(null);
     const activePlaybackUrl = signal<string | null>(null);
     const channels = signal<Channel[]>([]);
+    const channelsLoading = signal(false);
     const currentEpgProgram = signal(null);
 
     const channels$ = new BehaviorSubject<Channel[]>([]);
@@ -72,6 +74,8 @@ describe('VideoPlayerComponent', () => {
                     return activePlaybackUrl;
                 case selectChannels:
                     return channels;
+                case selectChannelsLoading:
+                    return channelsLoading;
                 case selectCurrentEpgProgram:
                     return currentEpgProgram;
                 default:
@@ -148,6 +152,7 @@ describe('VideoPlayerComponent', () => {
         player.set(VideoPlayer.VideoJs);
         showCaptions.set(false);
         activePlaybackUrl.set(null);
+        channelsLoading.set(false);
         currentEpgProgram.set(null);
         currentEpgProgram$.next(null);
         overlayMock.create.mockClear();

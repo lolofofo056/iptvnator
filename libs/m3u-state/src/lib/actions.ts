@@ -33,6 +33,7 @@ export const PlaylistActions = createActionGroup({
 export const ChannelActions = createActionGroup({
     source: 'Channels',
     events: {
+        'Set Channels Loading': props<{ loading: boolean }>(),
         'Set Channels': props<{ channels: Channel[] }>(),
         'Set Active Channel': props<{ channel: Channel }>(),
         'Set Active Channel Success': props<{ channel: Channel }>(),

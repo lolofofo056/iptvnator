@@ -1,5 +1,6 @@
 export * from './lib/channel-list-container/channel-list-container.component';
 export * from './lib/channel-list-container/channel-list-item/channel-list-item.component';
+export * from './lib/channel-list-loading-state/channel-list-loading-state.component';
 export * from './lib/confirm-dialog/confirm-dialog.component';
 export * from './lib/confirm-dialog/dialog.service';
 export * from './lib/content-hero/content-hero.component';

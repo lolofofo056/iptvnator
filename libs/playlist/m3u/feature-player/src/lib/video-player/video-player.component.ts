@@ -31,6 +31,7 @@ import {
     selectActive,
     selectActivePlaybackUrl,
     selectChannels,
+    selectChannelsLoading,
     selectCurrentEpgProgram,
 } from 'm3u-state';
 import {
@@ -61,6 +62,7 @@ import {
     SidebarComponent,
     VjsPlayerComponent,
 } from '@iptvnator/ui/playback';
+import { ChannelListLoadingStateComponent } from 'components';
 import { DataService, PlaylistsService, SettingsStore } from 'services';
 import {
     Channel,
@@ -87,6 +89,7 @@ const M3U_SIDEBAR_DEFAULT_WIDTH = 460;
         ArtPlayerComponent,
         AsyncPipe,
         AudioPlayerComponent,
+        ChannelListLoadingStateComponent,
         CommonModule,
         EpgListComponent,
         HtmlVideoPlayerComponent,
@@ -121,6 +124,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     );
     readonly activePlaylistId = this.playlistContext.resolvedPlaylistId;
     readonly channels = this.store.selectSignal(selectChannels);
+    readonly channelsLoading = this.store.selectSignal(selectChannelsLoading);
     readonly archivePlaybackAvailable = computed(() =>
         isM3uCatchupPlaybackSupported(this.activeChannel())
     );
