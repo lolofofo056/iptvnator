@@ -62,22 +62,12 @@ describe('ChannelDetailsDialogComponent', () => {
         expect(component.archiveDays).toBe(5);
         expect(component.catchupAvailable).toBe(true);
         expect(component.catchupPlaybackSupported).toBe(true);
-        expect(component.summaryFields).toEqual(
+        expect(component.heroStats).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    labelKey: 'CHANNELS.DETAILS_DIALOG.CATCHUP_AVAILABLE',
-                    valueKey: 'YES',
-                }),
-                expect.objectContaining({
                     labelKey: 'CHANNELS.DETAILS_DIALOG.WINDOW',
-                    translateParams: {
-                        count: 5,
-                    },
+                    translateParams: { count: 5 },
                     valueKey: 'CHANNELS.DETAILS_DIALOG.DAYS_OTHER',
-                }),
-                expect.objectContaining({
-                    labelKey: 'CHANNELS.DETAILS_DIALOG.PLAYBACK_SUPPORTED',
-                    valueKey: 'YES',
                 }),
             ])
         );

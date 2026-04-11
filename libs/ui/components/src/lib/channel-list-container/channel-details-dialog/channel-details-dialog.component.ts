@@ -1,6 +1,8 @@
+import { ClipboardModule } from '@angular/cdk/clipboard';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
 import { getM3uArchiveDays, isM3uCatchupPlaybackSupported } from 'm3u-utils';
 import { Channel } from 'shared-interfaces';
@@ -12,7 +14,16 @@ interface ChannelDetailField {
     readonly translateParams?: Record<string, number>;
     readonly value?: string;
     readonly valueKey?: string;
-    readonly wrap?: boolean;
+}
+
+interface HeroStat {
+    readonly empty?: boolean;
+    readonly icon: string;
+    readonly labelKey: string;
+    readonly mono?: boolean;
+    readonly translateParams?: Record<string, number>;
+    readonly value?: string;
+    readonly valueKey?: string;
 }
 
 @Component({
@@ -20,7 +31,7 @@ interface ChannelDetailField {
     templateUrl: './channel-details-dialog.component.html',
     styleUrls: ['./channel-details-dialog.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [MatButtonModule, MatDialogModule, TranslatePipe],
+    imports: [ClipboardModule, MatButtonModule, MatDialogModule, MatIconModule, TranslatePipe],
 })
 export class ChannelDetailsDialogComponent {
     readonly channel = inject<Channel>(MAT_DIALOG_DATA);
@@ -31,151 +42,121 @@ export class ChannelDetailsDialogComponent {
         this.channel
     );
 
-    readonly summaryFields: ChannelDetailField[] = [
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.NAME',
-            this.channel.name
-        ),
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.CHANNEL_ID',
-            this.channel.id,
-            {
-                monospace: true,
-            }
-        ),
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.STREAM_URL',
-            this.channel.url,
-            {
-                monospace: true,
-                wrap: true,
-            }
-        ),
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.GROUP',
-            this.channel.group?.title
-        ),
-        this.createBooleanField(
-            'CHANNELS.DETAILS_DIALOG.RADIO',
-            this.channel.radio === 'true'
-        ),
-        this.createBooleanField(
-            'CHANNELS.DETAILS_DIALOG.CATCHUP_AVAILABLE',
-            this.catchupAvailable
-        ),
-        this.createArchiveWindowField(),
-        this.createBooleanField(
-            'CHANNELS.DETAILS_DIALOG.PLAYBACK_SUPPORTED',
-            this.catchupPlaybackSupported
-        ),
-        this.createTextField(
+    logoError = false;
+
+    readonly hasTvgData = !!(
+        this.channel.tvg?.id ||
+        this.channel.tvg?.name ||
+        this.channel.tvg?.url ||
+        this.channel.tvg?.rec
+    );
+
+    readonly hasHttpData = !!(
+        this.channel.http?.origin ||
+        this.channel.http?.referrer ||
+        this.channel.http?.['user-agent']
+    );
+
+    readonly heroStats: HeroStat[] = [
+        {
+            icon: 'tag',
+            labelKey: 'CHANNELS.DETAILS_DIALOG.CHANNEL_ID',
+            value: this.channel.id?.trim() || undefined,
+            valueKey: this.channel.id?.trim()
+                ? undefined
+                : 'CHANNELS.DETAILS_DIALOG.EMPTY',
+            mono: true,
+            empty: !this.channel.id?.trim(),
+        },
+        {
+            icon: 'folder',
+            labelKey: 'CHANNELS.DETAILS_DIALOG.GROUP',
+            value: this.channel.group?.title?.trim() || undefined,
+            valueKey: this.channel.group?.title?.trim()
+                ? undefined
+                : 'CHANNELS.DETAILS_DIALOG.EMPTY',
+            empty: !this.channel.group?.title?.trim(),
+        },
+        this.createArchiveHeroStat(),
+        {
+            icon: 'schedule',
+            labelKey: 'CHANNELS.DETAILS_DIALOG.TIMESHIFT',
+            value: this.channel.timeshift?.trim() || undefined,
+            valueKey: this.channel.timeshift?.trim()
+                ? undefined
+                : 'CHANNELS.DETAILS_DIALOG.NOT_AVAILABLE',
+            empty: !this.channel.timeshift?.trim(),
+        },
+    ];
+
+    readonly streamFields: ChannelDetailField[] = [
+        this.field(
             'CHANNELS.DETAILS_DIALOG.EPG_PARAMS',
             this.channel.epgParams,
-            {
-                monospace: true,
-                wrap: true,
-            }
+            true
         ),
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.TIMESHIFT',
-            this.channel.timeshift
+        this.field(
+            'CHANNELS.DETAILS_DIALOG.TVG_LOGO',
+            this.channel.tvg?.logo,
+            true
         ),
     ];
 
     readonly tvgFields: ChannelDetailField[] = [
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.TVG_ID',
-            this.channel.tvg?.id,
-            {
-                monospace: true,
-            }
-        ),
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.TVG_NAME',
-            this.channel.tvg?.name
-        ),
-        this.createTextField(
+        this.field('CHANNELS.DETAILS_DIALOG.TVG_ID', this.channel.tvg?.id, true),
+        this.field('CHANNELS.DETAILS_DIALOG.TVG_NAME', this.channel.tvg?.name),
+        this.field(
             'CHANNELS.DETAILS_DIALOG.TVG_URL',
             this.channel.tvg?.url,
-            {
-                monospace: true,
-                wrap: true,
-            }
+            true
         ),
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.TVG_LOGO',
-            this.channel.tvg?.logo,
-            {
-                monospace: true,
-                wrap: true,
-            }
-        ),
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.TVG_REC',
-            this.channel.tvg?.rec
-        ),
+        this.field('CHANNELS.DETAILS_DIALOG.TVG_REC', this.channel.tvg?.rec),
     ];
 
     readonly catchupFields: ChannelDetailField[] = [
-        this.createTextField(
-            'CHANNELS.DETAILS_DIALOG.CATCHUP_TYPE',
-            this.channel.catchup?.type
-        ),
-        this.createTextField(
+        this.field(
             'CHANNELS.DETAILS_DIALOG.CATCHUP_SOURCE',
             this.channel.catchup?.source,
-            {
-                monospace: true,
-                wrap: true,
-            }
+            true
         ),
-        this.createTextField(
+        this.field(
             'CHANNELS.DETAILS_DIALOG.CATCHUP_DAYS',
             this.channel.catchup?.days
         ),
     ];
 
     readonly httpFields: ChannelDetailField[] = [
-        this.createTextField(
+        this.field(
             'CHANNELS.DETAILS_DIALOG.HTTP_ORIGIN',
             this.channel.http?.origin,
-            {
-                monospace: true,
-                wrap: true,
-            }
+            true
         ),
-        this.createTextField(
+        this.field(
             'CHANNELS.DETAILS_DIALOG.HTTP_REFERRER',
             this.channel.http?.referrer,
-            {
-                monospace: true,
-                wrap: true,
-            }
+            true
         ),
-        this.createTextField(
+        this.field(
             'CHANNELS.DETAILS_DIALOG.HTTP_USER_AGENT',
             this.channel.http?.['user-agent'],
-            {
-                monospace: true,
-                wrap: true,
-            }
+            true
         ),
     ];
 
-    private createArchiveWindowField(): ChannelDetailField {
+    private createArchiveHeroStat(): HeroStat {
         if (!this.catchupAvailable) {
             return {
                 empty: true,
+                icon: 'history',
                 labelKey: 'CHANNELS.DETAILS_DIALOG.WINDOW',
                 valueKey: 'CHANNELS.DETAILS_DIALOG.NOT_AVAILABLE',
             };
         }
 
         return {
+            icon: 'history',
             labelKey: 'CHANNELS.DETAILS_DIALOG.WINDOW',
-            translateParams: {
-                count: this.archiveDays,
-            },
+            translateParams: { count: this.archiveDays },
             valueKey:
                 this.archiveDays === 1
                     ? 'CHANNELS.DETAILS_DIALOG.DAYS_ONE'
@@ -183,36 +164,22 @@ export class ChannelDetailsDialogComponent {
         };
     }
 
-    private createBooleanField(
-        labelKey: string,
-        value: boolean
-    ): ChannelDetailField {
-        return {
-            labelKey,
-            valueKey: value ? 'YES' : 'NO',
-        };
-    }
-
-    private createTextField(
+    private field(
         labelKey: string,
         value: string | null | undefined,
-        options: Pick<ChannelDetailField, 'monospace' | 'wrap'> = {}
+        monospace = false
     ): ChannelDetailField {
         const normalized = value?.trim() ?? '';
 
         if (!normalized) {
             return {
-                ...options,
                 empty: true,
                 labelKey,
+                monospace,
                 valueKey: 'CHANNELS.DETAILS_DIALOG.EMPTY',
             };
         }
 
-        return {
-            ...options,
-            labelKey,
-            value: normalized,
-        };
+        return { labelKey, monospace, value: normalized };
     }
 }
