@@ -402,6 +402,43 @@ describe('GroupsViewComponent', () => {
         ]);
     });
 
+    it('toggles the inline group search from the header action and filters the visible groups', () => {
+        const searchButton = fixture.nativeElement.querySelector(
+            '.groups-nav-action--search'
+        ) as HTMLButtonElement;
+
+        searchButton.click();
+        fixture.detectChanges();
+
+        const searchInput = fixture.nativeElement.querySelector(
+            '.groups-nav-search input'
+        ) as HTMLInputElement | null;
+
+        expect(searchInput).not.toBeNull();
+
+        searchInput!.value = 'spo';
+        searchInput!.dispatchEvent(new Event('input'));
+        fixture.detectChanges();
+
+        expect(component.filteredGroups().map((group) => group.key)).toEqual([
+            'Sports',
+        ]);
+        expect(component.selectedGroupKey()).toBe('Sports');
+
+        searchButton.click();
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.groups-nav-search input')
+        ).toBeNull();
+        expect(component.filteredGroups().map((group) => group.key)).toEqual([
+            'Movies',
+            'News',
+            'Series',
+            'Sports',
+        ]);
+    });
+
     it('emits channel and favorite events from the selected group pane', () => {
         const channelSelected = jest.fn();
         const favoriteToggled = jest.fn();
@@ -497,7 +534,7 @@ describe('GroupsViewComponent', () => {
             '.groups-content-empty-state'
         ) as HTMLElement | null;
         const manageButton = fixture.nativeElement.querySelector(
-            '.groups-nav-header button'
+            '.groups-nav-action--manage'
         ) as HTMLButtonElement | null;
 
         expect(layout).not.toBeNull();
@@ -531,7 +568,7 @@ describe('GroupsViewComponent', () => {
             '.groups-content-empty-state'
         ) as HTMLElement | null;
         const manageButton = fixture.nativeElement.querySelector(
-            '.groups-nav-header button'
+            '.groups-nav-action--manage'
         ) as HTMLButtonElement | null;
 
         expect(layout).not.toBeNull();

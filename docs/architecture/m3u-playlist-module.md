@@ -190,6 +190,9 @@ channel-list-container/
 
 - `GroupsViewComponent` owns the M3U-only "Manage groups" action and dialog in
   `libs/ui/components/src/lib/channel-list-container/groups-view/`.
+- The groups rail header also owns an inline search toggle that filters the
+  currently visible groups without mutating the workspace-level route search
+  term used by the broader channel views.
 - The dialog operates on the full grouped dataset, while the left rail and
   channel pane render only groups whose titles are not listed in
   `hiddenGroupTitles`.

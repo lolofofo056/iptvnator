@@ -74,6 +74,8 @@ export class GroupsViewComponent {
 
     readonly contextMenuTrigger =
         viewChild.required<MatMenuTrigger>('contextMenuTrigger');
+    readonly groupSearchInput =
+        viewChild<ElementRef<HTMLInputElement>>('groupSearchInput');
 
     /** Grouped channels object */
     readonly groupedChannels = input.required<{ [key: string]: Channel[] }>();
@@ -114,12 +116,19 @@ export class GroupsViewComponent {
     readonly sidebarWidthRequestEnded = output<number>();
     readonly hiddenGroupTitlesChanged = output<string[]>();
 
+    readonly isGroupSearchOpen = signal(false);
+    readonly localGroupSearchTerm = signal('');
     readonly selectedGroupKey = signal<string | null>(null);
     readonly groupChannelSortMode = signal<PortalChannelSortMode>(
         restorePortalChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY)
     );
     readonly groupChannelSortLabel = computed(() =>
         getPortalChannelSortModeLabel(this.groupChannelSortMode())
+    );
+    readonly hasSearchQuery = computed(
+        () =>
+            this.searchTerm().trim().length > 0 ||
+            this.localGroupSearchTerm().trim().length > 0
     );
     readonly itemSize = computed(() => (this.shouldShowEpg() ? 68 : 48));
     readonly contextMenuChannel = signal<Channel | null>(null);
@@ -212,6 +221,16 @@ export class GroupsViewComponent {
                 });
             });
         });
+
+        effect(() => {
+            if (!this.isGroupSearchOpen()) {
+                return;
+            }
+
+            queueMicrotask(() => {
+                this.groupSearchInput()?.nativeElement.focus();
+            });
+        });
     }
 
     readonly allGroups = computed<GroupView[]>(() => {
@@ -234,7 +253,7 @@ export class GroupsViewComponent {
         );
     });
 
-    readonly filteredGroups = computed<FilteredGroupView[]>(() => {
+    readonly workspaceFilteredGroups = computed<FilteredGroupView[]>(() => {
         const term = this.searchTerm().trim().toLowerCase();
         const groups = this.visibleGroups();
 
@@ -268,6 +287,17 @@ export class GroupsViewComponent {
             });
             return acc;
         }, []);
+    });
+
+    readonly filteredGroups = computed<FilteredGroupView[]>(() => {
+        const term = this.localGroupSearchTerm().trim().toLowerCase();
+        const groups = this.workspaceFilteredGroups();
+
+        if (!term) {
+            return groups;
+        }
+
+        return groups.filter((group) => group.key.toLowerCase().includes(term));
     });
 
     readonly hasAnyGroups = computed(() => this.allGroups().length > 0);
@@ -324,6 +354,24 @@ export class GroupsViewComponent {
 
     selectGroup(groupKey: string): void {
         this.selectedGroupKey.set(groupKey);
+    }
+
+    closeGroupSearch(): void {
+        this.localGroupSearchTerm.set('');
+        this.isGroupSearchOpen.set(false);
+    }
+
+    toggleGroupSearch(): void {
+        if (this.isGroupSearchOpen()) {
+            this.closeGroupSearch();
+            return;
+        }
+
+        this.isGroupSearchOpen.set(true);
+    }
+
+    updateGroupSearchTerm(value: string): void {
+        this.localGroupSearchTerm.set(value);
     }
 
     openGroupManagement(): void {
