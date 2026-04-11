@@ -442,6 +442,14 @@
         "MARK_WATCHED": "Mark as Watched",
         "MARK_UNWATCHED": "Mark as Unwatched",
         "EPISODES_WATCHED": "{{count}} of {{total}} episodes watched",
+        "DETAIL_FALLBACK": {
+            "STATUS": "Portal metadata unavailable",
+            "NOTE": "Extended metadata was not provided by this portal.",
+            "STREAM_ID": "Stream ID",
+            "CATEGORY": "Category",
+            "CONTAINER": "Format",
+            "SOURCE_TITLE": "Source title"
+        },
         "ACCOUNT_INFO": {
             "TITLE": "Account Information",
             "USER_INFO": "User Information",

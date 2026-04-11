@@ -351,6 +351,14 @@
         "MARK_WATCHED": "Als angesehen markieren",
         "MARK_UNWATCHED": "Als nicht angesehen markieren",
         "EPISODES_WATCHED": "{{count}} von {{total}} Folgen angesehen",
+        "DETAIL_FALLBACK": {
+            "STATUS": "Portal-Metadaten fehlen",
+            "NOTE": "Dieses Portal hat keine erweiterten Metadaten für diesen Titel geliefert.",
+            "STREAM_ID": "Stream-ID",
+            "CATEGORY": "Kategorie",
+            "CONTAINER": "Format",
+            "SOURCE_TITLE": "Quellentitel"
+        },
         "YEAR": "Jahr",
         "YOUTUBE_TRAILER": "YouTube-Trailer",
         "DESCRIPTION": "Beschreibung",
