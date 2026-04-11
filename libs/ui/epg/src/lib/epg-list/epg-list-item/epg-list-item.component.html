@@ -1,7 +1,7 @@
 <span class="time"
-    >{{ item.start | momentDate: 'HH:mm' }}
+    >{{ (item.startTimestamp ? item.startTimestamp * 1000 : item.start) | date: 'HH:mm' }}
     -
-    {{ item.stop | momentDate: 'HH:mm' }}</span
+    {{ (item.stopTimestamp ? item.stopTimestamp * 1000 : item.stop) | date: 'HH:mm' }}</span
 >
 @if (isLive) {
     <span class="live badge" [matTooltip]="'EPG.LIVE_NOW' | translate"

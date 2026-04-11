@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
@@ -58,18 +59,11 @@ describe('ChannelListItemComponent', () => {
             fixture.nativeElement.querySelectorAll('.epg-time'),
             (element: Element) => element.textContent?.trim() ?? ''
         );
+        const datePipe = new DatePipe('en-US');
 
         expect(times).toEqual([
-            new Date(startTimestamp * 1000).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-            }),
-            new Date(stopTimestamp * 1000).toLocaleTimeString('en-US', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-            }),
+            datePipe.transform(startTimestamp * 1000, 'HH:mm') ?? '',
+            datePipe.transform(stopTimestamp * 1000, 'HH:mm') ?? '',
         ]);
     });
 
