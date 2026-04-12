@@ -102,6 +102,8 @@ export class PlaylistSwitcherComponent {
     readonly isMenuOpen = signal(false);
     readonly searchQuery = signal(this.readPersistedSearchQuery());
     readonly playlistTypeFilters = signal(this.readPersistedTypeFilters());
+    readonly searchExpanded = signal(false);
+    private static readonly SEARCH_AUTO_VISIBLE_THRESHOLD = 5;
 
     readonly playlists = this.playlistContext.playlists;
     readonly allPlaylistsLoaded = this.playlistContext.allPlaylistsLoaded;
@@ -154,6 +156,14 @@ export class PlaylistSwitcherComponent {
     readonly showTypeFilters = computed(
         () => this.availablePlaylistTypes().size > 1
     );
+    readonly hasSearchToggle = computed(
+        () =>
+            this.playlists().length <=
+            PlaylistSwitcherComponent.SEARCH_AUTO_VISIBLE_THRESHOLD
+    );
+    readonly showSearchField = computed(
+        () => !this.hasSearchToggle() || this.searchExpanded()
+    );
 
     readonly portalStatuses = signal<Map<string, PortalStatus>>(new Map());
     readonly currentLocale = computed(() => {
@@ -173,7 +183,9 @@ export class PlaylistSwitcherComponent {
     onMenuOpened(): void {
         this.isMenuOpen.set(true);
         this.syncMenuOverlayWidthToTrigger();
-        this.focusSearchField();
+        if (this.showSearchField()) {
+            this.focusSearchField();
+        }
         void this.checkPortalStatuses(this.playlists());
     }
 
@@ -181,6 +193,18 @@ export class PlaylistSwitcherComponent {
         this.isMenuOpen.set(false);
         this.clearMenuOverlayWidth();
         this.clearSearchFocusTimeout();
+        if (this.hasSearchToggle()) {
+            this.searchExpanded.set(false);
+        }
+    }
+
+    toggleSearchField(event?: Event): void {
+        event?.stopPropagation();
+        const next = !this.searchExpanded();
+        this.searchExpanded.set(next);
+        if (next) {
+            this.focusSearchField();
+        }
     }
 
     setSearchQuery(value: string): void {
@@ -323,10 +347,10 @@ export class PlaylistSwitcherComponent {
                 : fallback;
 
         if (playlist.macAddress) {
-            return `Stalker · ${countLabel}`;
+            return 'Stalker Portal';
         }
         if (playlist.serverUrl) {
-            return `Xtream · ${countLabel}`;
+            return 'Xtream Code';
         }
         return countLabel;
     }
@@ -384,7 +408,7 @@ export class PlaylistSwitcherComponent {
         const triggerWidth = Math.round(
             this.triggerElement().nativeElement.getBoundingClientRect().width
         );
-        const overlayWidth = Math.max(triggerWidth, 360);
+        const overlayWidth = Math.max(triggerWidth, 400);
         this.document.documentElement.style.setProperty(
             '--playlist-switcher-overlay-width',
             `${overlayWidth}px`

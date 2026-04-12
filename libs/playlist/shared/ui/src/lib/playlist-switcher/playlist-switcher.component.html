@@ -31,10 +31,27 @@
     yPosition="below"
 >
     <div class="menu-header">
-        <mat-icon>playlist_play</mat-icon>
-        <span>{{ 'HOME.PLAYLISTS.MY_PLAYLISTS' | translate }}</span>
+        <mat-icon class="menu-header-icon">playlist_play</mat-icon>
+        <span class="menu-header-title">{{
+            'HOME.PLAYLISTS.MY_PLAYLISTS' | translate
+        }}</span>
+        @if (hasSearchToggle()) {
+            <button
+                mat-icon-button
+                type="button"
+                class="search-toggle-btn"
+                [class.is-active]="searchExpanded()"
+                (click)="toggleSearchField($event)"
+                [attr.aria-label]="
+                    'HOME.PLAYLISTS.SEARCH_PLAYLISTS' | translate
+                "
+            >
+                <mat-icon>search</mat-icon>
+            </button>
+        }
     </div>
 
+    @if (showSearchField()) {
     <div class="search-container" (click)="$event.stopPropagation()">
         <mat-icon class="search-icon">search</mat-icon>
         <input
@@ -55,6 +72,7 @@
             </button>
         }
     </div>
+    }
 
     @if (showTypeFilters()) {
         <div class="type-filters" (click)="$event.stopPropagation()">
@@ -165,7 +183,6 @@
     </div>
 
     @if (showAddPlaylist() || showAccountInfo()) {
-        <mat-divider />
         <div class="context-actions-section">
             @if (showAddPlaylist()) {
                 <button
