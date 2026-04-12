@@ -2,17 +2,37 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 2px 4px;
-    border-radius: 8px;
+    padding: 4px 8px 4px 4px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    background: transparent;
+    background: color-mix(in srgb, var(--app-on-surface) 5%, transparent);
+    border: 1px solid
+        color-mix(in srgb, var(--mat-sys-outline-variant) 36%, transparent);
     app-region: no-drag;
 
     &:hover {
         background: color-mix(
             in srgb,
-            var(--app-on-surface) 8%,
+            var(--app-on-surface) 12%,
+            transparent
+        );
+        border-color: color-mix(
+            in srgb,
+            var(--mat-sys-outline-variant) 64%,
+            transparent
+        );
+    }
+
+    &.is-open {
+        background: color-mix(
+            in srgb,
+            var(--app-on-surface) 12%,
+            transparent
+        );
+        border-color: color-mix(
+            in srgb,
+            var(--mat-sys-outline-variant) 72%,
             transparent
         );
     }
