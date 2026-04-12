@@ -5,8 +5,10 @@
         [subtitle]="playlistSubtitle()"
         [showPlaylistInfo]="canOpenPlaylistInfo()"
         [showAccountInfo]="canOpenAccountInfo()"
+        [showAddPlaylist]="true"
         (playlistInfoRequested)="onPlaylistInfoRequested()"
         (accountInfoRequested)="onAccountInfoRequested()"
+        (addPlaylistRequested)="onAddPlaylistRequested()"
     />
 
     <label class="search-field">

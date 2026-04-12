@@ -103,15 +103,15 @@
 ::ng-deep .playlist-switcher-menu.mat-mdc-menu-panel {
     --mat-menu-container-color: var(--mat-sys-surface-container-high);
     width: min(
-        var(--playlist-switcher-overlay-width, 320px),
+        var(--playlist-switcher-overlay-width, 360px),
         calc(100vw - 24px)
     ) !important;
     min-width: min(
-        var(--playlist-switcher-overlay-width, 320px),
+        var(--playlist-switcher-overlay-width, 360px),
         calc(100vw - 24px)
     ) !important;
     max-width: min(
-        var(--playlist-switcher-overlay-width, 320px),
+        var(--playlist-switcher-overlay-width, 360px),
         calc(100vw - 24px)
     ) !important;
     margin-top: -1px !important;
@@ -276,9 +276,52 @@
 .playlist-item.selected {
     background: var(--app-selection-surface, rgba(139, 92, 246, 0.1));
 
+    &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--app-selection-color, #a78bfa);
+    }
+
     .playlist-title,
     .playlist-meta {
         color: var(--app-selection-color, #a78bfa);
+    }
+}
+
+.item-action-trigger {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    flex-shrink: 0;
+    color: var(--mat-sys-on-surface-variant);padding: 0;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+    }
+}
+
+.playlist-item:hover .item-action-trigger,
+.playlist-item.selected .item-action-trigger,
+.item-action-trigger:focus-visible,
+.item-action-trigger[aria-expanded='true'] {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+::ng-deep .playlist-item-action-menu {
+    .danger,
+    .danger mat-icon {
+        color: var(--mat-sys-error, #f44336);
     }
 }
 
