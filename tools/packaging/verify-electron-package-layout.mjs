@@ -27,6 +27,7 @@ const packageMetadata = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const electronBuilderConfig = JSON.parse(
     fs.readFileSync(electronBuilderConfigPath, 'utf8')
 );
+const flatpakFinishArgs = electronBuilderConfig.flatpak?.finishArgs ?? [];
 const workerRelativeDir = path.join(
     'dist',
     'apps',
@@ -172,6 +173,19 @@ function verifyLinuxLauncher(resourceDir, errors) {
     }
 }
 
+function verifyFlatpakPermissions(errors) {
+    if (!Array.isArray(flatpakFinishArgs)) {
+        errors.push('Flatpak finishArgs must be configured as an array.');
+        return;
+    }
+
+    if (!flatpakFinishArgs.includes('--talk-name=org.freedesktop.Flatpak')) {
+        errors.push(
+            'Flatpak finishArgs must include --talk-name=org.freedesktop.Flatpak for host player launching.'
+        );
+    }
+}
+
 function verifyResourceDir(resourceDir) {
     const missingWorkers = workerFiles.filter(
         (workerFile) =>
@@ -207,6 +221,7 @@ function verifyResourceDir(resourceDir) {
         if (!fileExists(flatpakMetainfoPath)) {
             errors.push(`Missing Flatpak metainfo file: ${flatpakMetainfoPath}`);
         }
+        verifyFlatpakPermissions(errors);
         verifyLinuxLauncher(resourceDir, errors);
     }
 
