@@ -70,6 +70,15 @@
         "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
         "icon": "apps/web/src/assets/icons"
     },
+    "flatpak": {
+        "branch": "stable",
+        "files": [
+            [
+                "apps/electron-backend/linux/com.fourgray.iptvnator.metainfo.xml",
+                "/share/metainfo/com.fourgray.iptvnator.metainfo.xml"
+            ]
+        ]
+    },
     "afterPack": "./tools/packaging/linux-after-pack.cjs",
     "snap": {
         "confinement": "strict",

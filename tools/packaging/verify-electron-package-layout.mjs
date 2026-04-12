@@ -16,6 +16,13 @@ const workspaceRoot = process.cwd();
 const executablesRoot = path.join(workspaceRoot, 'dist', 'executables');
 const packageJsonPath = path.join(workspaceRoot, 'package.json');
 const electronBuilderConfigPath = path.join(workspaceRoot, 'electron-builder.json');
+const flatpakMetainfoPath = path.join(
+    workspaceRoot,
+    'apps',
+    'electron-backend',
+    'linux',
+    'com.fourgray.iptvnator.metainfo.xml'
+);
 const packageMetadata = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const electronBuilderConfig = JSON.parse(
     fs.readFileSync(electronBuilderConfigPath, 'utf8')
@@ -197,6 +204,9 @@ function verifyResourceDir(resourceDir) {
     }
 
     if (platform === 'linux') {
+        if (!fileExists(flatpakMetainfoPath)) {
+            errors.push(`Missing Flatpak metainfo file: ${flatpakMetainfoPath}`);
+        }
         verifyLinuxLauncher(resourceDir, errors);
     }
 
