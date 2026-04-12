@@ -228,6 +228,21 @@ jobs:
                   PACKAGE_ARCH: ${{ matrix.arch || '' }}
               run: pnpm run verify:package-layout -- "$PACKAGE_OS" "$PACKAGE_ARCH"
 
+            - name: Smoke test packaged Flatpak launcher
+              if: matrix.os == 'linux'
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  FLATPAK_BUNDLE="$(find dist/executables -maxdepth 1 -name '*.flatpak' | head -n 1)"
+                  if [ -z "${FLATPAK_BUNDLE}" ]; then
+                      echo "::error::Flatpak bundle not found in dist/executables"
+                      exit 1
+                  fi
+
+                  flatpak install --user --noninteractive -y "${FLATPAK_BUNDLE}"
+                  flatpak run --command=sh com.fourgray.iptvnator -c '/app/bin/iptvnator --version'
+
             - name: Upload artifacts (macOS)
               if: matrix.os == 'macos'
               uses: actions/upload-artifact@v4

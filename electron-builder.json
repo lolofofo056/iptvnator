@@ -70,7 +70,7 @@
         "artifactName": "${name}-${version}-${os}-${arch}.${ext}",
         "icon": "apps/web/src/assets/icons"
     },
-    "afterPack": "electron-builder-sandbox-fix",
+    "afterPack": "./tools/packaging/linux-after-pack.cjs",
     "snap": {
         "confinement": "strict",
         "grade": "stable",
