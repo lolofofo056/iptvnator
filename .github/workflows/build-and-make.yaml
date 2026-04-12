@@ -262,8 +262,18 @@ jobs:
                   fi
 
                   flatpak install --user --noninteractive -y "${FLATPAK_BUNDLE}"
-                  flatpak run --command=sh com.fourgray.iptvnator -c 'test -f /app/share/metainfo/com.fourgray.iptvnator.metainfo.xml'
-                  flatpak run --command=sh com.fourgray.iptvnator -c '/app/bin/iptvnator --version'
+                  flatpak run --command=sh com.fourgray.iptvnator -c '
+                      set -euo pipefail
+
+                      test -f /app/share/metainfo/com.fourgray.iptvnator.metainfo.xml
+                      test -L /app/bin/iptvnator
+
+                      LAUNCHER_PATH="$(readlink -f /app/bin/iptvnator)"
+                      test -f "${LAUNCHER_PATH}"
+                      test -f "${LAUNCHER_PATH}.bin"
+                      grep -q '\''readlink -f "$SCRIPT_PATH"'\'' "${LAUNCHER_PATH}"
+                      grep -q '\''exec "$SCRIPT_DIR/iptvnator.bin"'\'' "${LAUNCHER_PATH}"
+                  '
 
             - name: Upload artifacts (macOS)
               if: matrix.os == 'macos'
