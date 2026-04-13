@@ -410,6 +410,12 @@ function verifyFlatpakPermissions(errors) {
 }
 
 function verifySnapPackagingConfig(errors) {
+    if (snapConfigInspection.config?.base !== 'core22') {
+        errors.push(
+            `Snap config in ${snapConfigInspection.sourcePath} must set base to core22 so packaged native modules stay compatible with the Snap runtime glibc.`
+        );
+    }
+
     const snapExecutableArgs = Array.isArray(
         snapConfigInspection.config?.executableArgs
     )

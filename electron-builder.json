@@ -97,6 +97,7 @@
     },
     "afterPack": "./tools/packaging/linux-after-pack.cjs",
     "snap": {
+        "base": "core22",
         "confinement": "strict",
         "grade": "stable",
         "summary": "IPTV application for M3U playlists, Xtream Codes API, and Stalker portals",
