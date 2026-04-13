@@ -336,7 +336,7 @@ The script checks:
 4. Snap packaging compatibility settings for `better-sqlite3`:
     - `snap.base = core22`
     - Snap launch args keep the X11 fallback
-    - Snap builds stay aligned with the Ubuntu 22.04 Linux CI environment
+    - Snap and the other non-Flatpak Linux artifacts build on Ubuntu 22.04, while Flatpak builds on a separate Ubuntu 24.04 CI runner
 
 ### Development rebuild rule
 
