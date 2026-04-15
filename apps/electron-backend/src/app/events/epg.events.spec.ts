@@ -149,8 +149,11 @@ describe('EpgEvents', () => {
 
         where
             .mockReturnValueOnce({ orderBy })
+            .mockReturnValueOnce({ limit })
+            .mockReturnValueOnce({ orderBy });
+        orderBy
+            .mockReturnValueOnce({ limit })
             .mockReturnValueOnce({ limit });
-        orderBy.mockReturnValueOnce({ limit });
         limit
             .mockResolvedValueOnce([])
             .mockResolvedValueOnce([{ id: 'BBC.ONE.UK', displayName: 'BBC One' }])
