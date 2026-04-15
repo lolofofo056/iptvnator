@@ -133,44 +133,48 @@ describe('EpgEvents', () => {
 
     it('falls back to case-insensitive channel id lookup for EPG programs', async () => {
         const select = jest.fn();
-        const from = jest.fn();
-        const where = jest.fn();
-        const orderBy = jest.fn();
-        const limit = jest.fn();
+        const programLimitExact = jest.fn().mockResolvedValue([]);
+        const channelLimit = jest
+            .fn()
+            .mockResolvedValue([{ id: 'BBC.ONE.UK', displayName: 'BBC One' }]);
+        const programLimitResolved = jest.fn().mockResolvedValue([
+            {
+                id: 1,
+                channelId: 'BBC.ONE.UK',
+                start: '2026-04-14T10:00:00Z',
+                stop: '2026-04-14T11:00:00Z',
+                title: 'News',
+                description: null,
+                category: null,
+                iconUrl: null,
+                rating: null,
+                episodeNum: null,
+            },
+        ]);
+
+        const from = jest
+            .fn()
+            .mockReturnValueOnce({
+                where: jest.fn().mockReturnValue({
+                    orderBy: jest.fn().mockReturnValue({
+                        limit: programLimitExact,
+                    }),
+                }),
+            })
+            .mockReturnValueOnce({
+                where: jest.fn().mockReturnValue({
+                    limit: channelLimit,
+                }),
+            })
+            .mockReturnValueOnce({
+                where: jest.fn().mockReturnValue({
+                    orderBy: jest.fn().mockReturnValue({
+                        limit: programLimitResolved,
+                    }),
+                }),
+            });
 
         select.mockImplementation(() => ({ from }));
-        from.mockImplementation((table: { _: { name: string } }) => {
-            if (table._.name === 'epg_programs') {
-                return { where };
-            }
-
-            return { where };
-        });
-
-        where
-            .mockReturnValueOnce({ orderBy })
-            .mockReturnValueOnce({ limit })
-            .mockReturnValueOnce({ orderBy });
-        orderBy
-            .mockReturnValueOnce({ limit })
-            .mockReturnValueOnce({ limit });
-        limit
-            .mockResolvedValueOnce([])
-            .mockResolvedValueOnce([{ id: 'BBC.ONE.UK', displayName: 'BBC One' }])
-            .mockResolvedValueOnce([
-                {
-                    id: 1,
-                    channelId: 'BBC.ONE.UK',
-                    start: '2026-04-14T10:00:00Z',
-                    stop: '2026-04-14T11:00:00Z',
-                    title: 'News',
-                    description: null,
-                    category: null,
-                    iconUrl: null,
-                    rating: null,
-                    episodeNum: null,
-                },
-            ]);
 
         getDatabase.mockResolvedValue({ select });
 
