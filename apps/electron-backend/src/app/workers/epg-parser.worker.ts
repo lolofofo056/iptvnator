@@ -5,6 +5,7 @@ import { SaxesParser, SaxesTagPlain } from 'saxes';
 import { Readable } from 'stream';
 import { parentPort, workerData } from 'worker_threads';
 import { createGunzip } from 'zlib';
+import { shouldGunzipEpgResponse } from './epg-response-utils';
 import {
     getNativeModuleSearchPaths,
     getWorkerDataNativeModuleSearchPaths,
@@ -516,12 +517,7 @@ class StreamingEpgParser {
  * Inserts directly into SQLite to avoid blocking main thread
  */
 async function fetchAndParseEpgStreaming(url: string): Promise<void> {
-    const isGzipped = url.endsWith('.gz');
-
-    console.log(
-        loggerLabel,
-        `Fetching EPG from ${url} (gzipped: ${isGzipped})`
-    );
+    console.log(loggerLabel, `Fetching EPG from ${url}`);
 
     // Create database connection in worker
     const epgDb = new EpgDatabase();
@@ -532,6 +528,19 @@ async function fetchAndParseEpgStreaming(url: string): Promise<void> {
         epgDb.clearSourceData(url);
 
         const response = await fetch(url.trim());
+        const isGzipped = shouldGunzipEpgResponse(url, response);
+
+        if (response.url && response.url !== url) {
+            console.log(
+                loggerLabel,
+                `Resolved EPG redirect: ${url} -> ${response.url}`
+            );
+        }
+
+        console.log(
+            loggerLabel,
+            `EPG response detected as gzipped: ${isGzipped}`
+        );
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
