@@ -22,11 +22,6 @@ export function shouldGunzipEpgResponse(
         return true;
     }
 
-    const contentEncoding = response.headers.get('content-encoding');
-    if (contentEncoding?.toLowerCase().includes('gzip')) {
-        return true;
-    }
-
     const contentType = response.headers.get('content-type');
     if (
         contentType &&

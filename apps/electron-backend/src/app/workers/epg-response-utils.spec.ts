@@ -19,10 +19,30 @@ describe('shouldGunzipEpgResponse', () => {
         ).toBe(true);
     });
 
-    it('returns true for gzip content-encoding even without a .gz path', () => {
+    it('returns false for gzip content-encoding without a gzip payload', () => {
         expect(
             shouldGunzipEpgResponse('https://example.com/guide', {
                 headers: new Headers([['content-encoding', 'gzip']]),
+                url: 'https://example.com/guide',
+            })
+        ).toBe(false);
+    });
+
+    it('returns true for gzip mime types', () => {
+        expect(
+            shouldGunzipEpgResponse('https://example.com/guide', {
+                headers: new Headers([['content-type', 'application/gzip']]),
+                url: 'https://example.com/guide',
+            })
+        ).toBe(true);
+    });
+
+    it('returns true when content-disposition advertises a .gz filename', () => {
+        expect(
+            shouldGunzipEpgResponse('https://example.com/guide', {
+                headers: new Headers([
+                    ['content-disposition', 'attachment; filename="guide.xml.gz"'],
+                ]),
                 url: 'https://example.com/guide',
             })
         ).toBe(true);
