@@ -123,6 +123,17 @@ textarea,
     app-region: no-drag;
 }
 
+// Command palette dialog — the palette-shell renders its own background, border,
+// radius and shadow, so strip MDC's dialog surface chrome to avoid a darker
+// halo peeking out behind the rounded corners.
+.workspace-command-palette-overlay .mat-mdc-dialog-surface {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 14px;
+    padding: 0;
+    overflow: visible;
+}
+
 .mat-mdc-snack-bar-container.settings-snackbar {
     margin-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
 }
