@@ -1,6 +1,9 @@
 {
+    "CANCEL": "Cancel",
     "CLEAR": "Clear",
     "CLOSE": "Close",
+    "SHOW_MORE": "More",
+    "SHOW_LESS": "Less",
     "PLAYLISTS": "Playlists",
     "HOME": {
         "TITLE": "IPTVnator",
@@ -96,9 +99,10 @@
             "AUTO_REFRESH_ENABLED": "Auto-refresh enabled"
         },
         "FILE_UPLOAD": {
-            "DRAG_DROP": "Drag & drop files here",
+            "DRAG_DROP": "Drop an .m3u or .m3u8 file here",
             "OR": "or",
-            "CHOOSE_PLAYLIST": "choose a playlist",
+            "CHOOSE_PLAYLIST": "click to browse",
+            "BROWSE": "Browse files",
             "REJECTED": "File was rejected, unsupported file format {{filename}}."
         },
         "URL_UPLOAD": {
