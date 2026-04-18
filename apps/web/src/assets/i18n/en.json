@@ -782,6 +782,8 @@
             "CLEAR_COMPLETED_DOWNLOADS_THIS_PLAYLIST_ARIA": "Clear completed downloads for this playlist",
             "CLEAR_RECENTLY_VIEWED_SECTION": "Clear recently viewed",
             "CLEAR_RECENTLY_VIEWED_SECTION_ARIA": "Clear recently viewed for this section",
+            "CLEAR_RECENTLY_VIEWED_DIALOG_TITLE": "Clear recently viewed?",
+            "CLEAR_RECENTLY_VIEWED_DIALOG_MESSAGE": "All recently viewed items in this section will be removed. This action cannot be undone.",
             "XTREAM_CODE": "Xtream Code",
             "STALKER_PORTAL": "Stalker Portal",
             "CHANNELS_COUNT": "{{count}} channels",

@@ -670,6 +670,8 @@
             "CLEAR_COMPLETED_DOWNLOADS_THIS_PLAYLIST_ARIA": "Abgeschlossene Downloads für diese Playlist löschen",
             "CLEAR_RECENTLY_VIEWED_SECTION": "Zuletzt angesehen löschen",
             "CLEAR_RECENTLY_VIEWED_SECTION_ARIA": "Zuletzt angesehen für diesen Abschnitt löschen",
+            "CLEAR_RECENTLY_VIEWED_DIALOG_TITLE": "Zuletzt angesehen löschen?",
+            "CLEAR_RECENTLY_VIEWED_DIALOG_MESSAGE": "Alle zuletzt angesehenen Einträge in diesem Abschnitt werden entfernt. Diese Aktion kann nicht rückgängig gemacht werden.",
             "XTREAM_CODE": "Xtream Code",
             "STALKER_PORTAL": "Stalker-Portal",
             "CHANNELS_COUNT": "{{count}} Sender",

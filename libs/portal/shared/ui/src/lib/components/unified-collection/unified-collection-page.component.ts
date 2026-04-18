@@ -19,7 +19,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { DialogService } from 'components';
 import {
     buildGlobalCollectionDetailNavigationTarget,
     buildCollectionViewState,
@@ -83,6 +84,8 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
     private readonly scopeService = inject(ScopeToggleService);
     private readonly favoritesData = inject(UnifiedFavoritesDataService);
     private readonly recentData = inject(UnifiedRecentDataService);
+    private readonly dialogService = inject(DialogService);
+    private readonly translate = inject(TranslateService);
     readonly detailTemplate = contentChild(UnifiedCollectionDetailDirective);
     private readonly playlists = this.store.selectSignal(
         selectAllPlaylistsMeta
@@ -357,12 +360,26 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
         );
     }
 
-    async clearAllRecent(): Promise<void> {
-        await this.recentData.clearRecentItems(
-            this.effectiveScope(),
-            this.playlistId()
-        );
-        this.allItems.set([]);
+    clearAllRecent(): void {
+        if (this.allItems().length === 0) {
+            return;
+        }
+
+        const scope = this.effectiveScope();
+        const playlistId = this.playlistId();
+
+        this.dialogService.openConfirmDialog({
+            title: this.translate.instant(
+                'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_DIALOG_TITLE'
+            ),
+            message: this.translate.instant(
+                'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_DIALOG_MESSAGE'
+            ),
+            onConfirm: () => {
+                this.allItems.set([]);
+                void this.recentData.clearRecentItems(scope, playlistId);
+            },
+        });
     }
 
     async onReorder(items: UnifiedCollectionItem[]): Promise<void> {
