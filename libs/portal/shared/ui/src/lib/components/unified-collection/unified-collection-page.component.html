@@ -1,10 +1,19 @@
-@if (isLoading()) {
+<ng-content select="ng-template[unifiedCollectionDetail]"></ng-content>
+
+@if (detailContext(); as detailContext) {
+    <ng-container
+        [ngTemplateOutlet]="detailTemplate()?.templateRef ?? null"
+        [ngTemplateOutletContext]="detailContext"
+    />
+} @else if (isLoading()) {
     <div class="collection-header">
         <span class="collection-title">{{ title() | translate }}</span>
         <div class="collection-header-toggles">
             <span class="toggle-placeholder"></span>
             @if (showScopeToggle()) {
-                <span class="toggle-placeholder toggle-placeholder--scope"></span>
+                <span
+                    class="toggle-placeholder toggle-placeholder--scope"
+                ></span>
             }
         </div>
     </div>
@@ -102,8 +111,14 @@
                     type="button"
                     mat-icon-button
                     (click)="clearAllRecent()"
-                    [matTooltip]="'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION' | translate"
-                    [attr.aria-label]="'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION_ARIA' | translate"
+                    [matTooltip]="
+                        'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION'
+                            | translate
+                    "
+                    [attr.aria-label]="
+                        'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION_ARIA'
+                            | translate
+                    "
                 >
                     <mat-icon>delete_sweep</mat-icon>
                 </button>
@@ -133,6 +148,7 @@
                     [mode]="mode()"
                     [contentType]="'movie'"
                     [searchTerm]="workspaceSearchTerm()"
+                    (itemSelected)="onGridItemSelected($event)"
                     (removeItem)="onRemoveItem($event)"
                 />
             }
@@ -144,6 +160,7 @@
                     [mode]="mode()"
                     [contentType]="'series'"
                     [searchTerm]="workspaceSearchTerm()"
+                    (itemSelected)="onGridItemSelected($event)"
                     (removeItem)="onRemoveItem($event)"
                 />
             }

@@ -61,6 +61,8 @@
         top: 16px;
         left: 16px;
         z-index: 10;
+        app-region: no-drag;
+        -webkit-app-region: no-drag;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -480,7 +482,6 @@
         }
     }
 }
-
 
 // ============================================================================
 // Mobile Responsive - Option A: Keep poster grid layout

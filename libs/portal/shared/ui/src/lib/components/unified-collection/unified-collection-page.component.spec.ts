@@ -4,25 +4,26 @@ import {
     input,
     output,
     signal,
+    ViewChild,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { convertToParamMap, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
 import {
+    COLLECTION_VIEW_STATE_KEY,
     CollectionScope,
+    OPEN_COLLECTION_DETAIL_STATE_KEY,
     ScopeToggleService,
     UnifiedCollectionItem,
     UnifiedFavoritesDataService,
     UnifiedRecentDataService,
 } from '@iptvnator/portal/shared/util';
-import {
-    selectAllPlaylistsMeta,
-    selectPlaylistsLoadingFlag,
-} from 'm3u-state';
+import { selectAllPlaylistsMeta, selectPlaylistsLoadingFlag } from 'm3u-state';
 import { BehaviorSubject } from 'rxjs';
 import { PlaylistMeta } from 'shared-interfaces';
 import { UnifiedCollectionPageComponent } from './unified-collection-page.component';
+import { UnifiedCollectionDetailDirective } from './unified-collection-detail.directive';
 import { UnifiedGridTabComponent } from './unified-grid-tab.component';
 import { UnifiedLiveTabComponent } from './unified-live-tab.component';
 
@@ -54,7 +55,32 @@ class StubUnifiedGridTabComponent {
     readonly contentType = input<'movie' | 'series'>('movie');
     readonly searchTerm = input('');
 
+    readonly itemSelected = output<UnifiedCollectionItem>();
     readonly removeItem = output<UnifiedCollectionItem>();
+}
+
+@Component({
+    template: `
+        <app-unified-collection-page
+            [mode]="mode"
+            [portalType]="portalType"
+            [defaultScope]="defaultScope"
+        >
+            <ng-template unifiedCollectionDetail let-item>
+                <div class="detail-probe">{{ item.name }}</div>
+            </ng-template>
+        </app-unified-collection-page>
+    `,
+    imports: [UnifiedCollectionDetailDirective, UnifiedCollectionPageComponent],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class HostUnifiedCollectionPageComponent {
+    mode: 'favorites' | 'recent' = 'favorites';
+    portalType?: string;
+    defaultScope: CollectionScope | undefined = 'all';
+
+    @ViewChild(UnifiedCollectionPageComponent)
+    pageComponent?: UnifiedCollectionPageComponent;
 }
 
 describe('UnifiedCollectionPageComponent', () => {
@@ -69,10 +95,14 @@ describe('UnifiedCollectionPageComponent', () => {
             parent: null;
         };
         paramMap: ReturnType<
-            BehaviorSubject<ReturnType<typeof convertToParamMap>>['asObservable']
+            BehaviorSubject<
+                ReturnType<typeof convertToParamMap>
+            >['asObservable']
         >;
         queryParamMap: ReturnType<
-            BehaviorSubject<ReturnType<typeof convertToParamMap>>['asObservable']
+            BehaviorSubject<
+                ReturnType<typeof convertToParamMap>
+            >['asObservable']
         >;
         pathFromRoot: ActivatedRoute[];
     };
@@ -80,7 +110,9 @@ describe('UnifiedCollectionPageComponent', () => {
     let routeQueryParamMap$: BehaviorSubject<
         ReturnType<typeof convertToParamMap>
     >;
-    let workspaceParamMap$: BehaviorSubject<ReturnType<typeof convertToParamMap>>;
+    let workspaceParamMap$: BehaviorSubject<
+        ReturnType<typeof convertToParamMap>
+    >;
     const playlistsLoaded = signal(false);
     const playlists = signal<PlaylistMeta[]>([]);
     const favoritesData = {
@@ -92,6 +124,10 @@ describe('UnifiedCollectionPageComponent', () => {
         getRecentItems: jest.fn().mockResolvedValue([]),
         removeRecentItem: jest.fn(),
         clearRecentItems: jest.fn(),
+    };
+    const router = {
+        navigate: jest.fn().mockResolvedValue(true),
+        url: '/workspace/global-favorites',
     };
 
     function toParamMapRecord(
@@ -174,6 +210,7 @@ describe('UnifiedCollectionPageComponent', () => {
 
         await TestBed.configureTestingModule({
             imports: [
+                HostUnifiedCollectionPageComponent,
                 UnifiedCollectionPageComponent,
                 TranslateModule.forRoot(),
             ],
@@ -181,6 +218,10 @@ describe('UnifiedCollectionPageComponent', () => {
                 {
                     provide: ActivatedRoute,
                     useValue: route,
+                },
+                {
+                    provide: Router,
+                    useValue: router,
                 },
                 {
                     provide: Store,
@@ -215,10 +256,7 @@ describe('UnifiedCollectionPageComponent', () => {
         })
             .overrideComponent(UnifiedCollectionPageComponent, {
                 remove: {
-                    imports: [
-                        UnifiedGridTabComponent,
-                        UnifiedLiveTabComponent,
-                    ],
+                    imports: [UnifiedGridTabComponent, UnifiedLiveTabComponent],
                 },
                 add: {
                     imports: [
@@ -232,6 +270,7 @@ describe('UnifiedCollectionPageComponent', () => {
         fixture = TestBed.createComponent(UnifiedCollectionPageComponent);
         fixture.componentRef.setInput('mode', 'favorites');
         fixture.componentRef.setInput('defaultScope', 'all');
+        window.history.replaceState({}, document.title);
     });
 
     it('reloads favorites after playlist hydration completes', async () => {
@@ -372,6 +411,169 @@ describe('UnifiedCollectionPageComponent', () => {
             'playlist',
             'playlist-2',
             'm3u'
+        );
+    });
+
+    it('opens inline detail from history state when a detail template is projected', async () => {
+        const item: UnifiedCollectionItem = {
+            uid: 'xtream::xtream-1::77',
+            name: 'Inline Movie',
+            contentType: 'movie',
+            sourceType: 'xtream',
+            playlistId: 'xtream-1',
+            playlistName: 'Xtream One',
+            xtreamId: 77,
+            categoryId: 12,
+        };
+        window.history.replaceState(
+            {
+                [OPEN_COLLECTION_DETAIL_STATE_KEY]: {
+                    item,
+                },
+            },
+            document.title
+        );
+
+        const hostFixture = TestBed.createComponent(
+            HostUnifiedCollectionPageComponent
+        );
+
+        hostFixture.detectChanges();
+        await hostFixture.whenStable();
+        hostFixture.detectChanges();
+
+        expect(
+            hostFixture.nativeElement.querySelector('.detail-probe')
+                ?.textContent
+        ).toContain('Inline Movie');
+        expect(
+            hostFixture.componentInstance.pageComponent?.selectedContentType()
+        ).toBe('movie');
+    });
+
+    it('restores collection scope and selected content type from history state', async () => {
+        setRouteParams({ id: 'playlist-1' });
+        playlistsLoaded.set(true);
+        window.history.replaceState(
+            {
+                [COLLECTION_VIEW_STATE_KEY]: {
+                    selectedContentType: 'movie',
+                    scope: 'all',
+                },
+            },
+            document.title
+        );
+
+        const restoredFixture = TestBed.createComponent(
+            UnifiedCollectionPageComponent
+        );
+        restoredFixture.componentRef.setInput('mode', 'recent');
+        restoredFixture.componentRef.setInput('portalType', 'stalker');
+        restoredFixture.componentRef.setInput('defaultScope', 'playlist');
+
+        restoredFixture.detectChanges();
+        await restoredFixture.whenStable();
+
+        expect(restoredFixture.componentInstance.scope()).toBe('all');
+        expect(restoredFixture.componentInstance.selectedContentType()).toBe(
+            'movie'
+        );
+        expect(recentData.getRecentItems).toHaveBeenLastCalledWith(
+            'all',
+            'playlist-1',
+            'stalker'
+        );
+    });
+
+    it('closes inline detail when popstate removes the detail state', async () => {
+        const item: UnifiedCollectionItem = {
+            uid: 'stalker::stalker-1::series-9',
+            name: 'Inline Series',
+            contentType: 'series',
+            sourceType: 'stalker',
+            playlistId: 'stalker-1',
+            playlistName: 'Stalker One',
+            stalkerId: 'series-9',
+            categoryId: 'series',
+        };
+        const hostFixture = TestBed.createComponent(
+            HostUnifiedCollectionPageComponent
+        );
+
+        hostFixture.detectChanges();
+        await hostFixture.whenStable();
+        hostFixture.componentInstance.pageComponent?.onGridItemSelected(item);
+        hostFixture.detectChanges();
+
+        expect(
+            hostFixture.nativeElement.querySelector('.detail-probe')
+                ?.textContent
+        ).toContain('Inline Series');
+
+        window.history.replaceState({}, document.title);
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        await hostFixture.whenStable();
+        hostFixture.detectChanges();
+
+        expect(
+            hostFixture.nativeElement.querySelector('.detail-probe')
+        ).toBeNull();
+    });
+
+    it('routes cross-provider collection detail opens through the global collection route', async () => {
+        const item: UnifiedCollectionItem = {
+            uid: 'xtream::xtream-1::77',
+            name: 'Cross Provider Movie',
+            contentType: 'movie',
+            sourceType: 'xtream',
+            playlistId: 'xtream-1',
+            playlistName: 'Xtream One',
+            xtreamId: 77,
+            categoryId: 12,
+        };
+        const hostFixture = TestBed.createComponent(
+            HostUnifiedCollectionPageComponent
+        );
+        setRouteParams({ id: 'host-playlist' });
+        router.url = '/workspace/stalker/host/recent';
+        hostFixture.componentInstance.mode = 'recent';
+        hostFixture.componentInstance.portalType = 'stalker';
+
+        hostFixture.detectChanges();
+        await hostFixture.whenStable();
+        hostFixture.componentInstance.pageComponent?.onScopeChange('all');
+        hostFixture.componentInstance.pageComponent?.onContentTypeChange(
+            'movie'
+        );
+
+        hostFixture.componentInstance.pageComponent?.onGridItemSelected(item);
+
+        expect(window.history.state).toEqual(
+            expect.objectContaining({
+                [COLLECTION_VIEW_STATE_KEY]: {
+                    selectedContentType: 'movie',
+                    scope: 'all',
+                },
+            })
+        );
+        expect(router.navigate).toHaveBeenCalledWith(
+            ['/workspace', 'global-recent'],
+            {
+                state: {
+                    [OPEN_COLLECTION_DETAIL_STATE_KEY]: {
+                        item: expect.objectContaining({
+                            uid: item.uid,
+                            name: item.name,
+                            contentType: item.contentType,
+                            sourceType: item.sourceType,
+                            playlistId: item.playlistId,
+                            playlistName: item.playlistName,
+                            xtreamId: item.xtreamId,
+                            categoryId: String(item.categoryId),
+                        }),
+                    },
+                },
+            }
         );
     });
 });

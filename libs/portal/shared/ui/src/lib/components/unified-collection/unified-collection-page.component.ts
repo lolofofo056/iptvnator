@@ -1,7 +1,11 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
+    AfterContentInit,
     ChangeDetectionStrategy,
     Component,
     computed,
+    contentChild,
+    DestroyRef,
     effect,
     inject,
     linkedSignal,
@@ -13,29 +17,40 @@ import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconButton } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltip } from '@angular/material/tooltip';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslatePipe } from '@ngx-translate/core';
 import {
+    buildGlobalCollectionDetailNavigationTarget,
+    buildCollectionViewState,
+    buildOpenCollectionDetailItemState,
     clearNavigationStateKeys,
+    COLLECTION_VIEW_STATE_KEY,
     CollectionContentType,
     CollectionScope,
+    CollectionViewState,
+    getOpenCollectionDetailItemState,
+    getCollectionViewState,
     getOpenLiveCollectionItemState,
+    getUnifiedCollectionNavigation,
     isWorkspaceLayoutRoute,
+    OPEN_COLLECTION_DETAIL_STATE_KEY,
     OPEN_LIVE_COLLECTION_ITEM_STATE_KEY,
     queryParamSignal,
     routeParamSignal,
     ScopeToggleService,
+    STALKER_RETURN_TO_STATE_KEY,
     UnifiedCollectionItem,
     UnifiedFavoritesDataService,
     UnifiedRecentDataService,
 } from '@iptvnator/portal/shared/util';
-import {
-    selectAllPlaylistsMeta,
-    selectPlaylistsLoadingFlag,
-} from 'm3u-state';
+import { selectAllPlaylistsMeta, selectPlaylistsLoadingFlag } from 'm3u-state';
 import { UnifiedLiveTabComponent } from './unified-live-tab.component';
 import { UnifiedGridTabComponent } from './unified-grid-tab.component';
+import {
+    UnifiedCollectionDetailContext,
+    UnifiedCollectionDetailDirective,
+} from './unified-collection-detail.directive';
 
 @Component({
     selector: 'app-unified-collection-page',
@@ -43,6 +58,7 @@ import { UnifiedGridTabComponent } from './unified-grid-tab.component';
     styleUrl: './unified-collection-page.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
+        NgTemplateOutlet,
         MatButtonToggleModule,
         MatIconButton,
         MatIconModule,
@@ -52,7 +68,7 @@ import { UnifiedGridTabComponent } from './unified-grid-tab.component';
         UnifiedLiveTabComponent,
     ],
 })
-export class UnifiedCollectionPageComponent {
+export class UnifiedCollectionPageComponent implements AfterContentInit {
     readonly mode = input<'favorites' | 'recent'>('favorites');
     readonly portalType = input<string>();
     readonly playlistIdInput = input<string | undefined>(undefined, {
@@ -61,11 +77,16 @@ export class UnifiedCollectionPageComponent {
     readonly defaultScope = input<CollectionScope>();
 
     private readonly route = inject(ActivatedRoute);
+    private readonly router = inject(Router);
     private readonly store = inject(Store);
+    private readonly destroyRef = inject(DestroyRef);
     private readonly scopeService = inject(ScopeToggleService);
     private readonly favoritesData = inject(UnifiedFavoritesDataService);
     private readonly recentData = inject(UnifiedRecentDataService);
-    private readonly playlists = this.store.selectSignal(selectAllPlaylistsMeta);
+    readonly detailTemplate = contentChild(UnifiedCollectionDetailDirective);
+    private readonly playlists = this.store.selectSignal(
+        selectAllPlaylistsMeta
+    );
     private readonly playlistsLoaded = this.store.selectSignal(
         selectPlaylistsLoadingFlag
     );
@@ -73,8 +94,7 @@ export class UnifiedCollectionPageComponent {
     private readonly queryScope = queryParamSignal<CollectionScope | null>(
         this.route,
         'scope',
-        (value) =>
-            value === 'all' || value === 'playlist' ? value : null
+        (value) => (value === 'all' || value === 'playlist' ? value : null)
     );
     private readonly routeSearchTerm = queryParamSignal(
         this.route,
@@ -92,12 +112,33 @@ export class UnifiedCollectionPageComponent {
     readonly workspaceSearchTerm = computed(() =>
         this.isWorkspaceLayout ? this.routeSearchTerm() : ''
     );
+    private readonly historyCollectionViewState =
+        signal<CollectionViewState | null>(
+            getCollectionViewState(window.history.state)
+        );
 
     readonly isLoading = signal(true);
     readonly allItems = signal<UnifiedCollectionItem[]>([]);
-    readonly selectedContentType = signal<CollectionContentType>('live');
+    readonly selectedContentType = signal<CollectionContentType>(
+        this.historyCollectionViewState()?.selectedContentType ?? 'live'
+    );
+    readonly selectedDetailItem = signal<UnifiedCollectionItem | null>(null);
     readonly pendingAutoOpenLiveItem = signal(
         getOpenLiveCollectionItemState(window.history.state)
+    );
+    readonly detailContext = computed<UnifiedCollectionDetailContext | null>(
+        () => {
+            const item = this.selectedDetailItem();
+            if (!item) {
+                return null;
+            }
+
+            return {
+                $implicit: item,
+                item,
+                close: this.requestCloseDetail,
+            };
+        }
     );
 
     readonly skeletonRows = Array.from({ length: 12 }, (_, i) => i);
@@ -115,6 +156,11 @@ export class UnifiedCollectionPageComponent {
         const queryScope = this.queryScope();
         if (queryScope) {
             return queryScope;
+        }
+
+        const historyScope = this.historyCollectionViewState()?.scope;
+        if (historyScope) {
+            return historyScope;
         }
 
         const defaultScope = this.defaultScope();
@@ -174,7 +220,11 @@ export class UnifiedCollectionPageComponent {
             .map((playlist) =>
                 [
                     playlist._id,
-                    playlist.serverUrl ? 'xtream' : playlist.macAddress ? 'stalker' : 'm3u',
+                    playlist.serverUrl
+                        ? 'xtream'
+                        : playlist.macAddress
+                          ? 'stalker'
+                          : 'm3u',
                     JSON.stringify(playlist.favorites ?? []),
                 ].join('::')
             )
@@ -201,6 +251,53 @@ export class UnifiedCollectionPageComponent {
             });
         });
     });
+    private readonly persistCollectionViewState = effect(() => {
+        const selectedContentType = this.selectedContentType();
+        const scope = this.showScopeToggle() ? this.scope() : undefined;
+
+        untracked(() => {
+            this.syncCollectionViewStateToHistory({
+                selectedContentType,
+                scope,
+            });
+        });
+    });
+    private readonly crossProviderDetailRedirect = effect(() => {
+        const item = this.selectedDetailItem();
+        if (!item || this.canRenderInlineDetailOnCurrentRoute(item)) {
+            return;
+        }
+
+        const navigation = this.getGlobalCollectionDetailNavigation(item);
+        if (!navigation) {
+            return;
+        }
+
+        untracked(() => {
+            this.selectedDetailItem.set(null);
+            void this.router.navigate(navigation.link, {
+                state: navigation.state,
+            });
+        });
+    });
+
+    constructor() {
+        if (typeof window !== 'undefined') {
+            const onPopState = () => {
+                this.syncCollectionViewStateFromHistory();
+                this.syncDetailFromHistoryState();
+            };
+            window.addEventListener('popstate', onPopState);
+            this.destroyRef.onDestroy(() => {
+                window.removeEventListener('popstate', onPopState);
+            });
+        }
+    }
+
+    ngAfterContentInit(): void {
+        this.syncCollectionViewStateFromHistory();
+        this.syncDetailFromHistoryState();
+    }
 
     onScopeChange(value: CollectionScope): void {
         if (!this.showScopeToggle()) {
@@ -213,6 +310,40 @@ export class UnifiedCollectionPageComponent {
 
     onContentTypeChange(value: CollectionContentType): void {
         this.selectedContentType.set(value);
+    }
+
+    onGridItemSelected(item: UnifiedCollectionItem): void {
+        this.syncCurrentCollectionViewState();
+
+        if (this.canOpenInlineDetail(item)) {
+            this.pushInlineDetailState(item);
+            this.openInlineDetail(item);
+            return;
+        }
+
+        const globalDetailNavigation =
+            this.getGlobalCollectionDetailNavigation(item);
+        if (globalDetailNavigation) {
+            void this.router.navigate(globalDetailNavigation.link, {
+                state: globalDetailNavigation.state,
+            });
+            return;
+        }
+
+        const navigation = getUnifiedCollectionNavigation(item);
+        if (!navigation) {
+            return;
+        }
+
+        const state =
+            item.sourceType === 'stalker' && item.contentType !== 'live'
+                ? {
+                      ...(navigation.state ?? {}),
+                      [STALKER_RETURN_TO_STATE_KEY]: this.router.url,
+                  }
+                : navigation.state;
+
+        void this.router.navigate(navigation.link, { state });
     }
 
     async onRemoveItem(item: UnifiedCollectionItem): Promise<void> {
@@ -235,9 +366,7 @@ export class UnifiedCollectionPageComponent {
     }
 
     async onReorder(items: UnifiedCollectionItem[]): Promise<void> {
-        const nonLive = this.allItems().filter(
-            (i) => i.contentType !== 'live'
-        );
+        const nonLive = this.allItems().filter((i) => i.contentType !== 'live');
         this.allItems.set([...items, ...nonLive]);
         await this.favoritesData.reorder(items, {
             scope: this.effectiveScope(),
@@ -252,7 +381,10 @@ export class UnifiedCollectionPageComponent {
         }
 
         this.allItems.update((items) => {
-            const nextItems = [item, ...items.filter((candidate) => candidate.uid !== item.uid)];
+            const nextItems = [
+                item,
+                ...items.filter((candidate) => candidate.uid !== item.uid),
+            ];
             return nextItems.sort(
                 (a, b) =>
                     new Date(b.viewedAt ?? 0).getTime() -
@@ -309,6 +441,10 @@ export class UnifiedCollectionPageComponent {
     }
 
     private autoSelectContentType(): void {
+        if (this.selectedDetailItem()) {
+            return;
+        }
+
         const types = this.availableTypes();
         if (types.length > 0 && !types.includes(this.selectedContentType())) {
             this.selectedContentType.set(types[0]);
@@ -318,5 +454,160 @@ export class UnifiedCollectionPageComponent {
     onLiveAutoOpenHandled(): void {
         this.pendingAutoOpenLiveItem.set(null);
         clearNavigationStateKeys([OPEN_LIVE_COLLECTION_ITEM_STATE_KEY]);
+    }
+
+    private readonly requestCloseDetail = (): void => {
+        if (getOpenCollectionDetailItemState(window.history.state)) {
+            window.history.back();
+            return;
+        }
+
+        this.clearInlineDetail();
+    };
+
+    private canOpenInlineDetail(item: UnifiedCollectionItem): boolean {
+        return (
+            Boolean(this.detailTemplate()) &&
+            item.contentType !== 'live' &&
+            (item.sourceType === 'xtream' || item.sourceType === 'stalker') &&
+            this.canRenderInlineDetailOnCurrentRoute(item)
+        );
+    }
+
+    private canRenderInlineDetailOnCurrentRoute(
+        item: UnifiedCollectionItem
+    ): boolean {
+        const url = this.router.url;
+
+        if (url.includes('/workspace/xtreams/')) {
+            return item.sourceType === 'xtream';
+        }
+
+        if (url.includes('/workspace/stalker/')) {
+            return item.sourceType === 'stalker';
+        }
+
+        if (
+            url.includes('/workspace/global-favorites') ||
+            url.includes('/workspace/global-recent')
+        ) {
+            return (
+                item.sourceType === 'xtream' || item.sourceType === 'stalker'
+            );
+        }
+
+        const portalType = this.portalType();
+        return !portalType || portalType === item.sourceType;
+    }
+
+    private getGlobalCollectionDetailNavigation(item: UnifiedCollectionItem) {
+        if (
+            item.contentType === 'live' ||
+            (item.sourceType !== 'xtream' && item.sourceType !== 'stalker')
+        ) {
+            return null;
+        }
+
+        return buildGlobalCollectionDetailNavigationTarget(this.mode(), item);
+    }
+
+    private openInlineDetail(item: UnifiedCollectionItem): void {
+        this.selectedContentType.set(item.contentType);
+        this.selectedDetailItem.set(item);
+    }
+
+    private clearInlineDetail(): void {
+        this.selectedDetailItem.set(null);
+        this.autoSelectContentType();
+        clearNavigationStateKeys([OPEN_COLLECTION_DETAIL_STATE_KEY]);
+    }
+
+    private pushInlineDetailState(item: UnifiedCollectionItem): void {
+        const currentState = window.history.state ?? {};
+        window.history.pushState(
+            {
+                ...currentState,
+                [OPEN_COLLECTION_DETAIL_STATE_KEY]:
+                    buildOpenCollectionDetailItemState(item),
+            },
+            document.title
+        );
+    }
+
+    private syncCollectionViewStateFromHistory(): void {
+        const collectionViewState = getCollectionViewState(
+            window.history.state
+        );
+        this.historyCollectionViewState.set(collectionViewState);
+
+        if (collectionViewState?.selectedContentType) {
+            this.selectedContentType.set(
+                collectionViewState.selectedContentType
+            );
+        }
+    }
+
+    private syncCurrentCollectionViewState(): void {
+        this.syncCollectionViewStateToHistory({
+            selectedContentType: this.selectedContentType(),
+            scope: this.showScopeToggle() ? this.scope() : undefined,
+        });
+    }
+
+    private syncCollectionViewStateToHistory(state: CollectionViewState): void {
+        const nextCollectionViewState = buildCollectionViewState(state);
+        const currentCollectionViewState = this.historyCollectionViewState();
+
+        if (
+            this.isSameCollectionViewState(
+                currentCollectionViewState,
+                nextCollectionViewState
+            )
+        ) {
+            return;
+        }
+
+        const currentState = this.toHistoryStateRecord(window.history.state);
+        const nextState = { ...currentState };
+
+        if (nextCollectionViewState) {
+            nextState[COLLECTION_VIEW_STATE_KEY] = nextCollectionViewState;
+        } else {
+            delete nextState[COLLECTION_VIEW_STATE_KEY];
+        }
+
+        window.history.replaceState(nextState, document.title);
+        this.historyCollectionViewState.set(nextCollectionViewState);
+    }
+
+    private syncDetailFromHistoryState(): void {
+        const detailItem = getOpenCollectionDetailItemState(
+            window.history.state
+        )?.item;
+
+        if (detailItem && this.canOpenInlineDetail(detailItem)) {
+            this.openInlineDetail(detailItem);
+            return;
+        }
+
+        if (this.selectedDetailItem()) {
+            this.clearInlineDetail();
+        }
+    }
+
+    private isSameCollectionViewState(
+        left: CollectionViewState | null,
+        right: CollectionViewState | null
+    ): boolean {
+        return (
+            left?.selectedContentType === right?.selectedContentType &&
+            left?.scope === right?.scope
+        );
+    }
+
+    private toHistoryStateRecord(state: unknown): Record<string, unknown> {
+        return state && typeof state === 'object'
+            ? { ...(state as Record<string, unknown>) }
+            : {};
     }
 }
