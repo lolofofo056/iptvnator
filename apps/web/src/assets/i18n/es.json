@@ -112,6 +112,11 @@
         "EPG_URL_LABEL": "Url de la EPG (*.xml o *.xml.gz)",
         "EPG_URL_PLACEHOLDER": "Ingresa una URL",
         "REFRESH_EPG": "Actualizar EPG",
+        "REFRESH_ALL_EPG": "Actualizar todo",
+        "REMOVE_EPG_SOURCE": "Eliminar fuente EPG",
+        "EPG_STATUS_FRESH": "Actualizado",
+        "EPG_STATUS_STALE": "Necesita actualización",
+        "EPG_STATUS_ERROR": "Error",
         "VIDEO_PLAYER_LABEL": "Reproductor de vídeo",
         "PLAYER_HTML5": "Reproductor HTML5",
         "PLAYER_VIDEOJS": "Reproductor Video.js",
@@ -137,6 +142,8 @@
             "MESSAGE": "¿Seguro que quieres eliminar todos los datos EPG de la base de datos? Esto borrará toda la programacion almacenada en caché."
         },
         "EPG_DATA_CLEARED": "Los datos EPG se borraron",
+        "EPG_DATA_CLEAR_FAILED": "No se pudieron borrar los datos EPG. Inténtalo de nuevo.",
+        "CLEARING_EPG_DATA": "Borrando…",
         "REMOVE_DIALOG": {
             "TITLE": "Eliminar todas las listas de reproducción",
             "MESSAGE": "¿Estás seguro de que deseas eliminar todas las listas de reproducción de la aplicación?"

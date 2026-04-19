@@ -241,6 +241,11 @@
         "LATEST_VERSION": "Sie nutzen die neueste Version der Anwendung",
         "NEW_VERSION_AVAILABLE": "EIne neue Version der Anwendung ist verfügbar",
         "REFRESH_EPG": "TV-Programm aktualisieren",
+        "REFRESH_ALL_EPG": "Alle aktualisieren",
+        "REMOVE_EPG_SOURCE": "EPG-Quelle entfernen",
+        "EPG_STATUS_FRESH": "Aktuell",
+        "EPG_STATUS_STALE": "Aktualisierung nötig",
+        "EPG_STATUS_ERROR": "Fehlgeschlagen",
         "SAVE_CHANGES": "Änderungen speichern",
         "SUBTITLE": "Die App-Einstellungen ändern",
         "TITLE": "Einstellungen",
@@ -267,6 +272,8 @@
             "MESSAGE": "Möchten Sie wirklich alle EPG-Daten aus der Datenbank entfernen? Dadurch werden alle zwischengespeicherten Programmdaten gelöscht."
         },
         "EPG_DATA_CLEARED": "EPG-Daten wurden gelöscht",
+        "EPG_DATA_CLEAR_FAILED": "EPG-Daten konnten nicht gelöscht werden. Bitte erneut versuchen.",
+        "CLEARING_EPG_DATA": "Wird gelöscht…",
         "REMOVE_DIALOG": {
             "TITLE": "Аlle Wiedergabelisten löschen",
             "MESSAGE": "Sind Sie sicher, dass Sie alle Wiedergabelisten aus der Anwendung löschen möchten?"
