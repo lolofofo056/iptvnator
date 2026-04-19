@@ -10,6 +10,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { DialogService } from 'components';
 import {
     COLLECTION_VIEW_STATE_KEY,
     CollectionScope,
@@ -117,6 +118,7 @@ describe('UnifiedCollectionPageComponent', () => {
     const playlists = signal<PlaylistMeta[]>([]);
     const favoritesData = {
         getFavorites: jest.fn().mockResolvedValue([]),
+        clearFavorites: jest.fn().mockResolvedValue(undefined),
         removeFavorite: jest.fn(),
         reorder: jest.fn(),
     };
@@ -124,6 +126,9 @@ describe('UnifiedCollectionPageComponent', () => {
         getRecentItems: jest.fn().mockResolvedValue([]),
         removeRecentItem: jest.fn(),
         clearRecentItems: jest.fn(),
+    };
+    const dialogService = {
+        openConfirmDialog: jest.fn(),
     };
     const router = {
         navigate: jest.fn().mockResolvedValue(true),
@@ -251,6 +256,10 @@ describe('UnifiedCollectionPageComponent', () => {
                 {
                     provide: UnifiedRecentDataService,
                     useValue: recentData,
+                },
+                {
+                    provide: DialogService,
+                    useValue: dialogService,
                 },
             ],
         })
@@ -412,6 +421,84 @@ describe('UnifiedCollectionPageComponent', () => {
             'playlist-2',
             'm3u'
         );
+    });
+
+    it('clears current favorites through the bulk clear service path', async () => {
+        const liveItems = [
+            {
+                uid: 'm3u::playlist-1::one',
+                name: 'Favorite One',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'playlist-1',
+                playlistName: 'Playlist One',
+                streamUrl: 'https://example.com/one.m3u8',
+            },
+            {
+                uid: 'm3u::playlist-1::two',
+                name: 'Favorite Two',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'playlist-1',
+                playlistName: 'Playlist One',
+                streamUrl: 'https://example.com/two.m3u8',
+            },
+        ] satisfies UnifiedCollectionItem[];
+        favoritesData.getFavorites.mockResolvedValueOnce(liveItems);
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        fixture.componentInstance.clearAllCurrent();
+        const [dialogConfig] = dialogService.openConfirmDialog.mock.calls.at(
+            -1
+        ) ?? [null];
+
+        expect(dialogConfig).toBeTruthy();
+
+        await dialogConfig.onConfirm();
+
+        expect(favoritesData.clearFavorites).toHaveBeenCalledTimes(1);
+        expect(favoritesData.clearFavorites).toHaveBeenCalledWith(liveItems);
+        expect(favoritesData.removeFavorite).not.toHaveBeenCalled();
+    });
+
+    it('reloads favorites when bulk clear persistence fails', async () => {
+        const liveItems = [
+            {
+                uid: 'm3u::playlist-1::one',
+                name: 'Favorite One',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'playlist-1',
+                playlistName: 'Playlist One',
+                streamUrl: 'https://example.com/one.m3u8',
+            },
+        ] satisfies UnifiedCollectionItem[];
+        favoritesData.getFavorites
+            .mockResolvedValueOnce(liveItems)
+            .mockResolvedValueOnce(liveItems);
+        favoritesData.clearFavorites.mockRejectedValueOnce(
+            new Error('clear failed')
+        );
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        fixture.componentInstance.clearAllCurrent();
+        const [dialogConfig] = dialogService.openConfirmDialog.mock.calls.at(
+            -1
+        ) ?? [null];
+
+        await dialogConfig.onConfirm();
+
+        expect(favoritesData.getFavorites).toHaveBeenCalledTimes(2);
+        expect(favoritesData.getFavorites).toHaveBeenLastCalledWith(
+            'all',
+            undefined,
+            undefined
+        );
+        expect(fixture.componentInstance.allItems()).toEqual(liveItems);
     });
 
     it('opens inline detail from history state when a detail template is projected', async () => {

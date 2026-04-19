@@ -461,7 +461,12 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
         this.dialogService.openConfirmDialog({
             title: this.translate.instant(titleKey, { type }),
             message: this.translate.instant(messageKey, { type }),
-            onConfirm: () => {
+            onConfirm: async () => {
+                if (isFavorites) {
+                    await this.clearCurrentFavorites(itemsToRemove);
+                    return;
+                }
+
                 const removedType = this.selectedContentType();
                 this.allItems.update((items) =>
                     items.filter((item) => item.contentType !== removedType)
@@ -472,9 +477,7 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
                 }
                 void Promise.all(
                     itemsToRemove.map((item) =>
-                        isFavorites
-                            ? this.favoritesData.removeFavorite(item)
-                            : this.recentData.removeRecentItem(item)
+                        this.recentData.removeRecentItem(item)
                     )
                 );
             },
@@ -507,6 +510,25 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
                     new Date(a.viewedAt ?? 0).getTime()
             );
         });
+    }
+
+    private async clearCurrentFavorites(
+        itemsToRemove: UnifiedCollectionItem[]
+    ): Promise<void> {
+        const removedType = this.selectedContentType();
+        this.allItems.update((items) =>
+            items.filter((item) => item.contentType !== removedType)
+        );
+        const remaining = this.availableTypes();
+        if (remaining.length > 0) {
+            this.selectedContentType.set(remaining[0]);
+        }
+
+        try {
+            await this.favoritesData.clearFavorites(itemsToRemove);
+        } catch {
+            await this.reloadCurrentCollection();
+        }
     }
 
     private async loadData(params: {
@@ -554,6 +576,15 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
                 this.isLoading.set(false);
             }
         }
+    }
+
+    private async reloadCurrentCollection(): Promise<void> {
+        await this.loadData({
+            mode: this.mode(),
+            portalType: this.portalType(),
+            playlistId: this.playlistId(),
+            scope: this.effectiveScope(),
+        });
     }
 
     private autoSelectContentType(): void {
