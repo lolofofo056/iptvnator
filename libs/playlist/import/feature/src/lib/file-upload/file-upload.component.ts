@@ -38,10 +38,21 @@ export class FileUploadComponent {
     }
 
     onPicked(input: HTMLInputElement): void {
-        const file = input.files?.[0];
+        const file = input.files?.[0] as (File & { path?: string }) | undefined;
+        const pathOverride = input.dataset['filePathOverride'];
+
+        if (file && !file.path && pathOverride) {
+            Object.defineProperty(file, 'path', {
+                configurable: true,
+                value: pathOverride,
+            });
+        }
+
         if (file) {
             this.setFile(file);
         }
+
+        delete input.dataset['filePathOverride'];
         input.value = '';
     }
 

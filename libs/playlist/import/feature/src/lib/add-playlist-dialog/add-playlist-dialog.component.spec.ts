@@ -3,6 +3,7 @@ import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
+import { PlaylistActions } from 'm3u-state';
 import { DataService } from 'services';
 import { PLAYLIST_PARSE_BY_URL } from 'shared-interfaces';
 import { AddPlaylistDialogComponent } from './add-playlist-dialog.component';
@@ -11,6 +12,7 @@ describe('AddPlaylistDialogComponent', () => {
     let component: AddPlaylistDialogComponent;
     let dataService: { sendIpcEvent: jest.Mock };
     let dialogRef: { close: jest.Mock };
+    let store: { dispatch: jest.Mock };
 
     beforeEach(() => {
         dataService = {
@@ -18,6 +20,9 @@ describe('AddPlaylistDialogComponent', () => {
         };
         dialogRef = {
             close: jest.fn(),
+        };
+        store = {
+            dispatch: jest.fn(),
         };
 
         TestBed.configureTestingModule({
@@ -32,9 +37,7 @@ describe('AddPlaylistDialogComponent', () => {
                 },
                 {
                     provide: Store,
-                    useValue: {
-                        dispatch: jest.fn(),
-                    },
+                    useValue: store,
                 },
                 {
                     provide: MatSnackBar,
@@ -99,6 +102,30 @@ describe('AddPlaylistDialogComponent', () => {
             {
                 url: 'https://example.com/list.m3u',
             }
+        );
+        expect(dialogRef.close).toHaveBeenCalled();
+    });
+
+    it('strips playlist extensions from uploaded file titles', () => {
+        component.handlePlaylist({
+            uploadEvent: {
+                target: {
+                    result: '#EXTM3U',
+                },
+            } as unknown as Event,
+            file: {
+                name: 'Local Source.m3u',
+                path: '/tmp/Local Source.m3u',
+            } as File,
+        });
+
+        expect(store.dispatch).toHaveBeenCalledWith(
+            PlaylistActions.parsePlaylist({
+                uploadType: 'FILE',
+                playlist: '#EXTM3U',
+                title: 'Local Source',
+                path: '/tmp/Local Source.m3u',
+            })
         );
         expect(dialogRef.close).toHaveBeenCalled();
     });

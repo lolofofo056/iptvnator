@@ -122,7 +122,7 @@ export class AddPlaylistDialogComponent {
             PlaylistActions.parsePlaylist({
                 uploadType: 'FILE',
                 playlist,
-                title: payload.file.name,
+                title: this.normalizeImportedFileTitle(payload.file.name),
                 path: (payload.file as File & { path?: string }).path,
             })
         );
@@ -180,5 +180,17 @@ export class AddPlaylistDialogComponent {
     private normalizeOptionalValue(value?: string | null): string | undefined {
         const normalizedValue = value?.trim();
         return normalizedValue ? normalizedValue : undefined;
+    }
+
+    private normalizeImportedFileTitle(filename: string): string {
+        const normalizedFilename = filename.trim();
+        if (!normalizedFilename) {
+            return filename;
+        }
+
+        return (
+            normalizedFilename.replace(/\.(m3u8?|pls|txt)$/i, '') ||
+            normalizedFilename
+        );
     }
 }
