@@ -446,6 +446,11 @@
                                                         | translate
                                                 }}</mat-error>
                                             </mat-form-field>
+                                            @if (epgField.value) {
+                                                <app-epg-source-status
+                                                    [url]="epgField.value"
+                                                />
+                                            }
                                             <button
                                                 mat-icon-button
                                                 color="accent"
@@ -467,7 +472,7 @@
                                                 mat-icon-button
                                                 color="accent"
                                                 [matTooltip]="
-                                                    'SETTINGS.REFRESH_EPG'
+                                                    'SETTINGS.REMOVE_EPG_SOURCE'
                                                         | translate
                                                 "
                                                 type="button"
@@ -494,11 +499,33 @@
                             </button>
                             <button
                                 mat-button
+                                type="button"
+                                [disabled]="
+                                    epgUrl.length === 0 ||
+                                    isClearingEpgData()
+                                "
+                                (click)="refreshAllEpg()"
+                            >
+                                <mat-icon>refresh</mat-icon>
+                                {{ 'SETTINGS.REFRESH_ALL_EPG' | translate }}
+                            </button>
+                            <button
+                                mat-button
                                 color="warn"
                                 type="button"
+                                [disabled]="isClearingEpgData()"
                                 (click)="clearEpgData()"
                             >
-                                {{ 'SETTINGS.CLEAR_EPG_DATA' | translate }}
+                                @if (isClearingEpgData()) {
+                                    <mat-progress-spinner
+                                        class="button-spinner"
+                                        diameter="16"
+                                        mode="indeterminate"
+                                    />
+                                    {{ 'SETTINGS.CLEARING_EPG_DATA' | translate }}
+                                } @else {
+                                    {{ 'SETTINGS.CLEAR_EPG_DATA' | translate }}
+                                }
                             </button>
                         </div>
                     </footer>

@@ -172,6 +172,9 @@ describe('SettingsComponent', () => {
                 staleUrls: [],
             }),
             clearEpgData: jest.fn().mockResolvedValue({ success: true }),
+            forceFetchEpg: jest
+                .fn()
+                .mockResolvedValue({ success: true }),
             getAppVersion: jest.fn().mockResolvedValue('1.0.0'),
             getLocalIpAddresses: jest.fn().mockResolvedValue([]),
             platform: 'linux',
@@ -434,11 +437,68 @@ describe('SettingsComponent', () => {
         );
     });
 
-    it('should send epg refresh command', () => {
-        jest.spyOn(epgService, 'fetchEpg');
+    it('should force-fetch EPG for a single URL (bypassing freshness cache)', () => {
         const url = 'http://epg-url-here/data.xml';
         component.refreshEpg(url);
-        expect(epgService.fetchEpg).toHaveBeenCalledWith([url]);
+        expect(window.electron.forceFetchEpg).toHaveBeenCalledWith(url);
+    });
+
+    it('clears EPG data with a busy state and refreshes all sources on success', async () => {
+        let resolveClear: () => void = () => undefined;
+        const clearPromise = new Promise<{ success: boolean }>((resolve) => {
+            resolveClear = () => resolve({ success: true });
+        });
+        (window.electron.clearEpgData as jest.Mock).mockReturnValue(
+            clearPromise
+        );
+        (dialogService.openConfirmDialog as jest.Mock).mockImplementation(
+            ({ onConfirm }: { onConfirm: () => Promise<void> }) => {
+                void onConfirm();
+            }
+        );
+        const refreshSpy = jest.spyOn(component, 'refreshAllEpg');
+        jest.spyOn(translate, 'instant').mockImplementation((key) => key);
+
+        component.clearEpgData();
+
+        expect(component.isClearingEpgData()).toBe(true);
+        expect(refreshSpy).not.toHaveBeenCalled();
+
+        resolveClear();
+        await fixture.whenStable();
+
+        expect(component.isClearingEpgData()).toBe(false);
+        expect(snackBar.open).toHaveBeenCalledWith(
+            'SETTINGS.EPG_DATA_CLEARED',
+            undefined,
+            expect.objectContaining({ panelClass: ['settings-snackbar'] })
+        );
+        expect(refreshSpy).toHaveBeenCalled();
+    });
+
+    it('shows a failure snackbar and skips refresh when clearing EPG data rejects', async () => {
+        (window.electron.clearEpgData as jest.Mock).mockRejectedValueOnce(
+            new Error('boom')
+        );
+        (dialogService.openConfirmDialog as jest.Mock).mockImplementation(
+            ({ onConfirm }: { onConfirm: () => Promise<void> }) => {
+                void onConfirm();
+            }
+        );
+        const refreshSpy = jest.spyOn(component, 'refreshAllEpg');
+        jest.spyOn(translate, 'instant').mockImplementation((key) => key);
+        jest.spyOn(console, 'error').mockImplementation();
+
+        component.clearEpgData();
+        await fixture.whenStable();
+
+        expect(component.isClearingEpgData()).toBe(false);
+        expect(snackBar.open).toHaveBeenCalledWith(
+            'SETTINGS.EPG_DATA_CLEAR_FAILED',
+            undefined,
+            expect.objectContaining({ panelClass: ['settings-snackbar'] })
+        );
+        expect(refreshSpy).not.toHaveBeenCalled();
     });
 
     it('should navigate back to home page', () => {

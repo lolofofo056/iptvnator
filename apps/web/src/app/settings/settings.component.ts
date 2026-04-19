@@ -39,6 +39,7 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EpgService } from '@iptvnator/epg/data-access';
+import { EpgSourceStatusComponent } from '@iptvnator/ui/epg';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { DialogService } from 'components';
 import { PlaylistActions, selectIsEpgAvailable } from 'm3u-state';
@@ -84,6 +85,7 @@ interface StartupBehaviorOption {
     styleUrls: ['./settings.component.scss'],
     imports: [
         CommonModule,
+        EpgSourceStatusComponent,
         FormsModule,
         MatButtonModule,
         MatCheckboxModule,
@@ -238,6 +240,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     /** Currently visible QR code IP (null = none visible) */
     visibleQrCodeIp = signal<string | null>(null);
     readonly isRemovingAllPlaylists = signal(false);
+    readonly isClearingEpgData = signal(false);
 
     private settingsStore = inject(SettingsStore);
     private sectionObserver?: IntersectionObserver;
@@ -544,11 +547,27 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Fetches and updates EPG from the given URL
-     * @param url epg source url
+     * Force-fetch EPG for a single URL, bypassing the 12-hour freshness check.
+     * The plain fetchEpg would short-circuit on fresh data and click the
+     * refresh button would be a no-op — that's exactly not what the user
+     * intends when clicking "Refresh".
      */
     refreshEpg(url: string): void {
-        this.epgService.fetchEpg([url]);
+        if (!url || !window.electron?.forceFetchEpg) return;
+        void window.electron.forceFetchEpg(url);
+    }
+
+    /**
+     * Force-fetch every configured EPG URL sequentially. Empty fields are
+     * skipped. Each URL flows through the normal progress panel so the user
+     * gets visible per-URL feedback.
+     */
+    refreshAllEpg(): void {
+        if (!window.electron?.forceFetchEpg) return;
+        const urls = (this.epgUrl.value as string[])
+            .map((url) => url?.trim())
+            .filter((url): url is string => Boolean(url));
+        urls.forEach((url) => window.electron.forceFetchEpg(url));
     }
 
     /**
@@ -575,7 +594,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Clears all EPG data from database
+     * Clears all EPG data from database and immediately re-fetches every
+     * configured URL so the user isn't left staring at an empty state.
+     * Tracks progress with `isClearingEpgData` so the UI can show a spinner
+     * and block double-clicks, and surfaces failures via a dedicated snackbar.
      */
     clearEpgData(): void {
         this.dialogService.openConfirmDialog({
@@ -584,11 +606,32 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 'SETTINGS.CLEAR_EPG_DIALOG.MESSAGE'
             ),
             onConfirm: async (): Promise<void> => {
-                if (window.electron?.clearEpgData) {
-                    await window.electron.clearEpgData();
+                if (
+                    !window.electron?.clearEpgData ||
+                    this.isClearingEpgData()
+                ) {
+                    return;
+                }
+
+                this.isClearingEpgData.set(true);
+                try {
+                    const result = await window.electron.clearEpgData();
+                    if (result && result.success === false) {
+                        throw new Error('Clear EPG returned success=false');
+                    }
                     this.openSettingsSnackbar(
                         this.translate.instant('SETTINGS.EPG_DATA_CLEARED')
                     );
+                    this.refreshAllEpg();
+                } catch (error) {
+                    console.error('Failed to clear EPG data:', error);
+                    this.openSettingsSnackbar(
+                        this.translate.instant(
+                            'SETTINGS.EPG_DATA_CLEAR_FAILED'
+                        )
+                    );
+                } finally {
+                    this.isClearingEpgData.set(false);
                 }
             },
         });

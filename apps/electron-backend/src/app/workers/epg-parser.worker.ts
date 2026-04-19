@@ -129,10 +129,20 @@ class EpgDatabase {
     }
 
     /**
-     * Insert a batch of channels
+     * Insert a batch of channels. When `clearFirst` is true, the existing rows
+     * for `sourceUrl` are deleted inside the same transaction as the insert so
+     * old data is preserved if the fetch/parse never produces any channels.
      */
-    insertChannels(channels: ParsedChannel[], sourceUrl: string): void {
+    insertChannels(
+        channels: ParsedChannel[],
+        sourceUrl: string,
+        clearFirst = false
+    ): void {
         const insertMany = this.db.transaction((channels: ParsedChannel[]) => {
+            if (clearFirst) {
+                this.deleteChannelsStmt.run(sourceUrl);
+                this.knownChannelIds.clear();
+            }
             for (const channel of channels) {
                 const displayName =
                     channel.displayName?.[0]?.value || channel.id;
@@ -213,11 +223,13 @@ async function fetchAndParseEpgStreaming(url: string): Promise<void> {
     // Create database connection in worker
     const epgDb = new EpgDatabase();
 
-    try {
-        // Clear existing data for this source
-        console.log(loggerLabel, `Clearing existing data for ${url}`);
-        epgDb.clearSourceData(url);
+    // Old rows for this source are retained until the first successful insert
+    // batch arrives — see `hasClearedSource` below. That way, a fetch or parse
+    // that yields zero channels leaves the existing data intact instead of
+    // wiping it and leaving the URL permanently stale.
+    let hasClearedSource = false;
 
+    try {
         const response = await fetch(url.trim());
         const isGzipped = shouldGunzipEpgResponse(url, response);
 
@@ -243,8 +255,10 @@ async function fetchAndParseEpgStreaming(url: string): Promise<void> {
 
         const parser = new StreamingEpgParser(
             (channels) => {
-                // Insert channels directly into database
-                epgDb.insertChannels(channels, url);
+                // Clear old rows in the same transaction as the first insert
+                // so we never end up with zero rows on a failed/empty parse.
+                epgDb.insertChannels(channels, url, !hasClearedSource);
+                hasClearedSource = true;
             },
             (programs) => {
                 // Insert programs directly into database
@@ -299,6 +313,23 @@ async function fetchAndParseEpgStreaming(url: string): Promise<void> {
 
                     // Close database connection
                     epgDb.close();
+
+                    // Treat empty results as failure rather than silently
+                    // marking the URL as fetched — that causes the freshness
+                    // check to re-trigger a fetch every session and hides the
+                    // real problem (unreachable feed, SAX parse failure, etc.).
+                    if (stats.totalChannels === 0) {
+                        const errorMessage = `EPG parse produced 0 channels — feed may be unreachable or unsupported`;
+                        console.error(loggerLabel, `${errorMessage}: ${url}`);
+                        const response: WorkerResponse = {
+                            type: 'EPG_ERROR',
+                            url,
+                            error: errorMessage,
+                        };
+                        parentPort?.postMessage(response);
+                        reject(new Error(errorMessage));
+                        return;
+                    }
 
                     const response: WorkerResponse = {
                         type: 'EPG_COMPLETE',

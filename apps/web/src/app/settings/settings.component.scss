@@ -314,6 +314,10 @@
     .w-full {
         width: 100%;
     }
+
+    app-epg-source-status {
+        flex-shrink: 0;
+    }
 }
 
 .inline-actions {
@@ -321,6 +325,12 @@
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 6px;
+
+    .button-spinner {
+        display: inline-block;
+        margin-right: 6px;
+        vertical-align: middle;
+    }
 }
 
 .remote-control-urls {
