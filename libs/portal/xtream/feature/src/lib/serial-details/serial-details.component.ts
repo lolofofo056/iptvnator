@@ -235,7 +235,8 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
     toggleFavorite(): void {
         this.xtreamStore.toggleFavorite(
             this.route.snapshot.params.serialId,
-            this.xtreamStore.currentPlaylist().id
+            this.xtreamStore.currentPlaylist().id,
+            'series'
         );
     }
 
@@ -365,7 +366,11 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
             categoryId: Number(categoryId),
         });
         const serialXtreamId = Number(serialId);
-        this.xtreamStore.checkFavoriteStatus(serialXtreamId, playlistId);
+        this.xtreamStore.checkFavoriteStatus(
+            serialXtreamId,
+            playlistId,
+            'series'
+        );
         void this.loadSeriesPlaybackPositions(playlistId, serialXtreamId);
     }
 }

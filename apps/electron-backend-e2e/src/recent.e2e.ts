@@ -255,15 +255,17 @@ test.describe('Electron Recently Viewed', () => {
             await expectVisibleContentCardTitle(app.mainWindow, seriesTitle);
 
             await switchUnifiedCollectionContent(app.mainWindow, 'Live TV');
-            await clearRecentItems(app.mainWindow);
-            // After clearing all items, the content toggle disappears.
-            // All content types are cleared simultaneously, so no toggle switch needed.
+            await clearRecentItems(app.mainWindow, 'Live TV');
             await expect(
                 channelItemByTitle(app.mainWindow, liveTitle)
             ).toHaveCount(0);
+            await expectVisibleContentCardTitle(app.mainWindow, movieTitle);
+            await clearRecentItems(app.mainWindow, 'Movies');
             await expect(
                 contentCardByTitle(app.mainWindow, movieTitle)
             ).toHaveCount(0);
+            await expectVisibleContentCardTitle(app.mainWindow, seriesTitle);
+            await clearRecentItems(app.mainWindow, 'Series');
             await expect(
                 contentCardByTitle(app.mainWindow, seriesTitle)
             ).toHaveCount(0);
@@ -564,10 +566,11 @@ const xtreamCredentials = {
     password: defaultXtreamPassword,
 };
 
-async function clearRecentItems(page: Page): Promise<void> {
+async function clearRecentItems(page: Page, typeLabel: string): Promise<void> {
     await page
-        .getByRole('button', { name: 'Clear recently viewed for this section' })
+        .getByRole('button', { name: `Clear recently viewed ${typeLabel}` })
         .click();
+    await page.getByRole('button', { name: 'Yes' }).click();
 }
 
 async function closeUnifiedLiveDetail(page: Page): Promise<void> {
