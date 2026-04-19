@@ -16,6 +16,7 @@ import {
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatIconButton } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltip } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -30,6 +31,8 @@ import {
     CollectionContentType,
     CollectionScope,
     CollectionViewState,
+    FavoritesChannelSortMode,
+    getFavoritesChannelSortModeTranslationKey,
     getOpenCollectionDetailItemState,
     getCollectionViewState,
     getOpenLiveCollectionItemState,
@@ -37,7 +40,9 @@ import {
     isWorkspaceLayoutRoute,
     OPEN_COLLECTION_DETAIL_STATE_KEY,
     OPEN_LIVE_COLLECTION_ITEM_STATE_KEY,
+    persistFavoritesChannelSortMode,
     queryParamSignal,
+    restoreFavoritesChannelSortMode,
     routeParamSignal,
     ScopeToggleService,
     STALKER_RETURN_TO_STATE_KEY,
@@ -63,6 +68,7 @@ import {
         MatButtonToggleModule,
         MatIconButton,
         MatIconModule,
+        MatMenuModule,
         MatTooltip,
         TranslatePipe,
         UnifiedGridTabComponent,
@@ -204,11 +210,78 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
         () => this.availableTypes().length > 1
     );
 
+    readonly currentTypeItems = computed(() => {
+        switch (this.selectedContentType()) {
+            case 'live':
+                return this.liveItems();
+            case 'movie':
+                return this.movieItems();
+            case 'series':
+                return this.seriesItems();
+        }
+    });
+
+    readonly currentTypeLabelKey = computed(() => {
+        switch (this.selectedContentType()) {
+            case 'live':
+                return 'PORTALS.LIVE_TV';
+            case 'movie':
+                return 'PORTALS.MOVIES';
+            case 'series':
+                return 'PORTALS.SERIES';
+        }
+    });
+
+    readonly clearButtonTooltipKey = computed(() =>
+        this.mode() === 'favorites'
+            ? 'WORKSPACE.SHELL.CLEAR_FAVORITES_TYPE'
+            : 'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_TYPE'
+    );
+
     readonly title = computed(() => {
         return this.mode() === 'favorites'
             ? 'PORTALS.FAVORITES'
             : 'PORTALS.RECENTLY_VIEWED';
     });
+
+    readonly favSortMode = signal<FavoritesChannelSortMode>(
+        restoreFavoritesChannelSortMode()
+    );
+    readonly favSortLabelKey = computed(() =>
+        getFavoritesChannelSortModeTranslationKey(this.favSortMode())
+    );
+    readonly showFavSortButton = computed(
+        () =>
+            this.mode() === 'favorites' &&
+            this.selectedContentType() === 'live' &&
+            this.hasLive()
+    );
+    readonly favSortOptions: ReadonlyArray<{
+        mode: FavoritesChannelSortMode;
+        translationKey: string;
+        icon: string;
+    }> = [
+        {
+            mode: 'custom',
+            translationKey: 'WORKSPACE.SORT_CUSTOM',
+            icon: 'drag_indicator',
+        },
+        {
+            mode: 'name-asc',
+            translationKey: 'WORKSPACE.SORT_NAME_ASC',
+            icon: 'sort_by_alpha',
+        },
+        {
+            mode: 'name-desc',
+            translationKey: 'WORKSPACE.SORT_NAME_DESC',
+            icon: 'sort_by_alpha',
+        },
+        {
+            mode: 'date-desc',
+            translationKey: 'WORKSPACE.SORT_DATE_DESC',
+            icon: 'schedule',
+        },
+    ];
 
     private readonly favoritesReloadKey = computed(() => {
         if (this.mode() !== 'favorites') {
@@ -315,6 +388,11 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
         this.selectedContentType.set(value);
     }
 
+    setFavSortMode(mode: FavoritesChannelSortMode): void {
+        this.favSortMode.set(mode);
+        persistFavoritesChannelSortMode(mode);
+    }
+
     onGridItemSelected(item: UnifiedCollectionItem): void {
         this.syncCurrentCollectionViewState();
 
@@ -360,24 +438,45 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
         );
     }
 
-    clearAllRecent(): void {
-        if (this.allItems().length === 0) {
+    clearAllCurrent(): void {
+        const itemsToRemove = this.currentTypeItems();
+        if (itemsToRemove.length === 0) {
             return;
         }
 
-        const scope = this.effectiveScope();
-        const playlistId = this.playlistId();
+        const isFavorites = this.mode() === 'favorites';
+        const type = this.translate.instant(this.currentTypeLabelKey());
+        const isPlaylistScope = this.effectiveScope() === 'playlist';
+        const titleKey = isFavorites
+            ? 'WORKSPACE.SHELL.CLEAR_FAVORITES_DIALOG_TITLE'
+            : 'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_DIALOG_TITLE';
+        const messageKey = isFavorites
+            ? isPlaylistScope
+                ? 'WORKSPACE.SHELL.CLEAR_FAVORITES_DIALOG_MESSAGE_PLAYLIST'
+                : 'WORKSPACE.SHELL.CLEAR_FAVORITES_DIALOG_MESSAGE_ALL'
+            : isPlaylistScope
+              ? 'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_DIALOG_MESSAGE_PLAYLIST'
+              : 'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_DIALOG_MESSAGE_ALL';
 
         this.dialogService.openConfirmDialog({
-            title: this.translate.instant(
-                'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_DIALOG_TITLE'
-            ),
-            message: this.translate.instant(
-                'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_DIALOG_MESSAGE'
-            ),
+            title: this.translate.instant(titleKey, { type }),
+            message: this.translate.instant(messageKey, { type }),
             onConfirm: () => {
-                this.allItems.set([]);
-                void this.recentData.clearRecentItems(scope, playlistId);
+                const removedType = this.selectedContentType();
+                this.allItems.update((items) =>
+                    items.filter((item) => item.contentType !== removedType)
+                );
+                const remaining = this.availableTypes();
+                if (remaining.length > 0) {
+                    this.selectedContentType.set(remaining[0]);
+                }
+                void Promise.all(
+                    itemsToRemove.map((item) =>
+                        isFavorites
+                            ? this.favoritesData.removeFavorite(item)
+                            : this.recentData.removeRecentItem(item)
+                    )
+                );
             },
         });
     }

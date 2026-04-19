@@ -58,6 +58,36 @@
     <div class="collection-header">
         <span class="collection-title">{{ title() | translate }}</span>
 
+        @if (showFavSortButton()) {
+            <button
+                type="button"
+                mat-icon-button
+                class="favorites-sort-button"
+                [matMenuTriggerFor]="favoritesSortMenu"
+                [matTooltip]="
+                    ('WORKSPACE.SORT_LABEL' | translate) +
+                    (favSortLabelKey() | translate)
+                "
+                [attr.aria-label]="'WORKSPACE.SORT_LABEL' | translate"
+            >
+                <mat-icon>sort_by_alpha</mat-icon>
+            </button>
+            <mat-menu #favoritesSortMenu="matMenu">
+                @for (option of favSortOptions; track option.mode) {
+                    <button
+                        mat-menu-item
+                        (click)="setFavSortMode(option.mode)"
+                    >
+                        <mat-icon>{{ option.icon }}</mat-icon>
+                        <span>{{ option.translationKey | translate }}</span>
+                        @if (favSortMode() === option.mode) {
+                            <mat-icon class="sort-check">check</mat-icon>
+                        }
+                    </button>
+                }
+            </mat-menu>
+        }
+
         <div class="collection-header-toggles">
             @if (showContentToggle()) {
                 <mat-button-toggle-group
@@ -106,18 +136,26 @@
                 </mat-button-toggle-group>
             }
 
-            @if (mode() === 'recent' && allItems().length > 0) {
+            @if (currentTypeItems().length > 0) {
                 <button
                     type="button"
                     mat-icon-button
-                    (click)="clearAllRecent()"
+                    (click)="clearAllCurrent()"
                     [matTooltip]="
-                        'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION'
+                        clearButtonTooltipKey()
                             | translate
+                                : {
+                                      type:
+                                          currentTypeLabelKey() | translate,
+                                  }
                     "
                     [attr.aria-label]="
-                        'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION_ARIA'
+                        clearButtonTooltipKey()
                             | translate
+                                : {
+                                      type:
+                                          currentTypeLabelKey() | translate,
+                                  }
                     "
                 >
                     <mat-icon>delete_sweep</mat-icon>
@@ -134,6 +172,7 @@
                     [mode]="mode()"
                     [searchTerm]="workspaceSearchTerm()"
                     [autoOpenItem]="pendingAutoOpenLiveItem()"
+                    [sortMode]="favSortMode()"
                     (removeItem)="onRemoveItem($event)"
                     (reorderItems)="onReorder($event)"
                     (itemPlayed)="onItemPlayed($event)"
