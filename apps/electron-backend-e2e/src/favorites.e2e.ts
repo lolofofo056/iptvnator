@@ -3,6 +3,7 @@ import {
     addStalkerPortal,
     addXtreamPortal,
     channelItemByTitle,
+    clearCurrentUnifiedCollection,
     clickCategoryById,
     clickGridListCardByTitle,
     clickCategoryByNameExact,
@@ -100,6 +101,72 @@ test.describe('Electron Favorites', () => {
             await expect(
                 channelItemByTitle(app.mainWindow, 'M3U Favorite Two')
             ).toHaveCount(1);
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
+
+    test('keeps playlist M3U favorites cleared after navigating away and back', async ({
+        dataDir,
+    }) => {
+        const playlistTitle = 'm3u-clear-favorites-source.m3u';
+        const playlistSourceTitle = 'm3u-clear-favorites-source';
+        const filePath = writeTemporaryM3uFile(dataDir, playlistTitle, [
+            {
+                groupTitle: 'News',
+                name: 'M3U Clear Favorite One',
+                url: 'https://streams.example.test/m3u-clear-favorite-one.m3u8',
+            },
+            {
+                groupTitle: 'News',
+                name: 'M3U Clear Favorite Two',
+                url: 'https://streams.example.test/m3u-clear-favorite-two.m3u8',
+            },
+        ]);
+        const app = await launchElectronApp(dataDir);
+
+        try {
+            await importM3uPlaylistFromNativeDialog(app, filePath);
+            await waitForM3uCatalog(app.mainWindow);
+            await toggleFavoriteForChannel(
+                app.mainWindow,
+                'M3U Clear Favorite One'
+            );
+            await toggleFavoriteForChannel(
+                app.mainWindow,
+                'M3U Clear Favorite Two'
+            );
+            await openPlaylistFavorites(app.mainWindow);
+
+            await expect(
+                channelItemByTitle(app.mainWindow, 'M3U Clear Favorite One')
+            ).toHaveCount(1);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'M3U Clear Favorite Two')
+            ).toHaveCount(1);
+
+            await clearCurrentUnifiedCollection(app.mainWindow);
+
+            await expect(
+                channelItemByTitle(app.mainWindow, 'M3U Clear Favorite One')
+            ).toHaveCount(0);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'M3U Clear Favorite Two')
+            ).toHaveCount(0);
+
+            await openSources(app.mainWindow);
+            await sourceRowByTitle(app.mainWindow, playlistSourceTitle)
+                .first()
+                .click();
+            await waitForM3uCatalog(app.mainWindow);
+            await openPlaylistFavorites(app.mainWindow);
+
+            await expect(
+                channelItemByTitle(app.mainWindow, 'M3U Clear Favorite One')
+            ).toHaveCount(0);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'M3U Clear Favorite Two')
+            ).toHaveCount(0);
         } finally {
             await closeElectronApp(app);
         }

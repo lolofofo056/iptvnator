@@ -23,6 +23,10 @@ export const electronMainPath = join(
     workspaceRoot,
     'dist/apps/electron-backend/main.js'
 );
+export const packagedRendererIndexPath = join(
+    workspaceRoot,
+    'dist/apps/web/index.html'
+);
 export const m3uFixturePath = join(
     workspaceRoot,
     'apps/web-e2e/src/fixtures/test.m3u'
@@ -124,6 +128,7 @@ export async function launchElectronApp(
             `Electron build not found at ${electronMainPath}. Run the build before executing the E2E suite.`
         );
     }
+    assertPackagedRendererBuildIsElectronSafe();
 
     const args = [electronMainPath];
 
@@ -164,6 +169,24 @@ export async function closeElectronApp(
     }
 }
 
+function assertPackagedRendererBuildIsElectronSafe(): void {
+    if (!existsSync(packagedRendererIndexPath)) {
+        throw new Error(
+            `Renderer build not found at ${packagedRendererIndexPath}. Run pnpm nx run electron-backend:build-e2e before executing the Electron E2E suite.`
+        );
+    }
+
+    const indexHtml = readFileSync(packagedRendererIndexPath, 'utf8');
+    const baseHrefMatch = indexHtml.match(/<base\s+href="([^"]*)"/i);
+    const baseHref = baseHrefMatch?.[1] ?? '<missing>';
+
+    if (baseHref !== './') {
+        throw new Error(
+            `Renderer build at ${packagedRendererIndexPath} is not file-safe for packaged Electron. Found base href ${JSON.stringify(baseHref)}. Run pnpm nx run electron-backend:build-e2e or use an Electron E2E Nx target so dist/apps/web is rebuilt with the electron-e2e configuration.`
+        );
+    }
+}
+
 async function findMainWindow(app: ElectronApplication): Promise<Page> {
     await new Promise((resolvePromise) => setTimeout(resolvePromise, 2000));
 
@@ -183,14 +206,37 @@ async function findMainWindow(app: ElectronApplication): Promise<Page> {
 async function waitForAppReady(page: Page): Promise<void> {
     await page.waitForLoadState('domcontentloaded');
     await page.waitForSelector('app-root', { timeout: 30000 });
-    await page.waitForFunction(
-        () => {
-            const appRoot = document.querySelector('app-root');
+    try {
+        await page.waitForFunction(
+            () => {
+                const appRoot = document.querySelector('app-root');
 
-            return Boolean(appRoot && appRoot.innerHTML.trim().length > 0);
-        },
-        { timeout: 30000 }
-    );
+                return Boolean(appRoot && appRoot.innerHTML.trim().length > 0);
+            },
+            { timeout: 30000 }
+        );
+    } catch (error) {
+        const diagnostics = await page.evaluate(() => ({
+            appRootLength:
+                document.querySelector('app-root')?.innerHTML.trim().length ?? 0,
+            baseHref:
+                document
+                    .querySelector('base')
+                    ?.getAttribute('href') ?? '<missing>',
+            readyState: document.readyState,
+            title: document.title,
+            url: location.href,
+        }));
+
+        const reason =
+            error instanceof Error ? error.message : 'unknown startup error';
+
+        throw new Error(
+            `Electron app did not render visible app-root within 30000ms. ${reason}. Diagnostics: ${JSON.stringify(
+                diagnostics
+            )}`
+        );
+    }
 }
 
 export async function openAddPlaylistDialog(page: Page): Promise<void> {
@@ -663,6 +709,21 @@ export async function switchUnifiedCollectionContent(
 
     await expect(toggleGroup).toBeVisible();
     await clickButtonToggleOption(toggleGroup, contentLabel);
+}
+
+export async function clearCurrentUnifiedCollection(
+    page: Page
+): Promise<void> {
+    await page
+        .getByRole('button', {
+            name: /Clear .* (favorites|recently viewed)/i,
+        })
+        .click();
+
+    const dialog = page.locator('mat-dialog-container').last();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: /^Yes$/i }).click();
+    await expect(dialog).toBeHidden();
 }
 
 async function clickButtonToggleOption(
