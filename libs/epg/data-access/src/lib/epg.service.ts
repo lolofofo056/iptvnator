@@ -3,13 +3,19 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
 import { BehaviorSubject, forkJoin, from, Observable, of } from 'rxjs';
 import { catchError, map, tap, timeout } from 'rxjs/operators';
-import { EpgProgram } from 'shared-interfaces';
+import { EpgChannelMetadata, EpgProgram } from 'shared-interfaces';
 import { normalizeEpgPrograms } from './epg-program-normalization.util';
 
 interface CachedProgram {
     program: EpgProgram | null;
     timestamp: number;
 }
+
+type EpgChannelMetadataApi = {
+    getEpgChannelMetadata?: (
+        channelIds: string[]
+    ) => Promise<Record<string, EpgChannelMetadata | null>>;
+};
 
 @Injectable({
     providedIn: 'root',
@@ -215,6 +221,49 @@ export class EpgService {
                     resultMap.set(result.channelId, result.program);
                 });
                 return resultMap;
+            })
+        );
+    }
+
+    getChannelMetadataForChannels(
+        channelIds: string[]
+    ): Observable<Map<string, EpgChannelMetadata | null>> {
+        if (!this.isDesktop) {
+            return of(new Map());
+        }
+
+        const normalizedChannelIds = Array.from(
+            new Set(
+                channelIds
+                    .map((channelId) => channelId.trim())
+                    .filter((channelId) => channelId.length > 0)
+            )
+        );
+
+        if (normalizedChannelIds.length === 0) {
+            return of(new Map());
+        }
+
+        const getEpgChannelMetadata = (
+            window.electron as EpgChannelMetadataApi | undefined
+        )?.getEpgChannelMetadata;
+
+        if (typeof getEpgChannelMetadata !== 'function') {
+            return of(new Map());
+        }
+
+        return from(getEpgChannelMetadata(normalizedChannelIds)).pipe(
+            map((metadataByChannelId) => {
+                return new Map<string, EpgChannelMetadata | null>(
+                    normalizedChannelIds.map((channelId) => [
+                        channelId,
+                        metadataByChannelId[channelId] ?? null,
+                    ])
+                );
+            }),
+            catchError((err) => {
+                console.error('EPG get channel metadata error:', err);
+                return of(new Map<string, EpgChannelMetadata | null>());
             })
         );
     }

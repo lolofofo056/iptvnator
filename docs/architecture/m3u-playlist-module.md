@@ -213,9 +213,27 @@ For performance optimization, channels are pre-enriched with EPG data:
 ```typescript
 interface EnrichedChannel extends Channel {
     epgProgram: EpgProgram | null | undefined;
+    logo: string;                // Playlist tvg-logo first, XMLTV icon fallback second
     progressPercentage: number;  // Pre-computed by parent
 }
 ```
+
+The renderer now keeps two lookup maps for M3U collection views:
+
+- `channelEpgMap` for current-program preview data
+- `channelIconMap` for XMLTV channel icon fallback data
+
+Logo resolution is runtime-only and follows this rule:
+
+1. playlist `tvg-logo`
+2. matched XMLTV `<channel><icon src="...">`
+3. generic `live_tv` fallback in the list item component
+
+EPG lookup keys use the same precedence in both program and icon paths:
+
+1. `tvg-id`
+2. `tvg-name`
+3. channel name
 
 ### Performance Optimizations
 
@@ -232,7 +250,7 @@ interface EnrichedChannel extends Channel {
 ### Tab Components
 
 #### AllChannelsTabComponent
-- **Inputs**: `channels`, `channelEpgMap`, `progressTick`, `shouldShowEpg`, `itemSize`, `activeChannelUrl`, `favoriteIds`
+- **Inputs**: `channels`, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `itemSize`, `activeChannelUrl`, `favoriteIds`
 - **Outputs**: `channelSelected`, `favoriteToggled`
 - **Features**: Search with 300ms debounce, virtual scrolling, no-results placeholder
 
@@ -242,7 +260,7 @@ interface EnrichedChannel extends Channel {
 - **Features**: Expansion panels, infinite scroll with IntersectionObserver, lazy loading
 
 #### FavoritesTabComponent
-- **Inputs**: `favorites`, `channelEpgMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
+- **Inputs**: `favorites`, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
 - **Outputs**: `channelSelected`, `favoriteToggled`, `favoritesReordered`
 - **Features**: Drag-and-drop reordering with CDK DragDrop
 
@@ -260,6 +278,9 @@ class EpgService {
 
     // Batch fetch current programs
     getCurrentProgramsForChannels(channelIds: string[]): Observable<Map<string, EpgProgram>>;
+
+    // Batch fetch XMLTV channel metadata for logo fallback
+    getChannelMetadataForChannels(channelIds: string[]): Observable<Map<string, EpgChannelMetadata | null>>;
 
     // Observables
     epgAvailable$: Observable<boolean>;
