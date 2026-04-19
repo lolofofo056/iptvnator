@@ -110,6 +110,10 @@ export class ContentHeroComponent {
 
     private observeOverflow(el: HTMLElement): void {
         this.resizeObserver?.disconnect();
+        if (typeof ResizeObserver === 'undefined') {
+            this.measureOverflow(el);
+            return;
+        }
         this.resizeObserver = new ResizeObserver(() => this.measureOverflow(el));
         this.resizeObserver.observe(el);
     }
