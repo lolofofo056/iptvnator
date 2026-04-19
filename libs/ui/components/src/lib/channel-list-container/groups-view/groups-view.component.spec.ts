@@ -162,6 +162,10 @@ describe('GroupsViewComponent', () => {
         fixture.componentRef.setInput('searchTerm', overrides.searchTerm ?? '');
         fixture.componentRef.setInput('channelEpgMap', new Map<string, null>());
         fixture.componentRef.setInput(
+            'channelIconMap',
+            new Map<string, string>()
+        );
+        fixture.componentRef.setInput(
             'progressTick',
             overrides.progressTick ?? 0
         );
@@ -222,6 +226,33 @@ describe('GroupsViewComponent', () => {
         createComponent();
 
         expect(component.groupChannelSortMode()).toBe('server');
+    });
+
+    it('falls back to an EPG icon for grouped channels without a playlist logo', () => {
+        const channelWithoutLogo = {
+            ...sportsCenter,
+            tvg: {
+                ...sportsCenter.tvg,
+                logo: '',
+            },
+        };
+
+        setInputs({
+            groupedChannels: {
+                Sports: [channelWithoutLogo],
+            },
+        });
+        fixture.componentRef.setInput(
+            'channelIconMap',
+            new Map([
+                [channelWithoutLogo.tvg.id, 'https://example.com/sports.png'],
+            ])
+        );
+        fixture.detectChanges();
+
+        expect(component.selectedGroupChannels()[0].logo).toBe(
+            'https://example.com/sports.png'
+        );
     });
 
     it('persists sort mode changes', () => {

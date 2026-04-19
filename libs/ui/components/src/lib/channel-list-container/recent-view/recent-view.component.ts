@@ -6,7 +6,9 @@ import {
     output,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
+import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
 
 export interface RecentViewItem {
@@ -25,6 +27,7 @@ export class RecentViewComponent {
     readonly recentItems = input.required<RecentViewItem[]>();
     readonly searchTerm = input('');
     readonly channelEpgMap = input.required<Map<string, EpgProgram | null>>();
+    readonly channelIconMap = input.required<Map<string, string>>();
     readonly progressTick = input.required<number>();
     readonly shouldShowEpg = input.required<boolean>();
     readonly activeChannelUrl = input<string | undefined>();
@@ -50,16 +53,18 @@ export class RecentViewComponent {
     readonly enrichedRecentItems = computed(() => {
         const recentItems = this.filteredRecentItems();
         const epgMap = this.channelEpgMap();
+        const iconMap = this.channelIconMap();
         this.progressTick();
 
         return recentItems.map(({ channel, viewedAt }) => {
-            const channelId = channel?.tvg?.id?.trim() || channel?.name?.trim();
+            const channelId = resolveChannelEpgLookupKey(channel);
             const epgProgram = channelId ? epgMap.get(channelId) : null;
 
             return {
                 channel,
                 viewedAt,
                 epgProgram,
+                logo: resolveChannelLogo(channel, iconMap),
                 progressPercentage: this.calculateProgress(epgProgram),
             };
         });

@@ -14,13 +14,16 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { TranslatePipe } from '@ngx-translate/core';
+import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
+import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
 
 /** Enriched channel with pre-computed EPG and progress data */
 export interface EnrichedChannel extends Channel {
     epgProgram: EpgProgram | null | undefined;
+    logo: string;
     progressPercentage: number;
 }
 
@@ -50,6 +53,7 @@ export class AllChannelsViewComponent {
 
     /** EPG map for channel enrichment */
     readonly channelEpgMap = input.required<Map<string, EpgProgram | null>>();
+    readonly channelIconMap = input.required<Map<string, string>>();
 
     /** Progress tick to trigger progress recalculation */
     readonly progressTick = input.required<number>();
@@ -88,6 +92,7 @@ export class AllChannelsViewComponent {
         const term = this.searchTerm().trim().toLowerCase();
         const channels = this.channels();
         const epgMap = this.channelEpgMap();
+        const iconMap = this.channelIconMap();
         // Read progressTick to create dependency for progress refresh
         this.progressTick();
 
@@ -102,11 +107,12 @@ export class AllChannelsViewComponent {
 
         // Enrich with EPG data and pre-calculate progress
         return result.map((channel) => {
-            const channelId = channel?.tvg?.id?.trim() || channel?.name?.trim();
+            const channelId = resolveChannelEpgLookupKey(channel);
             const epgProgram = channelId ? epgMap.get(channelId) : null;
             return {
                 ...channel,
                 epgProgram,
+                logo: resolveChannelLogo(channel, iconMap),
                 progressPercentage: this.calculateProgress(epgProgram),
             } as EnrichedChannel;
         });

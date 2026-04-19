@@ -19,7 +19,7 @@
                     (channel?.name || 'CHANNELS.UNNAMED_CHANNEL' | translate)
                 "
                 [isDraggable]="!hasSearchTerm()"
-                [logo]="channel?.tvg?.logo"
+                [logo]="channel.logo"
                 [showEpg]="shouldShowEpg()"
                 [isRadio]="channel?.radio === 'true'"
                 [epgProgram]="channel.epgProgram"

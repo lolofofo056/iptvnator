@@ -28,6 +28,7 @@ import {
     ChannelActions,
     FavoritesActions,
     PlaylistActions,
+    resolveChannelEpgLookupKey,
     selectActive,
     selectFavorites,
 } from 'm3u-state';
@@ -35,6 +36,7 @@ import {
     BehaviorSubject,
     combineLatest,
     filter,
+    forkJoin,
     firstValueFrom,
     map,
 } from 'rxjs';
@@ -97,6 +99,7 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
 
     /** Map of channel ID to current EPG program */
     readonly channelEpgMap = signal(new Map<string, EpgProgram | null>());
+    readonly channelIconMap = signal(new Map<string, string>());
 
     /** Interval for refreshing EPG data */
     private epgRefreshInterval?: number;
@@ -312,18 +315,34 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
      */
     private fetchEpgForChannels(channels: Channel[]): void {
         if (!channels || channels.length === 0) {
+            this.channelEpgMap.set(new Map());
+            this.channelIconMap.set(new Map());
             return;
         }
 
-        const channelIds = channels
-            .map((channel) => channel?.tvg?.id?.trim() || channel?.name?.trim())
-            .filter((id) => !!id);
+        const channelIds = Array.from(
+            new Set(
+                channels
+                    .map((channel) => resolveChannelEpgLookupKey(channel))
+                    .filter((id) => !!id)
+            )
+        );
 
-        this.epgService
-            .getCurrentProgramsForChannels(channelIds)
-            .subscribe((epgMap) => {
-                this.channelEpgMap.set(epgMap);
-            });
+        forkJoin({
+            epgMap: this.epgService.getCurrentProgramsForChannels(channelIds),
+            metadataMap:
+                this.epgService.getChannelMetadataForChannels(channelIds),
+        }).subscribe(({ epgMap, metadataMap }) => {
+            this.channelEpgMap.set(epgMap);
+            this.channelIconMap.set(
+                new Map(
+                    Array.from(metadataMap.entries(), ([channelId, metadata]) => [
+                        channelId,
+                        metadata?.iconUrl?.trim() || '',
+                    ])
+                )
+            );
+        });
     }
 
     /**

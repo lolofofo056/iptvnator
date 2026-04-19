@@ -186,6 +186,48 @@ describe('EpgEvents', () => {
         expect(programs[0].channel).toBe('BBC.ONE.UK');
     });
 
+    it('resolves channel metadata using exact id, case-insensitive id, and display name fallback', async () => {
+        const where = jest.fn().mockResolvedValue([
+            {
+                id: 'BBC.ONE.UK',
+                displayName: 'BBC One',
+                iconUrl: 'https://example.com/bbc-one.png',
+            },
+            {
+                id: 'guide-news',
+                displayName: 'Guide News',
+                iconUrl: 'https://example.com/guide-news.png',
+            },
+        ]);
+        const from = jest.fn().mockReturnValue({ where });
+        const select = jest.fn().mockReturnValue({ from });
+
+        getDatabase.mockResolvedValue({ select });
+
+        const metadata = await (EpgEvents as unknown as Record<string, any>)[
+            'handleGetChannelMetadata'
+        ](['BBC.ONE.UK', 'bbc.one.uk', 'Guide News', 'Missing Channel']);
+
+        expect(metadata).toEqual({
+            'BBC.ONE.UK': {
+                id: 'BBC.ONE.UK',
+                displayName: 'BBC One',
+                iconUrl: 'https://example.com/bbc-one.png',
+            },
+            'bbc.one.uk': {
+                id: 'BBC.ONE.UK',
+                displayName: 'BBC One',
+                iconUrl: 'https://example.com/bbc-one.png',
+            },
+            'Guide News': {
+                id: 'guide-news',
+                displayName: 'Guide News',
+                iconUrl: 'https://example.com/guide-news.png',
+            },
+            'Missing Channel': null,
+        });
+    });
+
     it('drops malformed EPG rows with invalid stop dates', async () => {
         const select = jest.fn();
         const from = jest.fn();

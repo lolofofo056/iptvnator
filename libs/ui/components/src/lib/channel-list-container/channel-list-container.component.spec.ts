@@ -55,6 +55,9 @@ describe('ChannelListContainerComponent', () => {
                 {
                     provide: EpgService,
                     useValue: {
+                        getChannelMetadataForChannels: jest
+                            .fn()
+                            .mockReturnValue(of(new Map())),
                         getCurrentProgramsForChannels: jest
                             .fn()
                             .mockReturnValue(of(new Map())),

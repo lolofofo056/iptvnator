@@ -338,6 +338,8 @@ const electronApi = {
         ipcRenderer.invoke('FETCH_EPG', { url: urls }),
     getChannelPrograms: (channelId: string) =>
         ipcRenderer.invoke('GET_CHANNEL_PROGRAMS', { channelId }),
+    getEpgChannelMetadata: (channelIds: string[]) =>
+        ipcRenderer.invoke('EPG_GET_CHANNEL_METADATA', { channelIds }),
     getEpgChannels: () => ipcRenderer.invoke('EPG_GET_CHANNELS'),
     getEpgChannelsByRange: (skip: number, limit: number) =>
         ipcRenderer.invoke('EPG_GET_CHANNELS_BY_RANGE', { skip, limit }),

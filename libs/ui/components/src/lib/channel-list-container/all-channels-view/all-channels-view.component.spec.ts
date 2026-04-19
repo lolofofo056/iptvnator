@@ -71,6 +71,7 @@ describe('AllChannelsViewComponent', () => {
         fixture.componentRef.setInput('channels', [primaryChannel]);
         fixture.componentRef.setInput('searchTerm', '');
         fixture.componentRef.setInput('channelEpgMap', new Map<string, null>());
+        fixture.componentRef.setInput('channelIconMap', new Map<string, string>());
         fixture.componentRef.setInput('progressTick', 0);
         fixture.componentRef.setInput('shouldShowEpg', false);
         fixture.componentRef.setInput('itemSize', 48);
@@ -108,6 +109,49 @@ describe('AllChannelsViewComponent', () => {
                 maxWidth: '720px',
                 width: 'calc(100vw - 32px)',
             })
+        );
+    });
+
+    it('keeps the playlist logo when an EPG icon is also available', () => {
+        const playlistLogo = 'https://example.com/playlist-logo.png';
+        const channel = {
+            ...primaryChannel,
+            tvg: {
+                ...primaryChannel.tvg,
+                logo: playlistLogo,
+            },
+        };
+
+        fixture.componentRef.setInput('channels', [channel]);
+        fixture.componentRef.setInput(
+            'channelIconMap',
+            new Map([[channel.tvg.id, 'https://example.com/epg-logo.png']])
+        );
+        fixture.detectChanges();
+
+        expect(component.enrichedChannels()[0].logo).toBe(playlistLogo);
+    });
+
+    it('falls back to the EPG icon using tvg-name when tvg-id and playlist logo are missing', () => {
+        const channel = {
+            ...primaryChannel,
+            tvg: {
+                ...primaryChannel.tvg,
+                id: '',
+                logo: '',
+                name: 'Guide News',
+            },
+        };
+
+        fixture.componentRef.setInput('channels', [channel]);
+        fixture.componentRef.setInput(
+            'channelIconMap',
+            new Map([['Guide News', 'https://example.com/guide-news.png']])
+        );
+        fixture.detectChanges();
+
+        expect(component.enrichedChannels()[0].logo).toBe(
+            'https://example.com/guide-news.png'
         );
     });
 });

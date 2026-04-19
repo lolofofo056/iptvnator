@@ -11,8 +11,10 @@ import {
     output,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
 import { EnrichedChannel } from '../all-channels-view/all-channels-view.component';
+import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
 
 @Component({
@@ -29,6 +31,7 @@ export class FavoritesViewComponent {
 
     /** EPG map for channel enrichment */
     readonly channelEpgMap = input.required<Map<string, EpgProgram | null>>();
+    readonly channelIconMap = input.required<Map<string, string>>();
 
     /** Progress tick to trigger progress recalculation */
     readonly progressTick = input.required<number>();
@@ -73,15 +76,17 @@ export class FavoritesViewComponent {
     readonly enrichedFavorites = computed(() => {
         const favorites = this.filteredFavorites();
         const epgMap = this.channelEpgMap();
+        const iconMap = this.channelIconMap();
         // Read progressTick to trigger recalculation
         this.progressTick();
 
         return favorites.map((channel) => {
-            const channelId = channel?.tvg?.id?.trim() || channel?.name?.trim();
+            const channelId = resolveChannelEpgLookupKey(channel);
             const epgProgram = channelId ? epgMap.get(channelId) : null;
             return {
                 ...channel,
                 epgProgram,
+                logo: resolveChannelLogo(channel, iconMap),
                 progressPercentage: this.calculateProgress(epgProgram),
             } as EnrichedChannel;
         });

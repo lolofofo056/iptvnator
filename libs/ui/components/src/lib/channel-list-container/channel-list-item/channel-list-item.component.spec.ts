@@ -78,6 +78,17 @@ describe('ChannelListItemComponent', () => {
         ).toBeNull();
     });
 
+    it('shows the generic fallback icon when no logo is available', () => {
+        fixture.componentRef.setInput('name', 'Channel Without Logo');
+        fixture.componentRef.setInput('logo', '');
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.channel-logo-fallback')
+        ).not.toBeNull();
+        expect(fixture.nativeElement.querySelector('.channel-logo')).toBeNull();
+    });
+
     it('emits a context menu request on right click when details are enabled', () => {
         fixture.componentRef.setInput('name', 'News One');
         fixture.componentRef.setInput('showDetailsContextMenu', true);

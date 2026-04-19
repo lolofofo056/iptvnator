@@ -12,7 +12,7 @@
                     '. ' +
                     (item.channel?.name || 'CHANNELS.UNNAMED_CHANNEL' | translate)
                 "
-                [logo]="item.channel?.tvg?.logo"
+                [logo]="item.logo"
                 [showEpg]="shouldShowEpg()"
                 [isRadio]="item.channel?.radio === 'true'"
                 [epgProgram]="item.epgProgram"

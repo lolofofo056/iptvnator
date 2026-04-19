@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
-import { EpgProgram } from 'shared-interfaces';
+import { EpgChannelMetadata, EpgProgram } from 'shared-interfaces';
 import { pathToFileURL } from 'url';
 import { Worker } from 'worker_threads';
 import { getDatabase } from '../database/connection';
@@ -85,6 +85,13 @@ export default class EpgEvents {
         ipcMain.handle('EPG_GET_CHANNELS', async () => {
             return this.handleGetAllChannels();
         });
+
+        ipcMain.handle(
+            'EPG_GET_CHANNEL_METADATA',
+            async (_event, args: { channelIds: string[] }) => {
+                return this.handleGetChannelMetadata(args.channelIds);
+            }
+        );
 
         // Get channels by range (pagination)
         ipcMain.handle(
@@ -450,6 +457,52 @@ export default class EpgEvents {
         });
     }
 
+    private static normalizeChannelLookupKeys(channelIds: string[]): string[] {
+        return Array.from(
+            new Set(
+                channelIds
+                    .map((channelId) => channelId.trim())
+                    .filter((channelId) => channelId.length > 0)
+            )
+        );
+    }
+
+    private static resolveChannelMetadataCandidate(
+        channelId: string,
+        candidates: EpgChannelMetadata[]
+    ): EpgChannelMetadata | null {
+        const lowerChannelId = channelId.toLowerCase();
+
+        const exactIdMatch =
+            candidates.find((candidate) => candidate.id === channelId) ?? null;
+        if (exactIdMatch) {
+            return exactIdMatch;
+        }
+
+        const caseInsensitiveIdMatch =
+            candidates.find(
+                (candidate) => candidate.id.toLowerCase() === lowerChannelId
+            ) ?? null;
+        if (caseInsensitiveIdMatch) {
+            return caseInsensitiveIdMatch;
+        }
+
+        const exactDisplayNameMatch =
+            candidates.find(
+                (candidate) => candidate.displayName === channelId
+            ) ?? null;
+        if (exactDisplayNameMatch) {
+            return exactDisplayNameMatch;
+        }
+
+        return (
+            candidates.find(
+                (candidate) =>
+                    candidate.displayName.toLowerCase() === lowerChannelId
+            ) ?? null
+        );
+    }
+
     /**
      * Transform database row to flat EpgProgram interface
      */
@@ -607,6 +660,64 @@ export default class EpgEvents {
                 error
             );
             return { channels: [], programs: [] };
+        }
+    }
+
+    /**
+     * Resolve EPG channel metadata for a batch of lookup keys.
+     *
+     * Lookup precedence per key:
+     * 1. exact channel id
+     * 2. case-insensitive channel id
+     * 3. exact display name
+     * 4. case-insensitive display name
+     */
+    private static async handleGetChannelMetadata(
+        channelIds: string[]
+    ): Promise<Record<string, EpgChannelMetadata | null>> {
+        try {
+            const normalizedChannelIds =
+                this.normalizeChannelLookupKeys(channelIds);
+
+            if (normalizedChannelIds.length === 0) {
+                return {};
+            }
+
+            const db = await getDatabase();
+            const lowerKeys = Array.from(
+                new Set(
+                    normalizedChannelIds.map((channelId) =>
+                        channelId.toLowerCase()
+                    )
+                )
+            );
+            const lowerKeyValues = lowerKeys.map((key) => sql`${key}`);
+
+            const candidates = await db
+                .select({
+                    id: schema.epgChannels.id,
+                    displayName: schema.epgChannels.displayName,
+                    iconUrl: schema.epgChannels.iconUrl,
+                })
+                .from(schema.epgChannels)
+                .where(sql`
+                    LOWER(${schema.epgChannels.id}) IN (${sql.join(lowerKeyValues, sql`, `)})
+                    OR LOWER(${schema.epgChannels.displayName}) IN (${sql.join(lowerKeyValues, sql`, `)})
+                `);
+
+            return Object.fromEntries(
+                normalizedChannelIds.map((channelId) => [
+                    channelId,
+                    this.resolveChannelMetadataCandidate(channelId, candidates),
+                ])
+            );
+        } catch (error) {
+            console.error(
+                this.loggerLabel,
+                'Error getting channel metadata:',
+                error
+            );
+            return {};
         }
     }
 
