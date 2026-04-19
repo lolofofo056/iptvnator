@@ -12,10 +12,19 @@ test('basic test', async ({ page }) => {
     // Upload playlist test
     await page.getByRole('button', { name: 'Add playlist' }).click();
     const dialog = page.locator('mat-dialog-container');
-    await dialog.locator('mat-button-toggle[value="file"]').click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('tab', { name: 'Add via file upload' }).click();
     await page.setInputFiles('input[type="file"]', fixturePath);
-    await page.waitForURL(/\/workspace\/playlists\/.+\/all$/);
-    await expect(page.getByText('test.m3u')).toBeVisible();
+    const addButton = dialog.getByRole('button', {
+        name: 'Add playlist',
+        exact: true,
+    });
+    await expect(addButton).toBeEnabled();
+    await Promise.all([
+        page.waitForURL(/\/workspace\/playlists\/.+\/all$/),
+        addButton.click(),
+    ]);
+    await expect(page.getByText('test', { exact: true })).toBeVisible();
     await expect(page.getByText('4 channels')).toBeVisible();
     await expect(page.getByText('1. Channel 1')).toBeVisible();
     await expect(page.getByText('4. HappyKids TV')).toBeVisible();

@@ -275,9 +275,13 @@ export async function importM3uPlaylistFromNativeDialog(
         /add\s+via\s+file\s+upload/i,
         'mat-button-toggle[value="file"]'
     );
-    await dialog
-        .locator('input[type="file"][name="playlist"]')
-        .setInputFiles(filePath);
+    const fileInput = dialog.locator('input[type="file"][name="playlist"]');
+
+    await fileInput.evaluate((element, selectedFilePath) => {
+        (element as HTMLInputElement).dataset.filePathOverride =
+            selectedFilePath;
+    }, filePath);
+    await fileInput.setInputFiles(filePath);
     await expect(
         dialog.getByRole('button', { name: /add playlist/i })
     ).toBeEnabled({ timeout: 10000 });

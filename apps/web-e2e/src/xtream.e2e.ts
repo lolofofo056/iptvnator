@@ -58,7 +58,8 @@ async function addXtreamPortal(
 
     await page.getByRole('button', { name: 'Add playlist' }).click();
     const dialog = page.locator('mat-dialog-container');
-    await dialog.locator('mat-button-toggle[value="xtream"]').click();
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('tab', { name: 'Xtream', exact: true }).click();
 
     await dialog.locator('#title').fill(name);
     await dialog.locator('#serverUrl').fill(MOCK_SERVER);

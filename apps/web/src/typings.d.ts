@@ -6,6 +6,7 @@ interface NodeModule {
 
 import {
     EpgChannel,
+    EpgChannelMetadata,
     EpgProgram,
     ExternalPlayerSession,
     PlaybackPositionData,
@@ -88,6 +89,9 @@ declare global {
                 skipped?: string[];
             }>;
             getChannelPrograms: (channelId: string) => Promise<EpgProgram[]>;
+            getEpgChannelMetadata: (
+                channelIds: string[]
+            ) => Promise<Record<string, EpgChannelMetadata | null>>;
             getEpgChannels: () => Promise<EpgChannel[]>;
             getEpgChannelsByRange: (
                 skip: number,
