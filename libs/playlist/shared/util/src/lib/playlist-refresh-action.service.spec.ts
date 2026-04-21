@@ -5,7 +5,11 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { DialogService } from 'components';
-import { DatabaseService, PlaylistRefreshService } from 'services';
+import {
+    DatabaseService,
+    PlaybackPositionService,
+    PlaylistRefreshService,
+} from 'services';
 import { ChannelActions, PlaylistActions } from 'm3u-state';
 import { Playlist, PlaylistMeta } from 'shared-interfaces';
 import { PlaylistContextFacade } from './playlist-context.facade';
@@ -46,7 +50,12 @@ describe('PlaylistRefreshActionService', () => {
     let playlistRefreshService: {
         refreshPlaylist: jest.Mock;
     };
-    let routeProvider: ReturnType<typeof signal<'playlists' | 'xtreams' | null>>;
+    let playbackPositionService: {
+        getAllPlaybackPositions: jest.Mock;
+    };
+    let routeProvider: ReturnType<
+        typeof signal<'playlists' | 'xtreams' | null>
+    >;
     let resolvedPlaylistId: ReturnType<typeof signal<string | null>>;
 
     beforeEach(() => {
@@ -56,14 +65,24 @@ describe('PlaylistRefreshActionService', () => {
             createOperationId: jest.fn((prefix: string) => `${prefix}-op`),
             deleteXtreamPlaylistContent: jest.fn().mockResolvedValue({
                 success: true,
-                favoritedXtreamIds: [101, 202],
-                recentlyViewedXtreamIds: [
+                favorites: [
+                    {
+                        xtreamId: 101,
+                        contentType: 'live',
+                    },
+                    {
+                        xtreamId: 202,
+                        contentType: 'movie',
+                    },
+                ],
+                recentlyViewed: [
                     {
                         xtreamId: 303,
+                        contentType: 'series',
                         viewedAt: '2026-04-04T08:00:00.000Z',
                     },
                 ],
-                hiddenCategories: [{ xtreamId: 404, type: 'live' }],
+                hiddenCategories: [{ xtreamId: 404, categoryType: 'live' }],
             }),
             updateXtreamPlaylistDetails: jest.fn().mockResolvedValue(true),
         };
@@ -81,6 +100,9 @@ describe('PlaylistRefreshActionService', () => {
         };
         playlistRefreshService = {
             refreshPlaylist: jest.fn(),
+        };
+        playbackPositionService = {
+            getAllPlaybackPositions: jest.fn().mockResolvedValue([]),
         };
         routeProvider = signal<'playlists' | 'xtreams' | null>('xtreams');
         resolvedPlaylistId = signal<string | null>(null);
@@ -117,6 +139,10 @@ describe('PlaylistRefreshActionService', () => {
                 {
                     provide: PlaylistRefreshService,
                     useValue: playlistRefreshService,
+                },
+                {
+                    provide: PlaybackPositionService,
+                    useValue: playbackPositionService,
                 },
                 {
                     provide: PlaylistContextFacade,
@@ -171,14 +197,25 @@ describe('PlaylistRefreshActionService', () => {
         expect(setItemSpy).toHaveBeenCalledWith(
             `xtream-restore-${item._id}`,
             JSON.stringify({
-                favoritedXtreamIds: [101, 202],
-                recentlyViewedXtreamIds: [
+                hiddenCategories: [{ xtreamId: 404, categoryType: 'live' }],
+                favorites: [
+                    {
+                        xtreamId: 101,
+                        contentType: 'live',
+                    },
+                    {
+                        xtreamId: 202,
+                        contentType: 'movie',
+                    },
+                ],
+                recentlyViewed: [
                     {
                         xtreamId: 303,
+                        contentType: 'series',
                         viewedAt: '2026-04-04T08:00:00.000Z',
                     },
                 ],
-                hiddenCategories: [{ xtreamId: 404, type: 'live' }],
+                playbackPositions: [],
             })
         );
         expect(store.dispatch).toHaveBeenCalledWith(
@@ -212,7 +249,9 @@ describe('PlaylistRefreshActionService', () => {
         } as Playlist;
         routeProvider.set('playlists');
         resolvedPlaylistId.set(item._id);
-        playlistRefreshService.refreshPlaylist.mockResolvedValue(refreshedPlaylist);
+        playlistRefreshService.refreshPlaylist.mockResolvedValue(
+            refreshedPlaylist
+        );
 
         service.refresh(item);
         await Promise.resolve();

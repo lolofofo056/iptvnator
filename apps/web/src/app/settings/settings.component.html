@@ -756,7 +756,10 @@
                     <div class="setting-item__control inline-actions">
                         <button
                             mat-button
-                            [disabled]="isRemovingAllPlaylists()"
+                            class="inline-actions__button"
+                            [disabled]="
+                                isRemovingAllPlaylists() || isExportingData()
+                            "
                             (click)="
                                 $event.preventDefault();
                                 $event.stopPropagation();
@@ -767,13 +770,34 @@
                         </button>
                         <button
                             mat-button
+                            class="inline-actions__button"
+                            [class.inline-actions__button--busy]="
+                                isExportingData()
+                            "
+                            [disabled]="
+                                isRemovingAllPlaylists() || isExportingData()
+                            "
+                            [attr.aria-busy]="isExportingData()"
                             (click)="
                                 $event.preventDefault();
                                 $event.stopPropagation();
                                 exportData()
                             "
                         >
-                            {{ 'SETTINGS.EXPORT_DATA' | translate }}
+                            @if (isExportingData()) {
+                                <mat-progress-spinner
+                                    class="button-spinner"
+                                    diameter="16"
+                                    mode="indeterminate"
+                                />
+                                <span class="inline-actions__label">{{
+                                    'SETTINGS.EXPORTING_DATA' | translate
+                                }}</span>
+                            } @else {
+                                <span class="inline-actions__label">{{
+                                    'SETTINGS.EXPORT_DATA' | translate
+                                }}</span>
+                            }
                         </button>
                     </div>
                 </div>

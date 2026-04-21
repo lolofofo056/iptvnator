@@ -1,6 +1,7 @@
 import { InjectionToken } from '@angular/core';
 import {
     PlaybackPositionData,
+    XtreamPendingRestoreState,
     XtreamCategory,
     XtreamLiveStream,
     XtreamSerieItem,
@@ -53,6 +54,7 @@ export interface XtreamContentItem {
     type: string;
     added_at?: string;
     viewed_at?: string;
+    position?: number | null;
 
     // XtreamItem compatibility fields (optional for search/navigation)
     num?: number;
@@ -394,18 +396,16 @@ export interface IXtreamDataSource {
      * Clear all content and categories for a playlist (for refresh)
      * Returns user data (favorites, recently viewed) for restoration
      */
-    clearPlaylistContent(playlistId: string): Promise<{
-        favoritedXtreamIds: number[];
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[];
-    }>;
+    clearPlaylistContent(
+        playlistId: string
+    ): Promise<XtreamPendingRestoreState>;
 
     /**
      * Restore user data after refresh
      */
     restoreUserData(
         playlistId: string,
-        favoritedXtreamIds: number[],
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[],
+        restoreState: XtreamPendingRestoreState,
         options?: XtreamOperationOptions
     ): Promise<void>;
 }

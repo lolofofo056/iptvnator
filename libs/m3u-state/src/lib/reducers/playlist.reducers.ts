@@ -31,7 +31,8 @@ export const playlistReducers = [
         };
     }),
     on(PlaylistActions.updatePlaylist, (state, action): PlaylistState => {
-        const isActivePlaylist = state.playlists.selectedId === action.playlistId;
+        const isActivePlaylist =
+            state.playlists.selectedId === action.playlistId;
         return {
             ...state,
             channels: isActivePlaylist
@@ -110,6 +111,10 @@ export const playlistReducers = [
                         ...(p.userAgent != null
                             ? { userAgent: p.userAgent }
                             : {}),
+                        ...(p.referrer !== undefined
+                            ? { referrer: p.referrer }
+                            : {}),
+                        ...(p.origin !== undefined ? { origin: p.origin } : {}),
                         ...(p.serverUrl != null
                             ? { serverUrl: p.serverUrl }
                             : {}),
@@ -120,6 +125,11 @@ export const playlistReducers = [
                             : {}),
                         ...(p.portalUrl != null
                             ? { portalUrl: p.portalUrl }
+                            : {}),
+                        ...(p.isFullStalkerPortal !== undefined
+                            ? {
+                                  isFullStalkerPortal: p.isFullStalkerPortal,
+                              }
                             : {}),
                         ...(p.favorites != null
                             ? { favorites: p.favorites }

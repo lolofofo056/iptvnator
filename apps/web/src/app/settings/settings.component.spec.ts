@@ -20,12 +20,9 @@ import { Store } from '@ngrx/store';
 import { provideMockStore } from '@ngrx/store/testing';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EpgService } from '@iptvnator/epg/data-access';
-import {
-    MockModule,
-    MockProvider,
-} from 'ng-mocks';
+import { MockModule, MockProvider } from 'ng-mocks';
 import { DialogService } from 'components';
-import { DataService, PlaylistsService } from 'services';
+import { DataService, PlaylistBackupService, PlaylistsService } from 'services';
 import {
     Language,
     StartupBehavior,
@@ -90,18 +87,15 @@ class MockSettingsStore {
 }
 
 class MockSettingsService {
-    getAppVersion = jest
-        .fn()
-        .mockReturnValue(from(Promise.resolve('1.0.0')));
+    getAppVersion = jest.fn().mockReturnValue(from(Promise.resolve('1.0.0')));
     changeTheme = jest.fn();
-    isVersionOutdated = jest
-        .fn()
-        .mockImplementation((currentVersion: string, latestVersion: string) =>
+    isVersionOutdated = jest.fn().mockImplementation(
+        (currentVersion: string, latestVersion: string) =>
             currentVersion.localeCompare(latestVersion, undefined, {
                 numeric: true,
                 sensitivity: 'base',
             }) < 0
-        );
+    );
 }
 
 describe('SettingsComponent', () => {
@@ -114,6 +108,7 @@ describe('SettingsComponent', () => {
     let epgService: EpgService;
     let dialogService: DialogService;
     let playlistsService: PlaylistsService;
+    let playlistBackupService: PlaylistBackupService;
     let store: Store;
     let snackBar: MatSnackBarStub;
     const originalElectron = window.electron;
@@ -145,6 +140,27 @@ describe('SettingsComponent', () => {
                     getAllData: jest.fn().mockReturnValue(of([])),
                     removeAll: jest.fn(),
                 }),
+                MockProvider(PlaylistBackupService, {
+                    exportBackup: jest.fn().mockResolvedValue({
+                        defaultFileName:
+                            'iptvnator-playlist-backup-2026-04-21.json',
+                        json: '{}',
+                        manifest: {
+                            kind: 'iptvnator-playlist-backup',
+                            version: 1,
+                            exportedAt: '2026-04-21T00:00:00.000Z',
+                            includeSecrets: true,
+                            playlists: [],
+                        },
+                    }),
+                    importBackup: jest.fn().mockResolvedValue({
+                        imported: 0,
+                        merged: 0,
+                        skipped: 0,
+                        failed: 0,
+                        errors: [],
+                    }),
+                }),
             ],
             imports: [
                 SettingsComponent,
@@ -172,15 +188,15 @@ describe('SettingsComponent', () => {
                 staleUrls: [],
             }),
             clearEpgData: jest.fn().mockResolvedValue({ success: true }),
-            forceFetchEpg: jest
-                .fn()
-                .mockResolvedValue({ success: true }),
+            forceFetchEpg: jest.fn().mockResolvedValue({ success: true }),
             getAppVersion: jest.fn().mockResolvedValue('1.0.0'),
             getLocalIpAddresses: jest.fn().mockResolvedValue([]),
             platform: 'linux',
+            saveFileDialog: jest.fn().mockResolvedValue('/tmp/backup.json'),
             setMpvPlayerPath: jest.fn().mockResolvedValue(undefined),
             setVlcPlayerPath: jest.fn().mockResolvedValue(undefined),
             updateSettings: jest.fn().mockResolvedValue(undefined),
+            writeFile: jest.fn().mockResolvedValue({ success: true }),
         } as unknown as typeof window.electron;
 
         fixture = TestBed.createComponent(SettingsComponent);
@@ -191,6 +207,7 @@ describe('SettingsComponent', () => {
         epgService = TestBed.inject(EpgService);
         dialogService = TestBed.inject(DialogService);
         playlistsService = TestBed.inject(PlaylistsService);
+        playlistBackupService = TestBed.inject(PlaylistBackupService);
         store = TestBed.inject(Store);
         snackBar = TestBed.inject(MatSnackBar) as unknown as MatSnackBarStub;
 
@@ -245,9 +262,8 @@ describe('SettingsComponent', () => {
             const scrollFixture = TestBed.createComponent(SettingsComponent);
             const scrollComponent = scrollFixture.componentInstance;
             const settingsContext = TestBed.inject(SettingsContextService);
-            const originalGetElementById = document.getElementById.bind(
-                document
-            );
+            const originalGetElementById =
+                document.getElementById.bind(document);
             const scrollTo = jest.fn();
             const scrollRoot = {
                 scrollTop: 96,
@@ -476,6 +492,63 @@ describe('SettingsComponent', () => {
         expect(refreshSpy).toHaveBeenCalled();
     });
 
+    it('shows an export busy state until the backup file has been written', async () => {
+        let resolveExport: (
+            value: {
+                defaultFileName: string;
+                json: string;
+                manifest: {
+                    kind: string;
+                    version: number;
+                    exportedAt: string;
+                    includeSecrets: boolean;
+                    playlists: never[];
+                };
+            }
+        ) => void = () => undefined;
+
+        (
+            playlistBackupService.exportBackup as jest.Mock
+        ).mockReturnValueOnce(
+            new Promise((resolve) => {
+                resolveExport = resolve;
+            })
+        );
+
+        const exportPromise = component.exportData();
+
+        expect(component.isExportingData()).toBe(true);
+
+        resolveExport({
+            defaultFileName: 'iptvnator-playlist-backup-2026-04-21.json',
+            json: '{}',
+            manifest: {
+                kind: 'iptvnator-playlist-backup',
+                version: 1,
+                exportedAt: '2026-04-21T00:00:00.000Z',
+                includeSecrets: true,
+                playlists: [],
+            },
+        });
+
+        await exportPromise;
+
+        expect(window.electron.saveFileDialog).toHaveBeenCalledWith(
+            'iptvnator-playlist-backup-2026-04-21.json',
+            [
+                {
+                    extensions: ['json'],
+                    name: 'JSON',
+                },
+            ]
+        );
+        expect(window.electron.writeFile).toHaveBeenCalledWith(
+            '/tmp/backup.json',
+            '{}'
+        );
+        expect(component.isExportingData()).toBe(false);
+    });
+
     it('shows a failure snackbar and skips refresh when clearing EPG data rejects', async () => {
         (window.electron.clearEpgData as jest.Mock).mockRejectedValueOnce(
             new Error('boom')
@@ -518,7 +591,9 @@ describe('SettingsComponent', () => {
         const nativeElement = fixture.nativeElement as HTMLElement;
 
         expect(
-            nativeElement.querySelector('[data-test-id="toggle-show-dashboard"]')
+            nativeElement.querySelector(
+                '[data-test-id="toggle-show-dashboard"]'
+            )
         ).not.toBeNull();
         expect(component.settingsForm.value.showDashboard).toBe(true);
         expect(component.settingsForm.value.startupBehavior).toBe(

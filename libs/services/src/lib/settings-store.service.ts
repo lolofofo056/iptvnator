@@ -79,7 +79,7 @@ export const SettingsStore = signalStore(
                 showCaptions: store.showCaptions(),
                 showDashboard: store.showDashboard(),
                 startupBehavior: store.startupBehavior(),
-                showExternalPlaybackBar: store.showExternalPlaybackBar(),
+                showExternalPlaybackBar: store.showExternalPlaybackBar!(),
                 theme: store.theme(),
                 mpvPlayerPath: store.mpvPlayerPath(),
                 mpvReuseInstance: store.mpvReuseInstance(),
@@ -87,12 +87,12 @@ export const SettingsStore = signalStore(
                 remoteControl: store.remoteControl(),
                 remoteControlPort: store.remoteControlPort(),
                 epgUrl: store.epgUrl(),
-                downloadFolder: store.downloadFolder(),
+                downloadFolder: store.downloadFolder!(),
             };
         },
 
         getDownloadFolder() {
-            return store.downloadFolder();
+            return store.downloadFolder!();
         },
 
         getPlayer() {

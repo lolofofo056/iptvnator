@@ -333,6 +333,31 @@
     }
 }
 
+.inline-actions__button {
+    min-width: 118px;
+}
+
+.inline-actions__button--busy {
+    background: color-mix(
+        in srgb,
+        var(--app-selection-surface) 74%,
+        transparent
+    );
+    color: var(--app-selection-color);
+    box-shadow:
+        inset 0 0 0 1px color-mix(
+            in srgb,
+            var(--app-selection-border) 48%,
+            transparent
+        ),
+        0 8px 18px -18px var(--settings-group-active-glow);
+}
+
+.inline-actions__label {
+    display: inline-flex;
+    align-items: center;
+}
+
 .remote-control-urls {
     display: flex;
     flex-direction: column;

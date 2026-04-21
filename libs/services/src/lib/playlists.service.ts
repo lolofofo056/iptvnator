@@ -451,7 +451,9 @@ export class PlaylistsService {
         }
 
         return this.runOnIndexedDb(() =>
-            firstValueFrom(this.dbService.getByID<Playlist>(DbStores.Playlists, id))
+            firstValueFrom(
+                this.dbService.getByID<Playlist>(DbStores.Playlists, id)
+            )
         );
     }
 
@@ -469,11 +471,23 @@ export class PlaylistsService {
                     ...(updatedPlaylist.userAgent != null
                         ? { userAgent: updatedPlaylist.userAgent }
                         : {}),
+                    ...(updatedPlaylist.referrer !== undefined
+                        ? { referrer: updatedPlaylist.referrer }
+                        : {}),
+                    ...(updatedPlaylist.origin !== undefined
+                        ? { origin: updatedPlaylist.origin }
+                        : {}),
                     ...(updatedPlaylist.serverUrl != null
                         ? { serverUrl: updatedPlaylist.serverUrl }
                         : {}),
                     ...(updatedPlaylist.portalUrl != null
                         ? { portalUrl: updatedPlaylist.portalUrl }
+                        : {}),
+                    ...(updatedPlaylist.isFullStalkerPortal !== undefined
+                        ? {
+                              isFullStalkerPortal:
+                                  updatedPlaylist.isFullStalkerPortal,
+                          }
                         : {}),
                     ...(updatedPlaylist.macAddress != null
                         ? { macAddress: updatedPlaylist.macAddress }
@@ -879,7 +893,9 @@ export class PlaylistsService {
         return raw.includes(':') ? raw.split(':')[0] : raw;
     }
 
-    private getPlaylistRecentIdentity(item: PlaylistRecentlyViewedItem): string {
+    private getPlaylistRecentIdentity(
+        item: PlaylistRecentlyViewedItem
+    ): string {
         if (isM3uRecentlyViewedItem(item)) {
             return String(item.url ?? item.id ?? '').trim();
         }
@@ -994,10 +1010,7 @@ export class PlaylistsService {
                         playlist.recentlyViewed as PlaylistRecentlyViewedItem[]
                     )?.filter(
                         (item) =>
-                            !this.matchesPlaylistRecentIdentity(
-                                item,
-                                identity
-                            )
+                            !this.matchesPlaylistRecentIdentity(item, identity)
                     ),
                 };
 

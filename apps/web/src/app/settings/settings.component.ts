@@ -30,10 +30,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import {
-    MatSnackBar,
-    MatSnackBarConfig,
-} from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -44,10 +41,14 @@ import { QRCodeComponent } from 'angularx-qrcode';
 import { DialogService } from 'components';
 import { PlaylistActions, selectIsEpgAvailable } from 'm3u-state';
 import { firstValueFrom, take } from 'rxjs';
-import { DataService, PlaylistsService } from 'services';
+import {
+    DataService,
+    PlaylistBackupImportSummary,
+    PlaylistBackupService,
+    PlaylistsService,
+} from 'services';
 import {
     Language,
-    Playlist,
     StartupBehavior,
     StreamFormat,
     Theme,
@@ -117,6 +118,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private store = inject(Store);
     private translate = inject(TranslateService);
     private matDialog = inject(MatDialog);
+    private playlistBackupService = inject(PlaylistBackupService);
     private readonly elementRef = inject(ElementRef<HTMLElement>);
     private readonly injector = inject(Injector);
     private readonly dialogData = inject<{ isDialog: boolean } | null>(
@@ -241,11 +243,13 @@ export class SettingsComponent implements OnInit, OnDestroy {
     visibleQrCodeIp = signal<string | null>(null);
     readonly isRemovingAllPlaylists = signal(false);
     readonly isClearingEpgData = signal(false);
+    readonly isExportingData = signal(false);
 
     private settingsStore = inject(SettingsStore);
     private sectionObserver?: IntersectionObserver;
-    private pendingScrollClearTimer: ReturnType<typeof window.setTimeout> | null =
-        null;
+    private pendingScrollClearTimer: ReturnType<
+        typeof window.setTimeout
+    > | null = null;
     private pendingScrollClearRoot: HTMLElement | null = null;
     private pendingScrollEndListener: (() => void) | null = null;
 
@@ -398,6 +402,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.settingsForm.patchValue(currentSettings);
 
         if (this.isDesktop && currentSettings.epgUrl) {
+            this.epgUrl.clear();
             this.setEpgUrls(currentSettings.epgUrl);
         }
     }
@@ -626,9 +631,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 } catch (error) {
                     console.error('Failed to clear EPG data:', error);
                     this.openSettingsSnackbar(
-                        this.translate.instant(
-                            'SETTINGS.EPG_DATA_CLEAR_FAILED'
-                        )
+                        this.translate.instant('SETTINGS.EPG_DATA_CLEAR_FAILED')
                     );
                 } finally {
                     this.isClearingEpgData.set(false);
@@ -637,21 +640,55 @@ export class SettingsComponent implements OnInit, OnDestroy {
         });
     }
 
-    exportData() {
-        this.playlistsService
-            .getAllData()
-            .pipe(take(1))
-            .subscribe((data) => {
-                const blob = new Blob([JSON.stringify(data)], {
-                    type: 'text/plain',
+    async exportData() {
+        if (this.isExportingData()) {
+            return;
+        }
+
+        this.isExportingData.set(true);
+
+        // Let Angular paint the busy state before the backup build and native
+        // save dialog handoff start.
+        await this.waitForUiFeedbackFrame();
+
+        try {
+            const backup = await this.playlistBackupService.exportBackup();
+
+            if (this.isDesktop && window.electron?.saveFileDialog) {
+                const savePath = await window.electron.saveFileDialog(
+                    backup.defaultFileName,
+                    [
+                        {
+                            name: 'JSON',
+                            extensions: ['json'],
+                        },
+                    ]
+                );
+
+                if (!savePath) {
+                    return;
+                }
+
+                await window.electron.writeFile(savePath, backup.json);
+            } else {
+                const blob = new Blob([backup.json], {
+                    type: 'application/json',
                 });
                 const url = window.URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = 'playlists.json';
+                link.download = backup.defaultFileName;
                 link.click();
                 window.URL.revokeObjectURL(url);
-            });
+            }
+
+            this.openSettingsSnackbar('Playlist backup exported.');
+        } catch (error) {
+            console.error('Failed to export playlist backup:', error);
+            this.openSettingsSnackbar('Playlist backup export failed.');
+        } finally {
+            this.isExportingData.set(false);
+        }
     }
 
     importData() {
@@ -659,43 +696,64 @@ export class SettingsComponent implements OnInit, OnDestroy {
         input.type = 'file';
         input.accept = 'application/json';
 
-        input.addEventListener('change', (event: Event) => {
+        input.addEventListener('change', async (event: Event) => {
             const target = event.target as HTMLInputElement;
             const file = target.files?.[0];
 
             if (file) {
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const contents = reader.result;
-
-                    try {
-                        const parsedPlaylists: Playlist[] = JSON.parse(
-                            contents.toString()
+                try {
+                    const summary =
+                        await this.playlistBackupService.importBackup(
+                            await file.text()
                         );
 
-                        if (!Array.isArray(parsedPlaylists)) {
-                            this.openSettingsSnackbar(
-                                this.translate.instant('SETTINGS.IMPORT_ERROR'),
-                            );
-                        } else {
-                            this.store.dispatch(
-                                PlaylistActions.addManyPlaylists({
-                                    playlists: parsedPlaylists,
-                                })
-                            );
-                        }
-                    } catch (error) {
-                        this.openSettingsSnackbar(
-                            this.translate.instant('SETTINGS.IMPORT_ERROR'),
+                    if (summary.imported > 0 || summary.merged > 0) {
+                        this.store.dispatch(
+                            PlaylistActions.removeAllPlaylists()
                         );
-                        console.error(error);
+                        this.store.dispatch(PlaylistActions.loadPlaylists());
                     }
-                };
-                reader.readAsText(file);
+
+                    this.setSettings();
+                    this.openSettingsSnackbar(
+                        this.buildBackupImportSummary(summary)
+                    );
+
+                    if (summary.errors.length > 0) {
+                        console.error(
+                            'Playlist backup import completed with issues:',
+                            summary.errors
+                        );
+                    }
+                } catch (error) {
+                    console.error('Failed to import playlist backup:', error);
+                    this.openSettingsSnackbar(
+                        error instanceof Error
+                            ? error.message
+                            : this.translate.instant('SETTINGS.IMPORT_ERROR')
+                    );
+                }
             }
         });
 
         input.click();
+    }
+
+    private buildBackupImportSummary(
+        summary: PlaylistBackupImportSummary
+    ): string {
+        return `Backup import finished: ${summary.imported} imported, ${summary.merged} merged, ${summary.skipped} skipped, ${summary.failed} failed.`;
+    }
+
+    private async waitForUiFeedbackFrame(): Promise<void> {
+        if (typeof window.requestAnimationFrame !== 'function') {
+            await Promise.resolve();
+            return;
+        }
+
+        await new Promise<void>((resolve) => {
+            window.requestAnimationFrame(() => resolve());
+        });
     }
 
     removeAll() {
@@ -713,12 +771,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
                     await firstValueFrom(this.playlistsService.removeAll());
                     this.store.dispatch(PlaylistActions.removeAllPlaylists());
                     this.openSettingsSnackbar(
-                        this.translate.instant('SETTINGS.PLAYLISTS_REMOVED'),
+                        this.translate.instant('SETTINGS.PLAYLISTS_REMOVED')
                     );
                 } catch (error) {
                     console.error('Error removing playlists:', error);
                     this.openSettingsSnackbar(
-                        this.translate.instant('SETTINGS.IMPORT_ERROR'),
+                        this.translate.instant('SETTINGS.IMPORT_ERROR')
                     );
                 } finally {
                     this.isRemovingAllPlaylists.set(false);

@@ -63,12 +63,22 @@ export class PlaybackPositionService {
         }
     }
 
-    async getAllPlaybackPositions(playlistId: string): Promise<PlaybackPositionData[]> {
+    async getAllPlaybackPositions(
+        playlistId: string
+    ): Promise<PlaybackPositionData[]> {
         try {
             return await window.electron.dbGetAllPlaybackPositions(playlistId);
         } catch (error) {
             console.error('Error getting all playback positions:', error);
             return [];
+        }
+    }
+
+    async clearAllPlaybackPositions(playlistId: string): Promise<void> {
+        try {
+            await window.electron.dbClearAllPlaybackPositions(playlistId);
+        } catch (error) {
+            console.error('Error clearing all playback positions:', error);
         }
     }
 

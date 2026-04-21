@@ -7,7 +7,9 @@ import { DialogService } from 'components';
 import {
     DatabaseService,
     isDbAbortError,
+    PlaybackPositionService,
     PlaylistRefreshService,
+    XtreamPendingRestoreService,
 } from 'services';
 import { ChannelActions, PlaylistActions } from 'm3u-state';
 import { PlaylistMeta } from 'shared-interfaces';
@@ -21,8 +23,12 @@ export class PlaylistRefreshActionService {
     private readonly snackBar = inject(MatSnackBar);
     private readonly dialogService = inject(DialogService);
     private readonly databaseService = inject(DatabaseService);
+    private readonly playbackPositionService = inject(PlaybackPositionService);
     private readonly playlistRefreshService = inject(PlaylistRefreshService);
     private readonly playlistContext = inject(PlaylistContextFacade);
+    private readonly pendingRestoreService = inject(
+        XtreamPendingRestoreService
+    );
 
     readonly isRefreshing = signal(false);
 
@@ -31,9 +37,7 @@ export class PlaylistRefreshActionService {
             return false;
         }
 
-        return Boolean(
-            playlist.serverUrl || playlist.url || playlist.filePath
-        );
+        return Boolean(playlist.serverUrl || playlist.url || playlist.filePath);
     }
 
     refresh(playlist: PlaylistMeta): void {
@@ -75,33 +79,26 @@ export class PlaylistRefreshActionService {
                     );
 
                     const updateDate = Date.now();
-                    const [
-                        {
-                            favoritedXtreamIds,
-                            recentlyViewedXtreamIds,
-                            hiddenCategories,
-                        },
-                    ] = await Promise.all([
-                        this.databaseService.deleteXtreamPlaylistContent(
-                            item._id,
-                            { operationId }
-                        ),
-                        this.databaseService.updateXtreamPlaylistDetails({
-                            id: item._id,
-                            updateDate,
-                        }),
-                    ]);
-
-                    const restoreKey = `xtream-restore-${item._id}`;
-                    const restorePayload = {
-                        favoritedXtreamIds,
-                        recentlyViewedXtreamIds,
-                        hiddenCategories,
-                    };
-                    localStorage.setItem(
-                        restoreKey,
-                        JSON.stringify(restorePayload)
+                    const [restoreState, playbackPositions] = await Promise.all(
+                        [
+                            this.databaseService.deleteXtreamPlaylistContent(
+                                item._id,
+                                { operationId }
+                            ),
+                            this.playbackPositionService.getAllPlaybackPositions(
+                                item._id
+                            ),
+                            this.databaseService.updateXtreamPlaylistDetails({
+                                id: item._id,
+                                updateDate,
+                            }),
+                        ]
                     );
+
+                    this.pendingRestoreService.set(item._id, {
+                        ...restoreState,
+                        playbackPositions,
+                    });
 
                     this.store.dispatch(
                         PlaylistActions.updatePlaylistMeta({
@@ -197,10 +194,7 @@ export class PlaylistRefreshActionService {
         }
     }
 
-    private getRefreshErrorMessage(
-        error: unknown,
-        item: PlaylistMeta
-    ): string {
+    private getRefreshErrorMessage(error: unknown, item: PlaylistMeta): string {
         if (
             error instanceof Error &&
             error.message?.includes('ENOENT') &&
@@ -211,8 +205,6 @@ export class PlaylistRefreshActionService {
             );
         }
 
-        return this.translate.instant(
-            'HOME.PLAYLISTS.PLAYLIST_UPDATE_ERROR'
-        );
+        return this.translate.instant('HOME.PLAYLISTS.PLAYLIST_UPDATE_ERROR');
     }
 }

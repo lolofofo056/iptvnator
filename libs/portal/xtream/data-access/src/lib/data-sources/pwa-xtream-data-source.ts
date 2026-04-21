@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import {
     PlaybackPositionData,
+    XtreamPendingRestoreState,
     XtreamCategory,
     XtreamLiveStream,
     XtreamSerieItem,
@@ -509,9 +510,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
 
             for (const item of content) {
                 const itemId = item.stream_id || item.series_id || item.id;
-                const recentEntry = playlistRecent.find(
-                    (r) => r.id === itemId
-                );
+                const recentEntry = playlistRecent.find((r) => r.id === itemId);
                 if (recentEntry) {
                     results.push({
                         ...item,
@@ -571,10 +570,7 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         this.clearRecentItemsForPlaylist(playlistId);
     }
 
-    private getRecentItemsFromStorage(): Record<
-        string,
-        StoredRecentItem[]
-    > {
+    private getRecentItemsFromStorage(): Record<string, StoredRecentItem[]> {
         try {
             const data = localStorage.getItem(STORAGE_KEYS.RECENT_ITEMS);
             return data ? JSON.parse(data) : {};
@@ -629,51 +625,125 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         return null;
     }
 
+    private findContentIdentity(
+        playlistId: string,
+        xtreamId: number,
+        contentType?: 'live' | 'movie' | 'series'
+    ): { contentType: 'live' | 'movie' | 'series'; xtreamId: number } | null {
+        const types = contentType
+            ? [contentType]
+            : (['live', 'movie', 'series'] as const);
+
+        for (const type of types) {
+            const cacheKey = `${playlistId}-${type}-content`;
+            const content = this.contentCache.get(cacheKey) || [];
+
+            const found = content.find((item) => {
+                const itemXtreamId =
+                    item.stream_id || item.series_id || item.id;
+                return itemXtreamId === xtreamId;
+            });
+
+            if (found) {
+                return {
+                    contentType: type,
+                    xtreamId,
+                };
+            }
+        }
+
+        return null;
+    }
+
     // =========================================================================
     // Cleanup Operations
     // =========================================================================
 
-    async clearPlaylistContent(playlistId: string): Promise<{
-        favoritedXtreamIds: number[];
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[];
-    }> {
+    async clearPlaylistContent(
+        playlistId: string
+    ): Promise<XtreamPendingRestoreState> {
         // Get current favorites and recent items
         const favorites = this.getFavoritesFromStorage();
         const recentItems = this.getRecentItemsFromStorage();
+        const playbackPositions =
+            await this.getAllPlaybackPositions(playlistId);
 
-        const favoritedXtreamIds = favorites[playlistId] || [];
-        const recentlyViewedXtreamIds = (recentItems[playlistId] || []).map(
-            (r) => ({
-                xtreamId: r.id,
-                viewedAt: r.viewedAt,
+        const typedFavorites = (favorites[playlistId] || [])
+            .map((xtreamId) => this.findContentIdentity(playlistId, xtreamId))
+            .filter(
+                (
+                    value
+                ): value is {
+                    contentType: 'live' | 'movie' | 'series';
+                    xtreamId: number;
+                } => value !== null
+            );
+
+        const typedRecentlyViewed = (recentItems[playlistId] || [])
+            .map((item) => {
+                const identity = this.findContentIdentity(playlistId, item.id);
+
+                if (!identity) {
+                    return null;
+                }
+
+                return {
+                    ...identity,
+                    viewedAt: item.viewedAt,
+                };
             })
-        );
+            .filter(
+                (
+                    value
+                ): value is {
+                    contentType: 'live' | 'movie' | 'series';
+                    xtreamId: number;
+                    viewedAt: string;
+                } => value !== null
+            );
 
         // Clear in-memory cache
         this.clearCacheForPlaylist(playlistId);
 
-        return { favoritedXtreamIds, recentlyViewedXtreamIds };
+        return {
+            hiddenCategories: [],
+            favorites: typedFavorites,
+            recentlyViewed: typedRecentlyViewed,
+            playbackPositions,
+        };
     }
 
     async restoreUserData(
         playlistId: string,
-        favoritedXtreamIds: number[],
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[],
+        restoreState: XtreamPendingRestoreState,
         options?: XtreamOperationOptions
     ): Promise<void> {
         void options;
         // Restore favorites
         const favorites = this.getFavoritesFromStorage();
-        favorites[playlistId] = favoritedXtreamIds;
+        favorites[playlistId] = restoreState.favorites.map(
+            (item) => item.xtreamId
+        );
         this.saveFavoritesToStorage(favorites);
 
         // Restore recent items
         const recentItems = this.getRecentItemsFromStorage();
-        recentItems[playlistId] = recentlyViewedXtreamIds.map((r) => ({
-            id: r.xtreamId,
-            viewedAt: r.viewedAt,
+        recentItems[playlistId] = restoreState.recentlyViewed.map((item) => ({
+            id: item.xtreamId,
+            viewedAt: item.viewedAt,
         }));
         this.saveRecentItemsToStorage(recentItems);
+
+        // Restore playback positions
+        this.clearPlaybackPositionsForPlaylist(playlistId);
+        const playbackPositions = this.getPlaybackPositionsFromStorage();
+        playbackPositions[playlistId] = restoreState.playbackPositions.map(
+            (position) => ({
+                ...position,
+                updatedAt: position.updatedAt ?? new Date().toISOString(),
+            })
+        );
+        this.savePlaybackPositionsToStorage(playbackPositions);
     }
 
     // =========================================================================

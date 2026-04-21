@@ -2,11 +2,13 @@ import { inject, Injectable } from '@angular/core';
 import {
     DatabaseService,
     PlaybackPositionService,
+    XtreamPendingRestoreService,
     XtreamImportStatus,
 } from 'services';
 import {
     PlaybackPositionData,
     PlaylistMeta,
+    XtreamPendingRestoreState,
     XtreamCategory,
     XtreamLiveStream,
     XtreamSerieItem,
@@ -37,6 +39,9 @@ import {
 export class ElectronXtreamDataSource implements IXtreamDataSource {
     private readonly dbService = inject(DatabaseService);
     private readonly playbackService = inject(PlaybackPositionService);
+    private readonly pendingRestoreService = inject(
+        XtreamPendingRestoreService
+    );
     private readonly apiService = inject(XtreamApiService);
     private readonly categoryRequests = new Map<
         string,
@@ -135,8 +140,8 @@ export class ElectronXtreamDataSource implements IXtreamDataSource {
             dbType,
             options
         ).finally(() => {
-                this.categoryRequests.delete(requestKey);
-            });
+            this.categoryRequests.delete(requestKey);
+        });
 
         this.categoryRequests.set(requestKey, request);
         return request;
@@ -199,30 +204,16 @@ export class ElectronXtreamDataSource implements IXtreamDataSource {
         playlistId: string,
         type: 'live' | 'movies' | 'series'
     ): number[] | undefined {
-        const restoreKey = `xtream-restore-${playlistId}`;
-        const restoreDataStr = localStorage.getItem(restoreKey);
+        const restoreData = this.pendingRestoreService.get(playlistId);
+        const hiddenCategories = restoreData?.hiddenCategories;
 
-        if (!restoreDataStr) {
+        if (!hiddenCategories || hiddenCategories.length === 0) {
             return undefined;
         }
 
-        try {
-            const restoreData = JSON.parse(restoreDataStr) as {
-                hiddenCategories?: { xtreamId: number; type: string }[];
-            };
-            const hiddenCategories = restoreData.hiddenCategories;
-
-            if (!hiddenCategories || hiddenCategories.length === 0) {
-                return undefined;
-            }
-
-            // Filter for the specific type and return xtreamIds
-            return hiddenCategories
-                .filter((cat) => cat.type === type)
-                .map((cat) => cat.xtreamId);
-        } catch {
-            return undefined;
-        }
+        return hiddenCategories
+            .filter((category) => category.categoryType === type)
+            .map((category) => category.xtreamId);
     }
 
     async getAllCategories(
@@ -509,29 +500,41 @@ export class ElectronXtreamDataSource implements IXtreamDataSource {
         // Electron uses the DB as its cache layer; no in-memory state to evict.
     }
 
-    async clearPlaylistContent(playlistId: string): Promise<{
-        favoritedXtreamIds: number[];
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[];
-    }> {
-        const result =
-            await this.dbService.deleteXtreamPlaylistContent(playlistId);
+    async clearPlaylistContent(
+        playlistId: string
+    ): Promise<XtreamPendingRestoreState> {
+        const [result, playbackPositions] = await Promise.all([
+            this.dbService.deleteXtreamPlaylistContent(playlistId),
+            this.playbackService.getAllPlaybackPositions(playlistId),
+        ]);
+
         return {
-            favoritedXtreamIds: result.favoritedXtreamIds,
-            recentlyViewedXtreamIds: result.recentlyViewedXtreamIds,
+            hiddenCategories: result.hiddenCategories,
+            favorites: result.favorites,
+            recentlyViewed: result.recentlyViewed,
+            playbackPositions,
         };
     }
 
     async restoreUserData(
         playlistId: string,
-        favoritedXtreamIds: number[],
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[],
+        restoreState: XtreamPendingRestoreState,
         options?: XtreamOperationOptions
     ): Promise<void> {
         await this.dbService.restoreXtreamUserData(
             playlistId,
-            favoritedXtreamIds,
-            recentlyViewedXtreamIds,
+            restoreState.favorites,
+            restoreState.recentlyViewed,
             options
         );
+
+        await this.playbackService.clearAllPlaybackPositions(playlistId);
+
+        for (const playbackPosition of restoreState.playbackPositions) {
+            await this.playbackService.savePlaybackPosition(
+                playlistId,
+                playbackPosition
+            );
+        }
     }
 }

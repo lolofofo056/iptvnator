@@ -17,6 +17,7 @@ import { DialogService } from 'components';
 import {
     DatabaseService,
     DataService,
+    PlaybackPositionService,
     SortBy,
     SortOrder,
     SortService,
@@ -72,6 +73,9 @@ describe('RecentPlaylistsComponent busy state', () => {
     let dataService: {
         sendIpcEvent: jest.Mock;
     };
+    let playbackPositionService: {
+        getAllPlaybackPositions: jest.Mock;
+    };
     let router: {
         navigate: jest.Mock;
     };
@@ -93,6 +97,9 @@ describe('RecentPlaylistsComponent busy state', () => {
         };
         dataService = {
             sendIpcEvent: jest.fn(),
+        };
+        playbackPositionService = {
+            getAllPlaybackPositions: jest.fn().mockResolvedValue([]),
         };
         router = {
             navigate: jest.fn(),
@@ -129,6 +136,10 @@ describe('RecentPlaylistsComponent busy state', () => {
                     useValue: dataService,
                 },
                 {
+                    provide: PlaybackPositionService,
+                    useValue: playbackPositionService,
+                },
+                {
                     provide: PlaylistContextFacade,
                     useValue: {
                         resolvedPlaylistId: signal<string | null>(null),
@@ -157,7 +168,9 @@ describe('RecentPlaylistsComponent busy state', () => {
                                 order: SortOrder.DESC,
                             })
                         ),
-                        sortPlaylists: jest.fn((playlists: PlaylistMeta[]) => playlists),
+                        sortPlaylists: jest.fn(
+                            (playlists: PlaylistMeta[]) => playlists
+                        ),
                     },
                 },
                 {
@@ -238,9 +251,16 @@ describe('RecentPlaylistsComponent busy state', () => {
         const item = createPlaylistMeta({ _id: 'playlist-refresh-1' });
         const refresh = createDeferred<{
             success: boolean;
-            favoritedXtreamIds: number[];
-            recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[];
-            hiddenCategories: { xtreamId: number; type: string }[];
+            favorites: Array<{ xtreamId: number; contentType: string }>;
+            recentlyViewed: Array<{
+                xtreamId: number;
+                contentType: string;
+                viewedAt: string;
+            }>;
+            hiddenCategories: Array<{
+                xtreamId: number;
+                categoryType: string;
+            }>;
         }>();
         let confirmPromise: Promise<void> | undefined;
 
@@ -323,25 +343,29 @@ describe('RecentPlaylistsComponent busy state', () => {
         });
         databaseService.deleteXtreamPlaylistContent.mockResolvedValue({
             success: true,
-            favoritedXtreamIds: [101, 202],
-            recentlyViewedXtreamIds: [
+            favorites: [
+                { xtreamId: 101, contentType: 'live' },
+                { xtreamId: 202, contentType: 'movie' },
+            ],
+            recentlyViewed: [
                 {
                     xtreamId: 303,
+                    contentType: 'series',
                     viewedAt: '2026-04-03T11:15:00.000Z',
                 },
             ],
-            hiddenCategories: [{ xtreamId: 404, type: 'live' }],
+            hiddenCategories: [{ xtreamId: 404, categoryType: 'live' }],
         });
 
         component.refreshXtreamPlaylist(item);
         await confirmPromise;
 
-        expect(databaseService.updateXtreamPlaylistDetails).toHaveBeenCalledWith(
-            {
-                id: item._id,
-                updateDate: 1712145600000,
-            }
-        );
+        expect(
+            databaseService.updateXtreamPlaylistDetails
+        ).toHaveBeenCalledWith({
+            id: item._id,
+            updateDate: 1712145600000,
+        });
         expect(store.dispatch).toHaveBeenCalledWith(
             PlaylistActions.updatePlaylistMeta({
                 playlist: { ...item, updateDate: 1712145600000 },
@@ -350,14 +374,19 @@ describe('RecentPlaylistsComponent busy state', () => {
         expect(setItemSpy).toHaveBeenCalledWith(
             `xtream-restore-${item._id}`,
             JSON.stringify({
-                favoritedXtreamIds: [101, 202],
-                recentlyViewedXtreamIds: [
+                hiddenCategories: [{ xtreamId: 404, categoryType: 'live' }],
+                favorites: [
+                    { xtreamId: 101, contentType: 'live' },
+                    { xtreamId: 202, contentType: 'movie' },
+                ],
+                recentlyViewed: [
                     {
                         xtreamId: 303,
+                        contentType: 'series',
                         viewedAt: '2026-04-03T11:15:00.000Z',
                     },
                 ],
-                hiddenCategories: [{ xtreamId: 404, type: 'live' }],
+                playbackPositions: [],
             })
         );
         expect(router.navigate).toHaveBeenCalledWith([

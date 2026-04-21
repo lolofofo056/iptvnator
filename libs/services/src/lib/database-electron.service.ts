@@ -6,6 +6,9 @@
 import { Injectable } from '@angular/core';
 import {
     PlaylistMeta,
+    XtreamBackupFavoriteItem,
+    XtreamBackupHiddenCategory,
+    XtreamBackupRecentlyViewedItem,
     XtreamCategory,
 } from 'shared-interfaces';
 
@@ -33,6 +36,7 @@ export interface XtreamContent {
     type: string;
     added_at?: string;
     viewed_at?: string;
+    position?: number | null;
 }
 
 export interface XtreamPlaylist {
@@ -251,18 +255,17 @@ export class DatabaseService {
     }
 
     /**
-     * Delete all content and categories for an Xtream playlist (for refresh)
-     * Keeps the playlist entry but removes all imported data
-     * Returns saved favorites, recently viewed xtreamIds, and hidden categories for restoration
+     * Delete all content and categories for an Xtream playlist (for refresh).
+     * Keeps the playlist entry but removes all imported data.
      */
     async deleteXtreamPlaylistContent(
         playlistId: string,
         options?: DbOperationOptions
     ): Promise<{
         success: boolean;
-        favoritedXtreamIds: number[];
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[];
-        hiddenCategories: { xtreamId: number; type: string }[];
+        favorites: XtreamBackupFavoriteItem[];
+        recentlyViewed: XtreamBackupRecentlyViewedItem[];
+        hiddenCategories: XtreamBackupHiddenCategory[];
     }> {
         return this.runWithOperationEvents(
             'db-delete-xtream-content',
@@ -278,8 +281,8 @@ export class DatabaseService {
      */
     async restoreXtreamUserData(
         playlistId: string,
-        favoritedXtreamIds: number[],
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[],
+        favorites: XtreamBackupFavoriteItem[],
+        recentlyViewed: XtreamBackupRecentlyViewedItem[],
         options?: DbOperationOptions
     ): Promise<void> {
         await this.runWithOperationEvents(
@@ -288,8 +291,8 @@ export class DatabaseService {
             (operationId) =>
                 window.electron.dbRestoreXtreamUserData(
                     playlistId,
-                    favoritedXtreamIds,
-                    recentlyViewedXtreamIds,
+                    favorites,
+                    recentlyViewed,
                     operationId
                 ),
             options
@@ -472,7 +475,7 @@ export class DatabaseService {
                 options,
                 onProgress
             );
-            return result.count;
+            return (result as { count: number }).count;
         } catch (error) {
             if (!isDbAbortError(error)) {
                 console.error('Error saving Xtream content:', error);
@@ -569,7 +572,11 @@ export class DatabaseService {
         types: string[],
         excludeHidden?: boolean
     ): Promise<GlobalSearchResult[]> {
-        return await window.electron.dbGlobalSearch(searchTerm, types, excludeHidden);
+        return await window.electron.dbGlobalSearch(
+            searchTerm,
+            types,
+            excludeHidden
+        );
     }
 
     /**
