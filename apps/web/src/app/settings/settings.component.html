@@ -501,8 +501,7 @@
                                 mat-button
                                 type="button"
                                 [disabled]="
-                                    epgUrl.length === 0 ||
-                                    isClearingEpgData()
+                                    epgUrl.length === 0 || isClearingEpgData()
                                 "
                                 (click)="refreshAllEpg()"
                             >
@@ -522,7 +521,9 @@
                                         diameter="16"
                                         mode="indeterminate"
                                     />
-                                    {{ 'SETTINGS.CLEARING_EPG_DATA' | translate }}
+                                    {{
+                                        'SETTINGS.CLEARING_EPG_DATA' | translate
+                                    }}
                                 } @else {
                                     {{ 'SETTINGS.CLEAR_EPG_DATA' | translate }}
                                 }
@@ -808,10 +809,41 @@
                         <p>
                             {{ 'SETTINGS.REMOVE_ALL_DESCRIPTION' | translate }}
                         </p>
+                        <div class="danger-zone__summary" aria-live="polite">
+                            <span class="danger-zone__summary-pill">
+                                {{ 'HOME.PLAYLIST_TYPES.M3U' | translate }}
+                                <strong>{{
+                                    playlistDeleteSummary().m3u
+                                }}</strong>
+                            </span>
+                            <span class="danger-zone__summary-pill">
+                                {{ 'HOME.PLAYLIST_TYPES.XTREAM' | translate }}
+                                <strong>{{
+                                    playlistDeleteSummary().xtream
+                                }}</strong>
+                            </span>
+                            <span class="danger-zone__summary-pill">
+                                {{ 'HOME.PLAYLIST_TYPES.STALKER' | translate }}
+                                <strong>{{
+                                    playlistDeleteSummary().stalker
+                                }}</strong>
+                            </span>
+                        </div>
+                        @if (removeAllProgressLabel(); as progressLabel) {
+                            <p class="danger-zone__progress">
+                                {{ progressLabel }}
+                            </p>
+                        }
                     </div>
                     <div class="setting-item__control">
                         <button
                             mat-button
+                            class="danger-zone__button"
+                            [class.danger-zone__button--busy]="
+                                isRemovingAllPlaylists()
+                            "
+                            [disabled]="!canRemoveAllPlaylists()"
+                            [attr.aria-busy]="isRemovingAllPlaylists()"
                             (click)="
                                 $event.preventDefault();
                                 $event.stopPropagation();
@@ -820,9 +852,19 @@
                             color="warn"
                         >
                             @if (isRemovingAllPlaylists()) {
-                                <mat-spinner diameter="18" strokeWidth="3" />
+                                <mat-progress-spinner
+                                    class="button-spinner"
+                                    diameter="16"
+                                    mode="indeterminate"
+                                />
+                                <span class="inline-actions__label">{{
+                                    'SETTINGS.REMOVE_ALL_IN_PROGRESS'
+                                        | translate
+                                }}</span>
                             } @else {
-                                {{ 'SETTINGS.REMOVE_ALL_BUTTON' | translate }}
+                                <span class="inline-actions__label">{{
+                                    'SETTINGS.REMOVE_ALL_BUTTON' | translate
+                                }}</span>
                             }
                         </button>
                     </div>
@@ -1022,8 +1064,7 @@
                                 <span class="support-btn__text">
                                     <strong>Ko-fi</strong>
                                     <small>{{
-                                        'SETTINGS.SUPPORT_KOFI_HINT'
-                                            | translate
+                                        'SETTINGS.SUPPORT_KOFI_HINT' | translate
                                     }}</small>
                                 </span>
                             </a>

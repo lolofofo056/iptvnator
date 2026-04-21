@@ -113,11 +113,8 @@
         width: 40px;
         height: 40px;
         flex-shrink: 0;
-        border: 1px solid color-mix(
-            in srgb,
-            var(--mat-sys-outline-variant) 74%,
-            transparent
-        );
+        border: 1px solid
+            color-mix(in srgb, var(--mat-sys-outline-variant) 74%, transparent);
         border-radius: 12px;
         background: color-mix(
             in srgb,
@@ -229,11 +226,8 @@
     gap: 8px;
     min-height: 54px;
     padding: 12px 14px;
-    border: 1px solid color-mix(
-        in srgb,
-        var(--mat-sys-outline-variant) 70%,
-        transparent
-    );
+    border: 1px solid
+        color-mix(in srgb, var(--mat-sys-outline-variant) 70%, transparent);
     border-radius: 16px;
     background: color-mix(
         in srgb,
@@ -291,11 +285,8 @@
     );
     color: var(--app-selection-color);
     box-shadow:
-        inset 0 0 0 1px color-mix(
-            in srgb,
-            var(--app-selection-border) 54%,
-            transparent
-        ),
+        inset 0 0 0 1px
+            color-mix(in srgb, var(--app-selection-border) 54%, transparent),
         0 10px 18px -22px var(--settings-group-active-glow);
 }
 
@@ -325,12 +316,12 @@
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 6px;
+}
 
-    .button-spinner {
-        display: inline-block;
-        margin-right: 6px;
-        vertical-align: middle;
-    }
+.button-spinner {
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
 }
 
 .inline-actions__button {
@@ -345,11 +336,8 @@
     );
     color: var(--app-selection-color);
     box-shadow:
-        inset 0 0 0 1px color-mix(
-            in srgb,
-            var(--app-selection-border) 48%,
-            transparent
-        ),
+        inset 0 0 0 1px
+            color-mix(in srgb, var(--app-selection-border) 48%, transparent),
         0 8px 18px -18px var(--settings-group-active-glow);
 }
 
@@ -377,7 +365,8 @@
 }
 
 .remote-control-url {
-    font-family: 'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+    font-family:
+        'JetBrains Mono', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
     color: inherit;
     text-decoration: none;
     font-size: 0.84rem;
@@ -423,11 +412,8 @@
     align-items: center;
     gap: 12px;
     padding: 12px 14px;
-    border: 1px solid color-mix(
-        in srgb,
-        var(--mat-sys-outline-variant) 70%,
-        transparent
-    );
+    border: 1px solid
+        color-mix(in srgb, var(--mat-sys-outline-variant) 70%, transparent);
     border-radius: 16px;
     background: color-mix(
         in srgb,
@@ -498,11 +484,7 @@
 }
 
 .link-card--github .link-card__glyph {
-    background: color-mix(
-        in srgb,
-        var(--mat-sys-on-surface) 10%,
-        transparent
-    );
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 10%, transparent);
     color: var(--mat-sys-on-surface);
 }
 
@@ -557,7 +539,8 @@
     border-radius: 14px;
     font-size: 0.84rem;
     background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--mat-sys-primary) 30%, transparent);
+    border: 1px solid
+        color-mix(in srgb, var(--mat-sys-primary) 30%, transparent);
     line-height: 1.45;
 
     a {
@@ -573,6 +556,54 @@
     background: var(--settings-item-danger-bg);
     border: 1px solid var(--settings-item-danger-border);
     border-radius: 16px;
+}
+
+.danger-zone__summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.danger-zone__summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: color-mix(
+        in srgb,
+        var(--mat-sys-surface-container-high) 78%,
+        transparent
+    );
+    border: 1px solid
+        color-mix(in srgb, var(--settings-item-danger-border) 72%, transparent);
+    font-size: 0.82rem;
+    line-height: 1.2;
+
+    strong {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.danger-zone__progress {
+    margin-top: 12px;
+    margin-bottom: 0;
+    color: var(--mat-sys-on-surface-variant);
+    font-size: 0.84rem;
+}
+
+.danger-zone__button {
+    min-width: 138px;
+}
+
+.danger-zone__button--busy {
+    background: color-mix(
+        in srgb,
+        var(--settings-item-danger-border) 28%,
+        transparent
+    );
 }
 
 .action-bar {

@@ -264,8 +264,8 @@
         "SHOW_DASHBOARD": "Dashboard anzeigen",
         "SHOW_DASHBOARD_DESCRIPTION": "Dashboard in der Workspace-Leiste verfügbar halten. Wenn deaktiviert, wird Quellen zur ersten Workspace-Seite.",
         "STREAM_FORMAT_DESCRIPTION": "Standard-Streamformat auswählen (Xtream)",
-        "REMOVE_ALL": "Playlist entfernen",
-        "REMOVE_ALL_BUTTON": "Entfernen",
+        "REMOVE_ALL": "Delete all playlists and playlist data",
+        "REMOVE_ALL_BUTTON": "Delete all",
         "CLEAR_EPG_DATA": "EPG-Daten löschen",
         "CLEAR_EPG_DIALOG": {
             "TITLE": "EPG-Daten löschen",
@@ -275,11 +275,20 @@
         "EPG_DATA_CLEAR_FAILED": "EPG-Daten konnten nicht gelöscht werden. Bitte erneut versuchen.",
         "CLEARING_EPG_DATA": "Wird gelöscht…",
         "REMOVE_DIALOG": {
-            "TITLE": "Аlle Wiedergabelisten löschen",
-            "MESSAGE": "Sind Sie sicher, dass Sie alle Wiedergabelisten aus der Anwendung löschen möchten?"
+            "TITLE": "Delete all playlists?",
+            "MESSAGE": "Delete all {{count}} playlists from the app. This also removes stored playlist data on this device.",
+            "SUMMARY_TITLE": "Playlist sources",
+            "CONSEQUENCES_TITLE": "This also removes",
+            "CONSEQUENCE_FAVORITES": "Favorites saved for these playlists",
+            "CONSEQUENCE_RECENTLY_VIEWED": "Recently viewed history",
+            "CONSEQUENCE_PLAYBACK": "Saved playback positions",
+            "CONSEQUENCE_DOWNLOADS": "Download history entries linked to those playlists",
+            "CONSEQUENCE_XTREAM_CACHE": "Imported Xtream categories and locally cached content",
+            "BACKUP_HINT": "Use Export first if you want a restorable backup before deleting.",
+            "CONFIRM": "Delete everything"
         },
         "LANGUAGE_DESCRIPTION": "Wählen Sie die Sprache der Anwendung aus",
-        "PLAYLISTS_REMOVED": "Alle Playlists wurden entfernt.",
+        "PLAYLISTS_REMOVED": "All playlists and playlist data were removed.",
         "VERSION_DESCRIPTION": "Aktuelle Version der Anwendung",
         "ABOUT_SUBTITLE": "Version, Projekt-Links und Möglichkeiten, IPTVnator zu unterstützen.",
         "COMMUNITY": "Projekt & Community",
@@ -292,7 +301,7 @@
         "SUPPORT_DESCRIPTION": "IPTVnator ist kostenlose Open-Source-Software, die im Offenen entwickelt wird. Wenn sie Teil deines Alltags ist, hilft ein kleiner Beitrag, das Projekt am Leben zu halten und die nächsten Schritte zu gestalten — danke!",
         "SUPPORT_SPONSORS_HINT": "Wiederkehrend oder einmalig",
         "SUPPORT_KOFI_HINT": "Spendiere einen Kaffee",
-        "REMOVE_ALL_DESCRIPTION": "Dadurch werden alle vorhandenen Wiedergabelisten aus der Anwendung entfernt.",
+        "REMOVE_ALL_DESCRIPTION": "Delete every M3U, Xtream, and Stalker playlist stored in the app.",
         "MPV_PLAYER_PATH": "MPV-Player-Pfad",
         "SHOW_CAPTIONS_DESCRIPTION": "Untertitel standardmäßig ein- oder ausblenden",
         "SHOW_EXTERNAL_PLAYBACK_BAR": "Now-Playing-Fußleiste anzeigen",
@@ -334,7 +343,10 @@
         "PORT_REQUIRED": "Port ist erforderlich",
         "PORT_MIN": "Port muss mindestens 1 sein",
         "PORT_MAX": "Port darf maximal 65535 sein",
-        "PORT_PATTERN": "Nur Ziffern sind erlaubt"
+        "PORT_PATTERN": "Nur Ziffern sind erlaubt",
+        "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
+        "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
     },
     "THEMES": {
         "DARK_THEME": "Dunkel",

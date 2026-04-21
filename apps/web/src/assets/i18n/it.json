@@ -169,15 +169,24 @@
         "IMPORT_EXPORT_DATA_DESCRIPTION": "Esporta/importa playlist nel formato JSON usato all'interno dell'applicazione.",
         "IMPORT_DATA": "Importa",
         "EXPORT_DATA": "Esporta",
-        "REMOVE_ALL": "Rimuovi playlist",
-        "REMOVE_ALL_BUTTON": "Rimuovi",
-        "REMOVE_ALL_DESCRIPTION": "Verranno rimosse tutte le playlist esistenti nell'applicazione.",
+        "REMOVE_ALL": "Delete all playlists and playlist data",
+        "REMOVE_ALL_BUTTON": "Delete all",
+        "REMOVE_ALL_DESCRIPTION": "Delete every M3U, Xtream, and Stalker playlist stored in the app.",
         "REMOVE_DIALOG": {
-            "TITLE": "Rimuovi tutte le playlist",
-            "MESSAGE": "Sei sicuro di voler rimuovere tutte le playlist dall'applicazione?"
+            "TITLE": "Delete all playlists?",
+            "MESSAGE": "Delete all {{count}} playlists from the app. This also removes stored playlist data on this device.",
+            "SUMMARY_TITLE": "Playlist sources",
+            "CONSEQUENCES_TITLE": "This also removes",
+            "CONSEQUENCE_FAVORITES": "Favorites saved for these playlists",
+            "CONSEQUENCE_RECENTLY_VIEWED": "Recently viewed history",
+            "CONSEQUENCE_PLAYBACK": "Saved playback positions",
+            "CONSEQUENCE_DOWNLOADS": "Download history entries linked to those playlists",
+            "CONSEQUENCE_XTREAM_CACHE": "Imported Xtream categories and locally cached content",
+            "BACKUP_HINT": "Use Export first if you want a restorable backup before deleting.",
+            "CONFIRM": "Delete everything"
         },
         "IMPORT_ERROR": "Errore di importazione, prova con un altro file.",
-        "PLAYLISTS_REMOVED": "Tutte le playlist sono state rimosse.",
+        "PLAYLISTS_REMOVED": "All playlists and playlist data were removed.",
         "MPV_PLAYER_PATH_LABEL": "percorso mpv",
         "MPV_PLAYER_PATH_DESCRIPTION": "Imposta il percorso per il lettore mpv in questo tuo sistema. Verrà usato il percorso fornito per un eseguibile mpv invece di usare quello trovato in $PATH.",
         "MPV_PLAYER_PATH": "percorso riproduttore mpv",
@@ -201,7 +210,10 @@
         "PORT_REQUIRED": "La porta è obbligatoria",
         "PORT_MIN": "La porta deve essere almeno 1",
         "PORT_MAX": "La porta deve essere al massimo 65535",
-        "PORT_PATTERN": "Sono consentite solo cifre"
+        "PORT_PATTERN": "Sono consentite solo cifre",
+        "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
+        "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
     },
     "THEMES": {
         "DARK_THEME": "Tema scuro",

@@ -319,7 +319,9 @@ The UI now has explicit long-running state for destructive operations:
 2. Xtream import overlay shows phase text and a cancel action
 3. Xtream playlist rows show request-scoped progress and cancel actions
 4. busy rows block repeat clicks while an operation is in flight
-5. settings "remove all playlists" owns its own spinner/disabled state
+5. settings "remove all playlists" owns its own spinner/disabled state and
+   consumes request-scoped DB operation events for progress text while the
+   worker deletes playlist data
 
 These changes matter because once SQLite work leaves the main thread, the
 renderer can actually paint the loading state instead of freezing.

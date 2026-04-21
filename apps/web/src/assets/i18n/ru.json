@@ -225,15 +225,24 @@
         "IMPORT_EXPORT_DATA_DESCRIPTION": "Экспорт или импорт плейлистов в формате JSON, используемом в приложении.",
         "IMPORT_DATA": "Импорт",
         "EXPORT_DATA": "Экспорт",
-        "REMOVE_ALL": "Удалить плейлист",
-        "REMOVE_ALL_BUTTON": "Удалить",
-        "REMOVE_ALL_DESCRIPTION": " Это действие удалит все существующие плейлисты из приложения.",
+        "REMOVE_ALL": "Delete all playlists and playlist data",
+        "REMOVE_ALL_BUTTON": "Delete all",
+        "REMOVE_ALL_DESCRIPTION": "Delete every M3U, Xtream, and Stalker playlist stored in the app.",
         "REMOVE_DIALOG": {
-            "TITLE": "Удалить все плейлисты",
-            "MESSAGE": "Вы уверены что хотите удалить все плейлисты из приложения?"
+            "TITLE": "Delete all playlists?",
+            "MESSAGE": "Delete all {{count}} playlists from the app. This also removes stored playlist data on this device.",
+            "SUMMARY_TITLE": "Playlist sources",
+            "CONSEQUENCES_TITLE": "This also removes",
+            "CONSEQUENCE_FAVORITES": "Favorites saved for these playlists",
+            "CONSEQUENCE_RECENTLY_VIEWED": "Recently viewed history",
+            "CONSEQUENCE_PLAYBACK": "Saved playback positions",
+            "CONSEQUENCE_DOWNLOADS": "Download history entries linked to those playlists",
+            "CONSEQUENCE_XTREAM_CACHE": "Imported Xtream categories and locally cached content",
+            "BACKUP_HINT": "Use Export first if you want a restorable backup before deleting.",
+            "CONFIRM": "Delete everything"
         },
         "IMPORT_ERROR": "Ошибка импорта, пожалуйста попробуйте импортировать другой файл.",
-        "PLAYLISTS_REMOVED": "Все плейлисты были удалены.",
+        "PLAYLISTS_REMOVED": "All playlists and playlist data were removed.",
         "VLC_PLAYER_PATH_LABEL": "Путь к VLC плееру",
         "VLC_PLAYER_PATH": "Путь к VLC плееру",
         "VLC_PLAYER_PATH_DESCRIPTION": "Установите путь к проигрывателю VLC в вашей системе. \nОн будет использовать предоставленный путь к binary файлу VLC вместо пути по умолчанию.",
@@ -257,7 +266,10 @@
         "PORT_REQUIRED": "Порт обязателен",
         "PORT_MIN": "Порт должен быть не менее 1",
         "PORT_MAX": "Порт должен быть не более 65535",
-        "PORT_PATTERN": "Разрешены только цифры"
+        "PORT_PATTERN": "Разрешены только цифры",
+        "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
+        "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
     },
     "THEMES": {
         "DARK_THEME": "Тёмная тема",

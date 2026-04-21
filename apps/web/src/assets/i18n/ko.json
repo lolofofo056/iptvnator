@@ -94,14 +94,23 @@
         "SETTINGS_SAVED": "설정이 저장되었습니다.",
         "THEME": "테마",
         "SHOW_CAPTIONS": "Show subtitles",
-        "REMOVE_ALL": "재생목록 삭제",
-        "REMOVE_ALL_BUTTON": "제거하다",
+        "REMOVE_ALL": "Delete all playlists and playlist data",
+        "REMOVE_ALL_BUTTON": "Delete all",
         "REMOVE_DIALOG": {
-            "TITLE": "모든 재생목록 삭제",
-            "MESSAGE": "응용 프로그램에서 모든 재생 목록을 삭제하시겠습니까?"
+            "TITLE": "Delete all playlists?",
+            "MESSAGE": "Delete all {{count}} playlists from the app. This also removes stored playlist data on this device.",
+            "SUMMARY_TITLE": "Playlist sources",
+            "CONSEQUENCES_TITLE": "This also removes",
+            "CONSEQUENCE_FAVORITES": "Favorites saved for these playlists",
+            "CONSEQUENCE_RECENTLY_VIEWED": "Recently viewed history",
+            "CONSEQUENCE_PLAYBACK": "Saved playback positions",
+            "CONSEQUENCE_DOWNLOADS": "Download history entries linked to those playlists",
+            "CONSEQUENCE_XTREAM_CACHE": "Imported Xtream categories and locally cached content",
+            "BACKUP_HINT": "Use Export first if you want a restorable backup before deleting.",
+            "CONFIRM": "Delete everything"
         },
         "LANGUAGE_DESCRIPTION": "애플리케이션 언어 선택",
-        "PLAYLISTS_REMOVED": "모든 재생목록이 삭제되었습니다.",
+        "PLAYLISTS_REMOVED": "All playlists and playlist data were removed.",
         "VERSION_DESCRIPTION": "애플리케이션의 현재 버전",
         "IMPORT_DATA": "수입",
         "ADD_EPG_SOURCE": "EPG 소스 추가",
@@ -117,7 +126,11 @@
         "VLC_PLAYER_PATH": "VLC 플레이어 경로",
         "IMPORT_EXPORT_DATA_DESCRIPTION": "애플리케이션 내에서 사용되는 JSON 형식으로 재생 목록을 내보내거나 가져옵니다.",
         "EPG_NOTE_URL_TEXT": "여기에서 확인하세요",
-        "MPV_PLAYER_PATH_LABEL": "mpv 경로"
+        "MPV_PLAYER_PATH_LABEL": "mpv 경로",
+        "REMOVE_ALL_DESCRIPTION": "Delete every M3U, Xtream, and Stalker playlist stored in the app.",
+        "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
+        "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
     },
     "THEMES": {
         "DARK_THEME": "어두운 테마",

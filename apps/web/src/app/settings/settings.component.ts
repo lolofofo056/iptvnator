@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import {
     Component,
+    computed,
     ElementRef,
     effect,
     inject,
@@ -39,9 +40,15 @@ import { EpgService } from '@iptvnator/epg/data-access';
 import { EpgSourceStatusComponent } from '@iptvnator/ui/epg';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { DialogService } from 'components';
-import { PlaylistActions, selectIsEpgAvailable } from 'm3u-state';
+import {
+    PlaylistActions,
+    selectAllPlaylistsMeta,
+    selectIsEpgAvailable,
+} from 'm3u-state';
 import { firstValueFrom, take } from 'rxjs';
 import {
+    DatabaseService,
+    DbOperationEvent,
     DataService,
     PlaylistBackupImportSummary,
     PlaylistBackupService,
@@ -56,6 +63,10 @@ import {
 } from 'shared-interfaces';
 import { SettingsContextService } from '@iptvnator/workspace/shell/util';
 import { SettingsStore } from '../services/settings-store.service';
+import {
+    SettingsDeleteAllPlaylistsDialogComponent,
+    SettingsDeleteAllPlaylistsDialogData,
+} from './settings-delete-all-playlists-dialog.component';
 import { SettingsService } from './../services/settings.service';
 
 interface SettingsSection {
@@ -80,6 +91,9 @@ interface StartupBehaviorOption {
     value: StartupBehavior;
     labelKey: string;
 }
+
+type SettingsPlaylistDeleteSummary =
+    SettingsDeleteAllPlaylistsDialogData['summary'];
 
 @Component({
     templateUrl: './settings.component.html',
@@ -121,6 +135,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private playlistBackupService = inject(PlaylistBackupService);
     private readonly elementRef = inject(ElementRef<HTMLElement>);
     private readonly injector = inject(Injector);
+    private readonly databaseService = inject(DatabaseService);
     private readonly dialogData = inject<{ isDialog: boolean } | null>(
         MAT_DIALOG_DATA,
         { optional: true }
@@ -177,6 +192,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     /** EPG availability flag */
     epgAvailable$ = this.store.select(selectIsEpgAvailable);
+    readonly playlists = this.store.selectSignal(selectAllPlaylistsMeta);
 
     readonly themeOptions: ThemeOption[] = [
         {
@@ -244,6 +260,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
     readonly isRemovingAllPlaylists = signal(false);
     readonly isClearingEpgData = signal(false);
     readonly isExportingData = signal(false);
+    readonly removeAllProgress = signal<DbOperationEvent | null>(null);
 
     private settingsStore = inject(SettingsStore);
     private sectionObserver?: IntersectionObserver;
@@ -291,6 +308,50 @@ export class SettingsComponent implements OnInit, OnDestroy {
             visible: true,
         },
     ];
+
+    readonly playlistDeleteSummary = computed<SettingsPlaylistDeleteSummary>(
+        () => {
+            const items = this.playlists();
+
+            return {
+                total: items.length,
+                m3u: items.filter((item) => !item.serverUrl && !item.macAddress)
+                    .length,
+                xtream: items.filter((item) => Boolean(item.serverUrl)).length,
+                stalker: items.filter((item) => Boolean(item.macAddress))
+                    .length,
+            };
+        }
+    );
+
+    readonly canRemoveAllPlaylists = computed(
+        () =>
+            !this.isRemovingAllPlaylists() &&
+            this.playlistDeleteSummary().total > 0
+    );
+
+    readonly removeAllProgressLabel = computed(() => {
+        if (!this.isRemovingAllPlaylists()) {
+            return null;
+        }
+
+        const progress = this.removeAllProgress();
+        const current = progress?.current;
+        const total = progress?.total;
+
+        if (
+            typeof current === 'number' &&
+            typeof total === 'number' &&
+            total > 0
+        ) {
+            return this.translate.instant('SETTINGS.REMOVE_ALL_PROGRESS', {
+                current,
+                total,
+            });
+        }
+
+        return this.translate.instant('SETTINGS.REMOVE_ALL_IN_PROGRESS');
+    });
 
     constructor() {
         effect(
@@ -756,33 +817,85 @@ export class SettingsComponent implements OnInit, OnDestroy {
         });
     }
 
-    removeAll() {
-        this.dialogService.openConfirmDialog({
-            title: this.translate.instant('SETTINGS.REMOVE_DIALOG.TITLE'),
-            message: this.translate.instant('SETTINGS.REMOVE_DIALOG.MESSAGE'),
-            onConfirm: async (): Promise<void> => {
-                if (this.isRemovingAllPlaylists()) {
-                    return;
-                }
+    removeAll(): void {
+        if (!this.canRemoveAllPlaylists()) {
+            return;
+        }
 
-                this.isRemovingAllPlaylists.set(true);
-
-                try {
-                    await firstValueFrom(this.playlistsService.removeAll());
-                    this.store.dispatch(PlaylistActions.removeAllPlaylists());
-                    this.openSettingsSnackbar(
-                        this.translate.instant('SETTINGS.PLAYLISTS_REMOVED')
-                    );
-                } catch (error) {
-                    console.error('Error removing playlists:', error);
-                    this.openSettingsSnackbar(
-                        this.translate.instant('SETTINGS.IMPORT_ERROR')
-                    );
-                } finally {
-                    this.isRemovingAllPlaylists.set(false);
+        this.matDialog
+            .open<
+                SettingsDeleteAllPlaylistsDialogComponent,
+                SettingsDeleteAllPlaylistsDialogData,
+                boolean
+            >(SettingsDeleteAllPlaylistsDialogComponent, {
+                autoFocus: false,
+                data: {
+                    summary: this.playlistDeleteSummary(),
+                },
+                maxWidth: 'calc(100vw - 32px)',
+                restoreFocus: true,
+                width: '460px',
+            })
+            .afterClosed()
+            .pipe(take(1))
+            .subscribe((confirmed) => {
+                if (confirmed) {
+                    void this.removeAllConfirmed();
                 }
-            },
+            });
+    }
+
+    private async removeAllConfirmed(): Promise<void> {
+        if (this.isRemovingAllPlaylists()) {
+            return;
+        }
+
+        this.isRemovingAllPlaylists.set(true);
+        this.removeAllProgress.set(null);
+
+        await this.waitForUiFeedbackFrame();
+
+        try {
+            const deleted =
+                this.isDesktop && window.electron
+                    ? await this.deleteAllPlaylistsInElectron()
+                    : await this.deleteAllPlaylistsInBrowser();
+
+            if (!deleted) {
+                throw new Error('Delete all playlists returned success=false');
+            }
+
+            this.store.dispatch(PlaylistActions.removeAllPlaylists());
+            this.openSettingsSnackbar(
+                this.translate.instant('SETTINGS.PLAYLISTS_REMOVED')
+            );
+        } catch (error) {
+            console.error('Error removing playlists:', error);
+            this.openSettingsSnackbar(
+                this.translate.instant('SETTINGS.PLAYLISTS_REMOVE_FAILED')
+            );
+        } finally {
+            this.removeAllProgress.set(null);
+            this.isRemovingAllPlaylists.set(false);
+        }
+    }
+
+    private async deleteAllPlaylistsInElectron(): Promise<boolean> {
+        return this.databaseService.deleteAllPlaylists({
+            operationId: this.databaseService.createOperationId(
+                'settings-delete-all-playlists'
+            ),
+            onEvent: (event) => this.handleDeleteAllPlaylistsEvent(event),
         });
+    }
+
+    private async deleteAllPlaylistsInBrowser(): Promise<boolean> {
+        await firstValueFrom(this.playlistsService.removeAll());
+        return true;
+    }
+
+    private handleDeleteAllPlaylistsEvent(event: DbOperationEvent): void {
+        this.removeAllProgress.set(event);
     }
 
     private setupSectionObserver(): void {

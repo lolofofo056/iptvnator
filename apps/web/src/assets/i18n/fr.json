@@ -162,15 +162,24 @@
         "IMPORT_EXPORT_DATA_DESCRIPTION": "Exportez ou importez des listes au format JSON utilisé dans l'application.",
         "IMPORT_DATA": "Importer",
         "EXPORT_DATA": "Exporter",
-        "REMOVE_ALL": "Supprimer les listes de lecture",
-        "REMOVE_ALL_BUTTON": "Supprimer",
-        "REMOVE_ALL_DESCRIPTION": "Cela supprimera toutes les listes de lecture existantes de l'application.",
+        "REMOVE_ALL": "Delete all playlists and playlist data",
+        "REMOVE_ALL_BUTTON": "Delete all",
+        "REMOVE_ALL_DESCRIPTION": "Delete every M3U, Xtream, and Stalker playlist stored in the app.",
         "REMOVE_DIALOG": {
-            "TITLE": "Supprimer toutes les listes",
-            "MESSAGE": "Êtes-vous sûr de vouloir supprimer toutes les listes de l'application ?"
+            "TITLE": "Delete all playlists?",
+            "MESSAGE": "Delete all {{count}} playlists from the app. This also removes stored playlist data on this device.",
+            "SUMMARY_TITLE": "Playlist sources",
+            "CONSEQUENCES_TITLE": "This also removes",
+            "CONSEQUENCE_FAVORITES": "Favorites saved for these playlists",
+            "CONSEQUENCE_RECENTLY_VIEWED": "Recently viewed history",
+            "CONSEQUENCE_PLAYBACK": "Saved playback positions",
+            "CONSEQUENCE_DOWNLOADS": "Download history entries linked to those playlists",
+            "CONSEQUENCE_XTREAM_CACHE": "Imported Xtream categories and locally cached content",
+            "BACKUP_HINT": "Use Export first if you want a restorable backup before deleting.",
+            "CONFIRM": "Delete everything"
         },
         "IMPORT_ERROR": "Erreur d'importation, veuillez essayer avec un autre fichier.",
-        "PLAYLISTS_REMOVED": "Toutes les listes de lecture ont été supprimées.",
+        "PLAYLISTS_REMOVED": "All playlists and playlist data were removed.",
         "MPV_PLAYER_PATH_LABEL": "Chemin mpv",
         "MPV_PLAYER_PATH_DESCRIPTION": "Définissez le chemin d'accès au lecteur mpv dans votre système. Il utilisera le chemin fourni vers un binaire mpv au lieu de celui trouvé dans $PATH.",
         "MPV_PLAYER_PATH": "Chemin du lecteur mpv",
@@ -180,7 +189,10 @@
         "REMOTE_CONTROL": "Télécommande",
         "REMOTE_CONTROL_DESCRIPTION": "Activer la télécommande de l'application.",
         "REMOTE_CONTROL_PORT": "Port de télécommande",
-        "REMOTE_CONTROL_PORT_DESCRIPTION": "Port utilisé pour la télécommande de l'application. Le port 8765 est utilisé par défaut."
+        "REMOTE_CONTROL_PORT_DESCRIPTION": "Port utilisé pour la télécommande de l'application. Le port 8765 est utilisé par défaut.",
+        "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
+        "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
     },
     "THEMES": {
         "DARK_THEME": "Thème foncé",

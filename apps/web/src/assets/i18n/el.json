@@ -185,15 +185,24 @@
         "IMPORT_EXPORT_DATA_DESCRIPTION": "Εξαγωγή ή εισαγωγή λιστών αναπαραγωγής στη μορφή JSON που χρησιμοποιείται στην εφαρμογή.",
         "IMPORT_DATA": "Εισαγωγή",
         "EXPORT_DATA": "Εξαγωγή",
-        "REMOVE_ALL": "Κατάργηση λιστών αναπαραγωγής",
-        "REMOVE_ALL_BUTTON": "Διαγραφή",
-        "REMOVE_ALL_DESCRIPTION": "Θα καταργήσει όλες τις υπάρχουσες λίστες αναπαραγωγής από την εφαρμογή.",
+        "REMOVE_ALL": "Delete all playlists and playlist data",
+        "REMOVE_ALL_BUTTON": "Delete all",
+        "REMOVE_ALL_DESCRIPTION": "Delete every M3U, Xtream, and Stalker playlist stored in the app.",
         "REMOVE_DIALOG": {
-            "TITLE": "Κατάργηση όλων των λιστών αναπαραγωγής",
-            "MESSAGE": "Είστε σίγουροι ότι θέλετε να διαγράψετε όλες τις λίστες αναπαραγωγής από την εφαρμογή;"
+            "TITLE": "Delete all playlists?",
+            "MESSAGE": "Delete all {{count}} playlists from the app. This also removes stored playlist data on this device.",
+            "SUMMARY_TITLE": "Playlist sources",
+            "CONSEQUENCES_TITLE": "This also removes",
+            "CONSEQUENCE_FAVORITES": "Favorites saved for these playlists",
+            "CONSEQUENCE_RECENTLY_VIEWED": "Recently viewed history",
+            "CONSEQUENCE_PLAYBACK": "Saved playback positions",
+            "CONSEQUENCE_DOWNLOADS": "Download history entries linked to those playlists",
+            "CONSEQUENCE_XTREAM_CACHE": "Imported Xtream categories and locally cached content",
+            "BACKUP_HINT": "Use Export first if you want a restorable backup before deleting.",
+            "CONFIRM": "Delete everything"
         },
         "IMPORT_ERROR": "Σφάλμα εισαγωγής, δοκιμάστε με άλλο αρχείο.",
-        "PLAYLISTS_REMOVED": "Όλες οι λίστες αναπαραγωγής αφαιρέθηκαν.",
+        "PLAYLISTS_REMOVED": "All playlists and playlist data were removed.",
         "MPV_PLAYER_PATH_LABEL": "διαδρομή mpv",
         "MPV_PLAYER_PATH_DESCRIPTION": "Ορίστε τη διαδρομή προς το mpv player στο σύστημά σας. Θα χρησιμοποιήσει την παρεχόμενη διαδρομή προς ένα δυαδικό αρχείο mpv αντί για αυτήν που βρίσκεται στο $PATH.",
         "MPV_PLAYER_PATH": "διαδρομή mpv προγράμματος αναπαραγωγής",
@@ -212,7 +221,10 @@
         "PORT_REQUIRED": "Απαιτείται θύρα",
         "PORT_MIN": "Η θύρα πρέπει να είναι τουλάχιστον 1",
         "PORT_MAX": "Η θύρα πρέπει να είναι το πολύ 65535",
-        "PORT_PATTERN": "Επιτρέπονται μόνο αριθμητικά ψηφία"
+        "PORT_PATTERN": "Επιτρέπονται μόνο αριθμητικά ψηφία",
+        "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
+        "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
     },
     "THEMES": {
         "DARK_THEME": "Σκούρο θέμα",

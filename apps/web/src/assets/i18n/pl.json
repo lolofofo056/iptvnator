@@ -141,15 +141,24 @@
         "IMPORT_EXPORT_DATA_DESCRIPTION": "Eksportuj lub importuj listy odtwarzania w formacie JSON używanym w aplikacji.",
         "IMPORT_DATA": "Importuj",
         "EXPORT_DATA": "Eksportuj",
-        "REMOVE_ALL": "Usuń listy odtwarzania",
-        "REMOVE_ALL_BUTTON": "Usuń",
-        "REMOVE_ALL_DESCRIPTION": "Spowoduje to usunięcie wszystkich istniejących list odtwarzania z aplikacji.",
+        "REMOVE_ALL": "Delete all playlists and playlist data",
+        "REMOVE_ALL_BUTTON": "Delete all",
+        "REMOVE_ALL_DESCRIPTION": "Delete every M3U, Xtream, and Stalker playlist stored in the app.",
         "REMOVE_DIALOG": {
-            "TITLE": "Usuń wszystkie listy odtwarzania",
-            "MESSAGE": "Czy na pewno chcesz usunąć wszystkie listy odtwarzania z aplikacji?"
+            "TITLE": "Delete all playlists?",
+            "MESSAGE": "Delete all {{count}} playlists from the app. This also removes stored playlist data on this device.",
+            "SUMMARY_TITLE": "Playlist sources",
+            "CONSEQUENCES_TITLE": "This also removes",
+            "CONSEQUENCE_FAVORITES": "Favorites saved for these playlists",
+            "CONSEQUENCE_RECENTLY_VIEWED": "Recently viewed history",
+            "CONSEQUENCE_PLAYBACK": "Saved playback positions",
+            "CONSEQUENCE_DOWNLOADS": "Download history entries linked to those playlists",
+            "CONSEQUENCE_XTREAM_CACHE": "Imported Xtream categories and locally cached content",
+            "BACKUP_HINT": "Use Export first if you want a restorable backup before deleting.",
+            "CONFIRM": "Delete everything"
         },
         "IMPORT_ERROR": "Błąd importu, spróbuj z innym plikiem.",
-        "PLAYLISTS_REMOVED": "Wszystkie listy odtwarzania zostały usunięte.",
+        "PLAYLISTS_REMOVED": "All playlists and playlist data were removed.",
         "MPV_PLAYER_PATH_LABEL": "Ścieżka mpv",
         "MPV_PLAYER_PATH_DESCRIPTION": "Ustaw ścieżkę do odtwarzacza mpv w systemie. Będzie używać podanej ścieżki do pliku binarnego mpv zamiast tego znalezionego w $PATH.",
         "MPV_PLAYER_PATH": "Ścieżka odtwarzacza mpv",
@@ -159,7 +168,10 @@
         "REMOTE_CONTROL": "Zdalne sterowanie",
         "REMOTE_CONTROL_DESCRIPTION": "Włącz zdalne sterowanie aplikacją.",
         "REMOTE_CONTROL_PORT": "Port zdalnego sterowania",
-        "REMOTE_CONTROL_PORT_DESCRIPTION": "Port używany do zdalnego sterowania aplikacją. Domyślnie używany jest port 3000."
+        "REMOTE_CONTROL_PORT_DESCRIPTION": "Port używany do zdalnego sterowania aplikacją. Domyślnie używany jest port 3000.",
+        "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
+        "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
     },
     "THEMES": {
         "DARK_THEME": "Ciemny motyw",
