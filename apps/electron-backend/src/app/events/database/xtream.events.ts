@@ -30,8 +30,8 @@ ipcMain.handle(
     async (
         event,
         playlistId: string,
-        favoritedXtreamIds: number[],
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[],
+        favorites: unknown[],
+        recentlyViewed: unknown[],
         operationId?: string
     ) => {
         try {
@@ -40,8 +40,8 @@ ipcMain.handle(
                 'DB_RESTORE_XTREAM_USER_DATA',
                 {
                     playlistId,
-                    favoritedXtreamIds,
-                    recentlyViewedXtreamIds,
+                    favorites,
+                    recentlyViewed,
                     operationId,
                 }
             );

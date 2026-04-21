@@ -58,10 +58,7 @@ export async function isFavorite(
     return result[0].count > 0;
 }
 
-export async function getFavorites(
-    db: AppDatabase,
-    playlistId: string
-) {
+export async function getFavorites(db: AppDatabase, playlistId: string) {
     return db
         .select({
             id: schema.content.id,
@@ -73,6 +70,7 @@ export async function getFavorites(
             xtream_id: schema.content.xtreamId,
             type: schema.content.type,
             added_at: schema.favorites.addedAt,
+            position: schema.favorites.position,
         })
         .from(schema.favorites)
         .innerJoin(
@@ -80,7 +78,10 @@ export async function getFavorites(
             eq(schema.favorites.contentId, schema.content.id)
         )
         .where(eq(schema.favorites.playlistId, playlistId))
-        .orderBy(desc(schema.favorites.addedAt));
+        .orderBy(
+            asc(schema.favorites.position),
+            desc(schema.favorites.addedAt)
+        );
 }
 
 export async function getGlobalFavorites(db: AppDatabase) {

@@ -396,22 +396,18 @@ const electronApi = {
     dbDeletePlaylist: (playlistId: string, operationId?: string) =>
         ipcRenderer.invoke('DB_DELETE_PLAYLIST', playlistId, operationId),
     dbDeleteXtreamContent: (playlistId: string, operationId?: string) =>
-        ipcRenderer.invoke(
-            'DB_DELETE_XTREAM_CONTENT',
-            playlistId,
-            operationId
-        ),
+        ipcRenderer.invoke('DB_DELETE_XTREAM_CONTENT', playlistId, operationId),
     dbRestoreXtreamUserData: (
         playlistId: string,
-        favoritedXtreamIds: number[],
-        recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[],
+        favorites: unknown[],
+        recentlyViewed: unknown[],
         operationId?: string
     ) =>
         ipcRenderer.invoke(
             'DB_RESTORE_XTREAM_USER_DATA',
             playlistId,
-            favoritedXtreamIds,
-            recentlyViewedXtreamIds,
+            favorites,
+            recentlyViewed,
             operationId
         ),
     dbHasCategories: (playlistId: string, type: string) =>
@@ -500,7 +496,8 @@ const electronApi = {
     dbGetFavorites: (playlistId: string) =>
         ipcRenderer.invoke('DB_GET_FAVORITES', playlistId),
     dbGetGlobalFavorites: () => ipcRenderer.invoke('DB_GET_GLOBAL_FAVORITES'),
-    dbGetAllGlobalFavorites: () => ipcRenderer.invoke('DB_GET_ALL_GLOBAL_FAVORITES'),
+    dbGetAllGlobalFavorites: () =>
+        ipcRenderer.invoke('DB_GET_ALL_GLOBAL_FAVORITES'),
     dbReorderGlobalFavorites: (
         updates: { content_id: number; position: number }[]
     ) => ipcRenderer.invoke('DB_REORDER_GLOBAL_FAVORITES', updates),
@@ -562,6 +559,8 @@ const electronApi = {
         ),
     dbGetAllPlaybackPositions: (playlistId: string) =>
         ipcRenderer.invoke('DB_GET_ALL_PLAYBACK_POSITIONS', playlistId),
+    dbClearAllPlaybackPositions: (playlistId: string) =>
+        ipcRenderer.invoke('DB_CLEAR_ALL_PLAYBACK_POSITIONS', playlistId),
     dbClearPlaybackPosition: (
         playlistId: string,
         contentXtreamId: number,

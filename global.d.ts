@@ -1,5 +1,11 @@
 import 'jest-extended';
 import { ExternalPlayerSession } from './libs/shared/interfaces/src/lib/external-player-session.interface';
+import { PlaybackPositionData } from './libs/shared/interfaces/src/lib/playback-position.interface';
+import {
+    XtreamBackupFavoriteItem,
+    XtreamBackupHiddenCategory,
+    XtreamBackupRecentlyViewedItem,
+} from './libs/shared/interfaces/src/lib/playlist-backup.interface';
 import {
     PlaylistRefreshEvent,
     PlaylistRefreshPayload,
@@ -156,23 +162,14 @@ declare global {
                 operationId?: string
             ) => Promise<{
                 success: boolean;
-                favoritedXtreamIds: number[];
-                recentlyViewedXtreamIds: {
-                    xtreamId: number;
-                    viewedAt: string;
-                }[];
-                hiddenCategories: {
-                    xtreamId: number;
-                    type: string;
-                }[];
+                favorites: XtreamBackupFavoriteItem[];
+                recentlyViewed: XtreamBackupRecentlyViewedItem[];
+                hiddenCategories: XtreamBackupHiddenCategory[];
             }>;
             dbRestoreXtreamUserData: (
                 playlistId: string,
-                favoritedXtreamIds: number[],
-                recentlyViewedXtreamIds: {
-                    xtreamId: number;
-                    viewedAt: string;
-                }[],
+                favorites: XtreamBackupFavoriteItem[],
+                recentlyViewed: XtreamBackupRecentlyViewedItem[],
                 operationId?: string
             ) => Promise<{ success: boolean }>;
             dbHasCategories: (
@@ -346,8 +343,13 @@ declare global {
             dbGetRecentPlaybackPositions: (
                 playlistId: string,
                 limit?: number
-            ) => Promise<any[]>;
-            dbGetAllPlaybackPositions: (playlistId: string) => Promise<any[]>;
+            ) => Promise<PlaybackPositionData[]>;
+            dbGetAllPlaybackPositions: (
+                playlistId: string
+            ) => Promise<PlaybackPositionData[]>;
+            dbClearAllPlaybackPositions: (
+                playlistId: string
+            ) => Promise<{ success: boolean }>;
             dbClearPlaybackPosition: (
                 playlistId: string,
                 contentXtreamId: number,

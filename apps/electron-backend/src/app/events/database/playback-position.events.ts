@@ -42,8 +42,12 @@ handleWorkerRequest(
     })
 );
 
+handleWorkerRequest('DB_GET_ALL_PLAYBACK_POSITIONS', (playlistId: string) => ({
+    playlistId,
+}));
+
 handleWorkerRequest(
-    'DB_GET_ALL_PLAYBACK_POSITIONS',
+    'DB_CLEAR_ALL_PLAYBACK_POSITIONS',
     (playlistId: string) => ({
         playlistId,
     })

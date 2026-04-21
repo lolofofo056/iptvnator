@@ -2,12 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import * as schema from 'database-schema';
 import type { AppDatabase } from '../database.types';
 
-type PlaylistType =
-    | 'xtream'
-    | 'stalker'
-    | 'm3u-file'
-    | 'm3u-text'
-    | 'm3u-url';
+type PlaylistType = 'xtream' | 'stalker' | 'm3u-file' | 'm3u-text' | 'm3u-url';
 
 type PlaybackPositionPayload = {
     contentXtreamId: number;
@@ -98,10 +93,7 @@ export async function getPlaybackPosition(
         .where(
             and(
                 eq(schema.playbackPositions.playlistId, playlistId),
-                eq(
-                    schema.playbackPositions.contentXtreamId,
-                    contentXtreamId
-                ),
+                eq(schema.playbackPositions.contentXtreamId, contentXtreamId),
                 eq(schema.playbackPositions.contentType, contentType)
             )
         )
@@ -150,6 +142,17 @@ export async function getAllPlaybackPositions(
         .where(eq(schema.playbackPositions.playlistId, playlistId));
 }
 
+export async function clearAllPlaybackPositions(
+    db: AppDatabase,
+    playlistId: string
+): Promise<{ success: boolean }> {
+    await db
+        .delete(schema.playbackPositions)
+        .where(eq(schema.playbackPositions.playlistId, playlistId));
+
+    return { success: true };
+}
+
 export async function clearPlaybackPosition(
     db: AppDatabase,
     playlistId: string,
@@ -161,10 +164,7 @@ export async function clearPlaybackPosition(
         .where(
             and(
                 eq(schema.playbackPositions.playlistId, playlistId),
-                eq(
-                    schema.playbackPositions.contentXtreamId,
-                    contentXtreamId
-                ),
+                eq(schema.playbackPositions.contentXtreamId, contentXtreamId),
                 eq(schema.playbackPositions.contentType, contentType)
             )
         );

@@ -1,5 +1,10 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import * as schema from 'database-schema';
+import type {
+    XtreamBackupFavoriteItem,
+    XtreamBackupHiddenCategory,
+    XtreamBackupRecentlyViewedItem,
+} from 'shared-interfaces';
 import type { AppDatabase } from '../database.types';
 import {
     checkpointOperation,
@@ -10,15 +15,28 @@ import {
 
 const DEFAULT_BATCH_SIZE = 100;
 
+type ContentIdentity = {
+    id: number;
+    xtreamId: number;
+    contentType: XtreamBackupFavoriteItem['contentType'];
+};
+
+function toContentIdentityKey(
+    contentType: XtreamBackupFavoriteItem['contentType'],
+    xtreamId: number
+): string {
+    return `${contentType}:${xtreamId}`;
+}
+
 export async function deleteXtreamContent(
     db: AppDatabase,
     playlistId: string,
     control?: OperationControl
 ): Promise<{
     success: boolean;
-    favoritedXtreamIds: number[];
-    recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[];
-    hiddenCategories: { xtreamId: number; type: string }[];
+    favorites: XtreamBackupFavoriteItem[];
+    recentlyViewed: XtreamBackupRecentlyViewedItem[];
+    hiddenCategories: XtreamBackupHiddenCategory[];
 }> {
     const categories = await db
         .select({
@@ -35,16 +53,19 @@ export async function deleteXtreamContent(
         .filter((category) => category.hidden)
         .map((category) => ({
             xtreamId: category.xtreamId,
-            type: category.type,
+            categoryType: category.type,
         }));
 
-    let favoritedXtreamIds: number[] = [];
-    let recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[] = [];
+    let favorites: XtreamBackupFavoriteItem[] = [];
+    let recentlyViewed: XtreamBackupRecentlyViewedItem[] = [];
 
     if (categoryIds.length > 0) {
-        const favorites = await db
+        const favoritedContent = await db
             .select({
                 xtreamId: schema.content.xtreamId,
+                contentType: schema.content.type,
+                addedAt: schema.favorites.addedAt,
+                position: schema.favorites.position,
             })
             .from(schema.favorites)
             .innerJoin(
@@ -58,11 +79,17 @@ export async function deleteXtreamContent(
                 )
             );
 
-        favoritedXtreamIds = favorites.map((favorite) => favorite.xtreamId);
+        favorites = favoritedContent.map((favorite) => ({
+            xtreamId: favorite.xtreamId,
+            contentType: favorite.contentType,
+            addedAt: favorite.addedAt ?? undefined,
+            position: favorite.position,
+        }));
 
-        const recentlyViewed = await db
+        const recentlyViewedContent = await db
             .select({
                 xtreamId: schema.content.xtreamId,
+                contentType: schema.content.type,
                 viewedAt: schema.recentlyViewed.viewedAt,
             })
             .from(schema.recentlyViewed)
@@ -77,8 +104,9 @@ export async function deleteXtreamContent(
                 )
             );
 
-        recentlyViewedXtreamIds = recentlyViewed.map((item) => ({
+        recentlyViewed = recentlyViewedContent.map((item) => ({
             xtreamId: item.xtreamId,
+            contentType: item.contentType,
             viewedAt: item.viewedAt || new Date().toISOString(),
         }));
 
@@ -127,119 +155,164 @@ export async function deleteXtreamContent(
 
     return {
         success: true,
-        favoritedXtreamIds,
-        recentlyViewedXtreamIds,
+        favorites,
+        recentlyViewed,
         hiddenCategories,
     };
+}
+
+async function getContentIdentityMap(
+    db: AppDatabase,
+    playlistId: string,
+    identities: Array<{
+        contentType: XtreamBackupFavoriteItem['contentType'];
+        xtreamId: number;
+    }>
+): Promise<Map<string, number>> {
+    const xtreamIds = Array.from(
+        new Set(identities.map((item) => item.xtreamId))
+    );
+
+    if (xtreamIds.length === 0) {
+        return new Map();
+    }
+
+    const content = await db
+        .select({
+            id: schema.content.id,
+            xtreamId: schema.content.xtreamId,
+            contentType: schema.content.type,
+        })
+        .from(schema.content)
+        .innerJoin(
+            schema.categories,
+            eq(schema.content.categoryId, schema.categories.id)
+        )
+        .where(
+            and(
+                eq(schema.categories.playlistId, playlistId),
+                inArray(schema.content.xtreamId, xtreamIds)
+            )
+        );
+
+    return new Map(
+        content.map((item: ContentIdentity) => [
+            toContentIdentityKey(item.contentType, item.xtreamId),
+            item.id,
+        ])
+    );
 }
 
 export async function restoreXtreamUserData(
     db: AppDatabase,
     playlistId: string,
-    favoritedXtreamIds: number[],
-    recentlyViewedXtreamIds: { xtreamId: number; viewedAt: string }[],
+    favorites: XtreamBackupFavoriteItem[],
+    recentlyViewed: XtreamBackupRecentlyViewedItem[],
     control?: OperationControl
 ): Promise<{ success: boolean }> {
-    if (favoritedXtreamIds.length > 0) {
-        const content = await db
-            .select({
-                id: schema.content.id,
-                xtreamId: schema.content.xtreamId,
-            })
-            .from(schema.content)
-            .innerJoin(
-                schema.categories,
-                eq(schema.content.categoryId, schema.categories.id)
-            )
-            .where(
-                and(
-                    eq(schema.categories.playlistId, playlistId),
-                    inArray(schema.content.xtreamId, favoritedXtreamIds)
-                )
+    await checkpointOperation(control);
+    await db
+        .delete(schema.favorites)
+        .where(eq(schema.favorites.playlistId, playlistId));
+
+    await checkpointOperation(control);
+    await db
+        .delete(schema.recentlyViewed)
+        .where(eq(schema.recentlyViewed.playlistId, playlistId));
+
+    const contentByIdentity = await getContentIdentityMap(db, playlistId, [
+        ...favorites.map((item) => ({
+            contentType: item.contentType,
+            xtreamId: item.xtreamId,
+        })),
+        ...recentlyViewed.map((item) => ({
+            contentType: item.contentType,
+            xtreamId: item.xtreamId,
+        })),
+    ]);
+
+    const favoriteValues = favorites
+        .map((item, index) => {
+            const contentId = contentByIdentity.get(
+                toContentIdentityKey(item.contentType, item.xtreamId)
             );
 
-        let currentFavorites = 0;
-        const totalFavorites = content.length;
+            if (!contentId) {
+                return null;
+            }
 
-        for (const chunk of chunkValues(content, DEFAULT_BATCH_SIZE)) {
-            await checkpointOperation(control);
-            await db.insert(schema.favorites).values(
-                chunk.map((item) => ({
-                    contentId: item.id,
-                    playlistId,
-                    addedAt: new Date().toISOString(),
-                }))
-            );
-            currentFavorites += chunk.length;
-            await reportOperationProgress(control, {
-                phase: 'restoring-favorites',
-                current: currentFavorites,
-                total: totalFavorites,
-                increment: chunk.length,
-            });
-        }
-    }
-
-    if (recentlyViewedXtreamIds.length > 0) {
-        const xtreamIds = recentlyViewedXtreamIds.map((item) => item.xtreamId);
-        const content = await db
-            .select({
-                id: schema.content.id,
-                xtreamId: schema.content.xtreamId,
-            })
-            .from(schema.content)
-            .innerJoin(
-                schema.categories,
-                eq(schema.content.categoryId, schema.categories.id)
-            )
-            .where(
-                and(
-                    eq(schema.categories.playlistId, playlistId),
-                    inArray(schema.content.xtreamId, xtreamIds)
-                )
-            );
-
-        const xtreamIdToContentId = new Map(
-            content.map((item) => [item.xtreamId, item.id])
+            return {
+                contentId,
+                playlistId,
+                addedAt: item.addedAt ?? new Date().toISOString(),
+                position: item.position ?? index,
+            };
+        })
+        .filter(
+            (
+                value
+            ): value is {
+                contentId: number;
+                playlistId: string;
+                addedAt: string;
+                position: number | null;
+            } => value !== null
         );
 
-        const values = recentlyViewedXtreamIds
-            .map((item) => {
-                const contentId = xtreamIdToContentId.get(item.xtreamId);
-                if (!contentId) {
-                    return null;
-                }
+    let restoredFavorites = 0;
+    const totalFavorites = favoriteValues.length;
 
-                return {
-                    contentId,
-                    playlistId,
-                    viewedAt: item.viewedAt,
-                };
-            })
-            .filter(
-                (
-                    value
-                ): value is {
-                    contentId: number;
-                    playlistId: string;
-                    viewedAt: string;
-                } => value !== null
+    for (const chunk of chunkValues(favoriteValues, DEFAULT_BATCH_SIZE)) {
+        await checkpointOperation(control);
+        await db.insert(schema.favorites).values(chunk);
+        restoredFavorites += chunk.length;
+        await reportOperationProgress(control, {
+            phase: 'restoring-favorites',
+            current: restoredFavorites,
+            total: totalFavorites,
+            increment: chunk.length,
+        });
+    }
+
+    const recentlyViewedValues = recentlyViewed
+        .map((item) => {
+            const contentId = contentByIdentity.get(
+                toContentIdentityKey(item.contentType, item.xtreamId)
             );
 
-        let currentRecentlyViewed = 0;
-        const totalRecentlyViewed = values.length;
+            if (!contentId) {
+                return null;
+            }
 
-        for (const chunk of chunkValues(values, DEFAULT_BATCH_SIZE)) {
-            await checkpointOperation(control);
-            await db.insert(schema.recentlyViewed).values(chunk);
-            currentRecentlyViewed += chunk.length;
-            await reportOperationProgress(control, {
-                phase: 'restoring-recently-viewed',
-                current: currentRecentlyViewed,
-                total: totalRecentlyViewed,
-                increment: chunk.length,
-            });
-        }
+            return {
+                contentId,
+                playlistId,
+                viewedAt: item.viewedAt,
+            };
+        })
+        .filter(
+            (
+                value
+            ): value is {
+                contentId: number;
+                playlistId: string;
+                viewedAt: string;
+            } => value !== null
+        );
+
+    let restoredRecentlyViewed = 0;
+    const totalRecentlyViewed = recentlyViewedValues.length;
+
+    for (const chunk of chunkValues(recentlyViewedValues, DEFAULT_BATCH_SIZE)) {
+        await checkpointOperation(control);
+        await db.insert(schema.recentlyViewed).values(chunk);
+        restoredRecentlyViewed += chunk.length;
+        await reportOperationProgress(control, {
+            phase: 'restoring-recently-viewed',
+            current: restoredRecentlyViewed,
+            total: totalRecentlyViewed,
+            increment: chunk.length,
+        });
     }
 
     return { success: true };
