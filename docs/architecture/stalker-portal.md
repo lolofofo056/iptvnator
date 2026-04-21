@@ -5,6 +5,7 @@ This document describes the Stalker portal implementation in IPTVnator and where
 ## Related Docs
 
 - [Stalker Portal EPG Architecture](./stalker-epg.md)
+- [Playlist Backup/Restore Architecture](./playlist-backup-restore.md)
 - [Portal Detail Navigation](./portal-detail-navigation.md)
 - [Embedded Inline Playback](./embedded-inline-playback.md)
 - [Remote Control Architecture](./remote-control.md)
@@ -146,6 +147,34 @@ Navigation rule to preserve:
 - Stalker favorites, recently viewed, and search stay in their current screen and open inline detail state.
 - They should not redirect into a canonical content/category/item route because Stalker detail rendering is currently store-state/inline driven, not route driven.
 - See [Portal Detail Navigation](./portal-detail-navigation.md).
+
+## Backup and Restore
+
+Versioned playlist backups include Stalker connection metadata plus playlist-
+scoped favorites/recent snapshots.
+
+Exported fields:
+
+- `portalUrl`
+- `macAddress`
+- `isFullStalkerPortal`
+- optional `username` / `password`
+- optional request headers (`userAgent`, `referrer`, `origin`)
+- full-portal serial/device/signature fields when present
+- favorites and recently viewed collections
+
+Excluded fields:
+
+- `stalkerToken`
+- `stalkerAccountInfo`
+- playback positions in backup v1
+
+Import rule:
+
+- backups restore the saved portal definition and replace the stored
+  favorites/recent state for the matched playlist
+- a fresh handshake must happen after import for full-portal sessions; imported
+  backups never trust a serialized token
 
 ## Remote Control Integration
 
