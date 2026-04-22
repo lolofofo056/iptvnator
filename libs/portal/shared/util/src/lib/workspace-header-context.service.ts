@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { WorkspaceHeaderCommandMetadata } from './workspace-view-command.types';
 
 export interface WorkspaceHeaderAction {
     id: string;
@@ -6,6 +7,7 @@ export interface WorkspaceHeaderAction {
     tooltipKey: string;
     ariaLabelKey: string;
     run: () => void;
+    palette?: WorkspaceHeaderCommandMetadata;
 }
 
 @Injectable({ providedIn: 'root' })

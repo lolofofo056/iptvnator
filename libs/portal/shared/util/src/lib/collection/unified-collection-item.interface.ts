@@ -86,3 +86,11 @@ export function buildCollectionUid(
 ): string {
     return `${sourceType}::${playlistId}::${sourceItemId}`;
 }
+
+export function buildXtreamCollectionUid(
+    playlistId: string,
+    contentType: CollectionContentType,
+    xtreamId: string | number
+): string {
+    return buildCollectionUid('xtream', playlistId, `${contentType}:${xtreamId}`);
+}
