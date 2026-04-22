@@ -15,6 +15,7 @@ import {
     openSourceEditor,
     openSources,
     openWorkspaceSection,
+    playlistSwitcherTitle,
     resetMockServers,
     restartElectronApp,
     saveSettings,
@@ -95,22 +96,19 @@ test.describe('Electron Playlist Switcher', () => {
                 .first()
                 .click();
             await waitForM3uCatalog(app.mainWindow);
-            await openWorkspaceSection(app.mainWindow, 'Recently viewed');
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/playlists\/[^/]+\/recent$/
-            );
+            await openPlaylistRecent(app.mainWindow);
+            await expectPathname(app.mainWindow, /\/workspace\/global-recent$/);
 
             await switchPlaylistFromHeader(app.mainWindow, localBDisplayName);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/playlists\/[^/]+\/recent$/
+            await expectPathname(app.mainWindow, /\/workspace\/global-recent$/);
+            await expect(playlistSwitcherTitle(app.mainWindow)).toContainText(
+                localBDisplayName
             );
 
             await switchPlaylistFromHeader(app.mainWindow, xtreamAName);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/xtreams\/[^/]+\/recent$/
+            await expectPathname(app.mainWindow, /\/workspace\/global-recent$/);
+            await expect(playlistSwitcherTitle(app.mainWindow)).toContainText(
+                xtreamAName
             );
 
             await openWorkspaceSection(app.mainWindow, 'Live TV');
@@ -167,16 +165,19 @@ test.describe('Electron Playlist Switcher', () => {
                 /\/workspace\/playlists\/[^/]+\/all$/
             );
 
-            await openWorkspaceSection(app.mainWindow, 'Favorites');
+            await openPlaylistFavorites(app.mainWindow);
             await expectPathname(
                 app.mainWindow,
-                /\/workspace\/playlists\/[^/]+\/favorites$/
+                /\/workspace\/global-favorites$/
             );
 
             await switchPlaylistFromHeader(app.mainWindow, stalkerBName);
             await expectPathname(
                 app.mainWindow,
-                /\/workspace\/stalker\/[^/]+\/favorites$/
+                /\/workspace\/global-favorites$/
+            );
+            await expect(playlistSwitcherTitle(app.mainWindow)).toContainText(
+                stalkerBName
             );
         } finally {
             await closeElectronApp(app);
@@ -243,7 +244,7 @@ test.describe('Electron Playlist Switcher', () => {
             await switchPlaylistFromHeader(app.mainWindow, localBDisplayName);
             await expectPathname(
                 app.mainWindow,
-                /\/workspace\/playlists\/[^/]+\/favorites$/
+                /\/workspace\/global-favorites$/
             );
             await expect(channelItemByTitle(app.mainWindow, localBChannelName)).toHaveCount(
                 1
@@ -263,7 +264,7 @@ test.describe('Electron Playlist Switcher', () => {
             await switchPlaylistFromHeader(app.mainWindow, localADisplayName);
             await expectPathname(
                 app.mainWindow,
-                /\/workspace\/playlists\/[^/]+\/recent$/
+                /\/workspace\/global-recent$/
             );
             await expect(channelItemByTitle(app.mainWindow, localAChannelName)).toHaveCount(
                 1

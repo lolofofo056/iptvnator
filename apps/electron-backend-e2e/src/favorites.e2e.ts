@@ -345,16 +345,13 @@ test.describe('Electron Favorites', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/xtreams\/[^/]+\/favorites$/,
+                pathname: /\/workspace\/global-favorites$/,
                 title: movieTitle,
                 playlistTitle: hostPortalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/xtreams\/[^/]+\/favorites$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-favorites$/);
             await expectVisibleContentCardTitle(app.mainWindow, movieTitle);
 
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
@@ -363,16 +360,13 @@ test.describe('Electron Favorites', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/xtreams\/[^/]+\/favorites$/,
+                pathname: /\/workspace\/global-favorites$/,
                 title: seriesTitle,
                 playlistTitle: hostPortalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/xtreams\/[^/]+\/favorites$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-favorites$/);
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
             await expectVisibleContentCardTitle(app.mainWindow, seriesTitle);
         } finally {
@@ -543,16 +537,13 @@ test.describe('Electron Favorites', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/stalker\/[^/]+\/favorites$/,
+                pathname: /\/workspace\/global-favorites$/,
                 title: movieTitle,
                 playlistTitle: portalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/stalker\/[^/]+\/favorites$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-favorites$/);
             await expectVisibleContentCardTitle(app.mainWindow, movieTitle);
 
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
@@ -561,16 +552,13 @@ test.describe('Electron Favorites', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/stalker\/[^/]+\/favorites$/,
+                pathname: /\/workspace\/global-favorites$/,
                 title: seriesTitle,
                 playlistTitle: portalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/stalker\/[^/]+\/favorites$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-favorites$/);
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
             await expectVisibleContentCardTitle(app.mainWindow, seriesTitle);
         } finally {

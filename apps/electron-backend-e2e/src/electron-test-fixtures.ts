@@ -662,19 +662,27 @@ export async function openWorkspaceSection(
     page: Page,
     label: string
 ): Promise<void> {
+    if (label === 'Favorites') {
+        await openPlaylistFavorites(page);
+        return;
+    }
+
+    if (label === 'Recently viewed') {
+        await openPlaylistRecent(page);
+        return;
+    }
+
     await page.getByRole('link', { name: label, exact: true }).click();
 }
 
 export async function openPlaylistFavorites(page: Page): Promise<void> {
-    await openWorkspaceSection(page, 'Favorites');
-    await expect
-        .poll(() => new URL(page.url()).pathname)
-        .toMatch(/\/favorites$/);
+    await openGlobalFavorites(page);
+    await switchUnifiedCollectionScope(page, 'This playlist');
 }
 
 export async function openPlaylistRecent(page: Page): Promise<void> {
-    await openWorkspaceSection(page, 'Recently viewed');
-    await expect.poll(() => new URL(page.url()).pathname).toMatch(/\/recent$/);
+    await openGlobalRecent(page);
+    await switchUnifiedCollectionScope(page, 'This playlist');
 }
 
 export async function openGlobalFavorites(page: Page): Promise<void> {

@@ -328,16 +328,13 @@ test.describe('Electron Recently Viewed', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/xtreams\/[^/]+\/recent$/,
+                pathname: /\/workspace\/global-recent$/,
                 title: movieTitle,
                 playlistTitle: portalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/xtreams\/[^/]+\/recent$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-recent$/);
             await expectVisibleContentCardTitle(app.mainWindow, movieTitle);
 
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
@@ -346,16 +343,13 @@ test.describe('Electron Recently Viewed', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/xtreams\/[^/]+\/recent$/,
+                pathname: /\/workspace\/global-recent$/,
                 title: seriesTitle,
                 playlistTitle: portalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/xtreams\/[^/]+\/recent$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-recent$/);
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
             await expectVisibleContentCardTitle(app.mainWindow, seriesTitle);
         } finally {
@@ -525,16 +519,13 @@ test.describe('Electron Recently Viewed', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/stalker\/[^/]+\/recent$/,
+                pathname: /\/workspace\/global-recent$/,
                 title: movieTitle,
                 playlistTitle: portalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/stalker\/[^/]+\/recent$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-recent$/);
             await expectVisibleContentCardTitle(app.mainWindow, movieTitle);
 
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
@@ -543,16 +534,13 @@ test.describe('Electron Recently Viewed', () => {
                 .first()
                 .click();
             await expectInlineCollectionDetail(app.mainWindow, {
-                pathname: /\/workspace\/stalker\/[^/]+\/recent$/,
+                pathname: /\/workspace\/global-recent$/,
                 title: seriesTitle,
                 playlistTitle: portalTitle,
             });
 
             await goBackFromDetail(app.mainWindow);
-            await expectPathname(
-                app.mainWindow,
-                /\/workspace\/stalker\/[^/]+\/recent$/
-            );
+            await expectPathname(app.mainWindow, /\/workspace\/global-recent$/);
             await switchUnifiedCollectionContent(app.mainWindow, 'Series');
             await expectVisibleContentCardTitle(app.mainWindow, seriesTitle);
         } finally {
