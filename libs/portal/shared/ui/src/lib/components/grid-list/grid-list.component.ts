@@ -30,6 +30,30 @@ interface GridListItem {
     [key: string]: unknown;
 }
 
+export function formatGridRating(value: unknown): string | undefined {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return value.toFixed(1);
+    }
+
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+
+    const trimmed = value.trim();
+    if (!trimmed) {
+        return undefined;
+    }
+
+    const numericRating = Number.parseFloat(trimmed);
+    return Number.isFinite(numericRating) ? numericRating.toFixed(1) : trimmed;
+}
+
+export function resolveGridRating(
+    item: Pick<GridListItem, 'rating' | 'rating_imdb'>
+): string | undefined {
+    return formatGridRating(item.rating_imdb) ?? formatGridRating(item.rating);
+}
+
 @Component({
     selector: 'app-grid-list',
     template: `<div
@@ -85,7 +109,7 @@ interface GridListItem {
                                 />
                             }
                         </div>
-                        @let rating = i.rating ?? i.rating_imdb;
+                        @let rating = resolveRating(i);
                         @if (rating) {
                             <div
                                 class="rating"
@@ -152,6 +176,7 @@ export class GridListComponent {
     readonly totalPages = input<number>();
     readonly limit = input<number>();
     readonly pageSizeOptions = input<number[]>();
+    protected readonly resolveRating = resolveGridRating;
 
     readonly skeletonRows = computed(() => {
         const preferredCount = this.limit() ?? 12;
