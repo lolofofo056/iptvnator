@@ -678,12 +678,7 @@ export async function openPlaylistRecent(page: Page): Promise<void> {
 }
 
 export async function openGlobalFavorites(page: Page): Promise<void> {
-    await page
-        .getByRole('button', {
-            name: 'All favorites (all playlists)',
-            exact: true,
-        })
-        .click();
+    await openWorkspaceSection(page, 'Global favorites');
     await page.waitForURL(/\/workspace\/global-favorites(?:\?.*)?$/);
 }
 

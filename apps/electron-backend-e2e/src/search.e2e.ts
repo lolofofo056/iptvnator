@@ -13,6 +13,7 @@ import {
     importM3uPlaylistFromNativeDialog,
     launchElectronApp,
     m3uFixturePath,
+    openGlobalFavorites,
     resetMockServers,
     stalkerMockServer,
     test,
@@ -222,7 +223,7 @@ test.describe('Electron Workspace Search', () => {
         }
     });
 
-    test('@search @m3u filters global favorites from the workspace header without leaving the persisted query model', async ({
+    test('@search @m3u filters global favorites from the workspace rail without leaving the persisted query model', async ({
         dataDir,
     }) => {
         const sample = loadM3uSearchFixture();
@@ -233,12 +234,7 @@ test.describe('Electron Workspace Search', () => {
             await waitForM3uCatalog(app.mainWindow);
             await toggleFavoriteForChannel(app.mainWindow, sample.targetTitle);
             await toggleFavoriteForChannel(app.mainWindow, sample.controlTitle);
-            await app.mainWindow
-                .getByRole('button', {
-                    name: 'All favorites (all playlists)',
-                    exact: true,
-                })
-                .click();
+            await openGlobalFavorites(app.mainWindow);
 
             await expectPathname(
                 app.mainWindow,

@@ -96,7 +96,10 @@ test.describe('Electron Xtream Responsiveness', () => {
                 .poll(
                     async () =>
                         (await overlay.locator('p').allInnerTexts()).some(
-                            (text) => /\d+\s*\/\s*\d+/.test(text)
+                            (text) =>
+                                /(Live TV|Movies|Series).*?\d+\s*\/\s*\d+/.test(
+                                    text
+                                )
                         ),
                     { timeout: 30000 }
                 )

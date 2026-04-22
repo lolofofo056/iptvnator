@@ -84,9 +84,10 @@ test.describe('Dashboard Activation', () => {
 
             await goToDashboard(app.mainWindow);
 
-            await dashboardActivityItemByTitle(
+            await expectDashboardRail(app.mainWindow, 'dashboard-global-favorites-rail');
+            await dashboardRailCardByTitle(
                 app.mainWindow,
-                'Global Favorites',
+                'dashboard-global-favorites-rail',
                 liveTitle
             ).click();
             await app.mainWindow.waitForURL(
@@ -99,9 +100,9 @@ test.describe('Dashboard Activation', () => {
             await app.mainWindow.goBack();
             await app.mainWindow.waitForURL(/\/workspace\/dashboard$/);
 
-            await dashboardActivityItemByTitle(
+            await dashboardRailCardByTitle(
                 app.mainWindow,
-                'Global Favorites',
+                'dashboard-global-favorites-rail',
                 movieTitle
             ).click();
             await expectInlineCollectionDetail(app.mainWindow, {
@@ -112,9 +113,9 @@ test.describe('Dashboard Activation', () => {
             await goBackFromDetail(app.mainWindow);
             await expectPathname(app.mainWindow, /\/workspace\/dashboard$/);
 
-            await dashboardActivityItemByTitle(
+            await dashboardRailCardByTitle(
                 app.mainWindow,
-                'Recently Watched',
+                'dashboard-recently-watched-rail',
                 movieTitle
             ).click();
             await expectInlineCollectionDetail(app.mainWindow, {
@@ -125,9 +126,9 @@ test.describe('Dashboard Activation', () => {
             await app.mainWindow.goBack();
             await expectPathname(app.mainWindow, /\/workspace\/dashboard$/);
 
-            await dashboardActivityItemByTitle(
+            await dashboardRailCardByTitle(
                 app.mainWindow,
-                'Recently Watched',
+                'dashboard-recently-watched-rail',
                 seriesTitle
             ).click();
             await expectInlineCollectionDetail(app.mainWindow, {
@@ -148,18 +149,20 @@ const xtreamCredentials = {
     password: defaultXtreamPassword,
 };
 
-function dashboardActivityItemByTitle(
+async function expectDashboardRail(page: Page, railTestId: string): Promise<void> {
+    await expect(page.locator(`[data-test-id="${railTestId}"]`)).toBeVisible({
+        timeout: 20000,
+    });
+}
+
+function dashboardRailCardByTitle(
     page: Page,
-    widgetTitle: string,
+    railTestId: string,
     title: string
 ) {
-    return page
-        .locator('.widget-slot')
-        .filter({ hasText: widgetTitle })
-        .first()
-        .locator('.activity-item')
-        .filter({ hasText: title })
-        .first();
+    return page.locator(`[data-test-id="${railTestId}-card"]`).filter({
+        hasText: title,
+    }).first();
 }
 
 async function goBackFromDetail(page: Page): Promise<void> {
