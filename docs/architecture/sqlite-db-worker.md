@@ -280,36 +280,48 @@ Xtream search now guards against stale async responses:
 This prevents an older worker response from repainting over a newer query or a
 cleared search state.
 
-### Xtream favorites lookup
+### Xtream type-aware content lookup
 
-Xtream favorites must treat `xtream_id` as only partially unique.
+Xtream UI flows must treat `xtream_id` as only partially unique.
 
 Current contract:
 
 1. `xtream_id` can collide across `live`, `movie`, and `series` within the same
    playlist.
 2. Any DB-backed lookup that starts from an Xtream result card, favorite button,
-   or detail route must resolve content by:
+   recent-item update, continue-watching flow, or detail route must resolve
+   content by:
    - `playlist_id`
    - `xtream_id`
    - `content.type`
-3. Favorites UI state for mixed Xtream collections must key entries by
-   `type + xtream_id`, not `xtream_id` alone.
+3. Mixed Xtream collection identity must key entries by `type + xtream_id`,
+   not `xtream_id` alone. This includes favorites maps, recent-item lists,
+   dashboard collection payloads, and other UI state keyed off persisted
+   Xtream content.
 
 Why this matters:
 
 - Search results are already type-filtered, so resolving favorites by only
   `playlist_id + xtream_id` can favorite the wrong persisted row when IDs
   collide.
+- Continue-watching / recently-viewed flows that resolve by only
+  `playlist_id + xtream_id` can store the wrong persisted row when a series or
+  movie ID collides with a live entry.
 - Mixed favorites maps keyed only by `xtream_id` can mark an unrelated live row
   as favorited when the actual favorite is a movie or series with the same
   numeric ID.
+- Mixed recent/favorites collection items keyed only by `xtream_id` can cause
+  local UI state to remove, reorder, or reactivate the wrong Xtream entry when
+  different content types collide.
 
 Current implementation paths:
 
 1. `apps/electron-backend/src/app/database/operations/content.operations.ts`
 2. `libs/portal/xtream/data-access/src/lib/with-favorites.feature.ts`
-3. `libs/portal/xtream/feature/src/lib/portal-channels-list/portal-channels-list.component.ts`
+3. `libs/portal/xtream/data-access/src/lib/with-recent-items.ts`
+4. `libs/portal/xtream/feature/src/lib/portal-channels-list/portal-channels-list.component.ts`
+5. `libs/portal/shared/util/src/lib/collection/unified-recent-data.service.ts`
+6. `libs/portal/shared/util/src/lib/collection/unified-favorites-data.service.ts`
 
 ### Busy states
 

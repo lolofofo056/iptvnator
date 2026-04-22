@@ -91,7 +91,7 @@ The search bar disables itself on some routes and changes behavior on others. Th
 ### Quick Wins (Low Effort, High Impact)
 
 1. **Add a playlist name label above the dynamic rail links.** Small, muted text showing "clean.m3u" or "rucolor.tv" above the provider-specific navigation.
-2. **Differentiate the Global Favorites icon from Local Favorites.** Use different icons, tooltip distinction, or a small globe badge on the global favorites star.
+2. **Keep Global Favorites as a single left-rail destination.** Avoid reintroducing a second header shortcut for the same global destination; reserve header actions for contextual controls.
 3. **Add a scope label to the search bar** when active: "Searching in Live TV" or "Searching in clean.m3u" instead of generic "Search in this section..."
 
 ### Medium Effort

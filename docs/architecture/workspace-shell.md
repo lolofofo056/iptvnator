@@ -62,15 +62,15 @@ Provider route integration:
 The shell is intentionally split into four persistent regions:
 
 1. Left rail:
-   1. Static workspace links for dashboard and sources.
+   1. Static workspace links for dashboard, sources, global favorites, and recently viewed.
    2. Provider-aware context links derived from the active or current playlist.
+   3. Settings remains a persistent footer shortcut in the rail.
 2. Top header:
    1. Playlist switcher.
    2. Route-aware search input and command palette trigger.
    3. Add source action.
-   4. Global favorites shortcut.
+   4. Optional playlist refresh and route-specific shortcut actions.
    5. Downloads shortcut in Electron.
-   6. Context actions menu for playlist/account or section-level actions.
 3. Main body:
    1. Optional left context panel.
    2. Main router outlet content.
@@ -113,6 +113,19 @@ Rail navigation is also shell-owned:
 3. On dashboard, sources, settings, and global favorites, the shell falls back
    to the currently selected playlist so provider navigation remains available
    even outside a provider route.
+
+Command palette behavior is shell-owned but view-extensible:
+
+1. The shell resolves commands into three groups in fixed order: current view,
+   this playlist, then global.
+2. Shell-owned commands are derived from route context and current playlist
+   state; empty groups are omitted instead of rendering disabled placeholders.
+3. Workspace features contribute current-view commands through
+   `WorkspaceViewCommandService`.
+4. Header shortcut actions can opt into palette exposure by attaching palette
+   metadata through `WorkspaceHeaderContextService`.
+5. Filtering matches command labels, descriptions, and keywords, and keyboard
+   selection always lands on the first enabled command.
 
 ## Maintenance Guidance
 

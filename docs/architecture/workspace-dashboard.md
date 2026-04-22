@@ -1,7 +1,7 @@
 # Workspace Dashboard
 
 This document records the current dashboard implementation inside the workspace
-shell. It replaces the earlier dashboard plan document.
+shell.
 
 Related:
 
@@ -10,143 +10,158 @@ Related:
 ## Summary
 
 - The dashboard is the default `/workspace` landing page.
-- It is a widget-based surface with persisted layout and widget settings.
-- The current implementation favors a constrained, stable layout over a full
-  freeform grid system.
+- It is a **rail-based** content surface (Netflix / Apple TV pattern), not a
+  customizable widget grid.
+- Layout is static and curated — there is no edit mode, drag-drop, size
+  stepper, show/hide toggle, or persisted layout. Rails auto-hide when empty.
+- First-run users see the shared welcome empty-state with a single primary
+  CTA to add their first playlist.
 
 Core implementation:
 
-1. `libs/workspace/dashboard/feature/src/lib/workspace-dashboard.component.ts`
-2. `libs/workspace/dashboard/feature/src/lib/workspace-dashboard.component.html`
-3. `libs/workspace/dashboard/ui/src/lib/dashboard-widget-host.component.ts`
-4. `libs/workspace/dashboard/data-access/src/lib/dashboard-widget.model.ts`
-5. `libs/workspace/dashboard/data-access/src/lib/dashboard-layout.service.ts`
-6. `libs/workspace/dashboard/data-access/src/lib/dashboard-data.service.ts`
+1. `libs/workspace/dashboard/feature/src/lib/rails/workspace-dashboard-rails.component.ts`
+   — the page-level facade.
+2. `libs/workspace/dashboard/feature/src/lib/rails/dashboard-rail.component.ts`
+   — the reusable horizontal rail.
+3. `libs/workspace/dashboard/data-access/src/lib/dashboard-data.service.ts`
+   — data aggregation (recent items, favorites, playlist stats). Shared across
+   rails.
+4. `libs/playlist/shared/ui/src/lib/recent-playlists/empty-state/empty-state.component.ts`
+   — reused welcome state with the primary "Add your first playlist" CTA.
 
-## Current Widget Set
+## Page Structure
 
-Registered widget types:
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  Hero — Continue Watching (most recent item)                        │
+├─────────────────────────────────────────────────────────────────────┤
+│  Recently Watched · See all →                                       │
+│  [poster][poster][poster][poster] →→                                │
+├─────────────────────────────────────────────────────────────────────┤
+│  Global Favorites · See all →                                       │
+│  [poster][poster][poster] →→                                        │
+├─────────────────────────────────────────────────────────────────────┤
+│  Recently Used Sources · See all →                                  │
+│  [tile][tile][tile][tile] →→                                        │
+├─────────────────────────────────────────────────────────────────────┤
+│  Recently Added on Xtream (aggregated across providers)             │
+│  [poster][poster][poster] →→                                        │
+└─────────────────────────────────────────────────────────────────────┘
+```
 
-1. `source-stats`
-2. `continue-watching`
-3. `recently-watched`
-4. `global-favorites`
+Render rules:
 
-Default layout:
+1. `dashboardReady() === false` → render the page-level skeleton rails/hero.
+   The first-load gate waits for playlist metadata plus the first global
+   recent/global favorites reloads and, when Xtream playlists exist, the first
+   Xtream recently-added reload.
+2. `hasPlaylists() === false` → render `<app-empty-state type="welcome">`
+   full-bleed. All rails and the hero are skipped.
+3. `hero()` = `globalRecentItems()[0]`. If present, render the hero panel.
+4. Each rail is emitted via `@if (cards.length > 0)`. Empty rails are hidden
+   — there is no "empty widget" placeholder.
+5. The continue-watching hero prefers a stored Xtream `backdrop_url`; when it
+   is missing the UI falls back to a blurred poster treatment instead of
+   showing a flat panel.
 
-1. `continue-watching`
-    1. Enabled by default
-    2. Size `full`
-2. `recently-watched`
-    1. Enabled by default
-    2. Size `two-thirds`
-    3. Scope-aware
-3. `global-favorites`
-    1. Enabled by default
-    2. Size `one-third`
-    3. Scope-aware
-4. `source-stats`
-    1. Present in the registry
-    2. Disabled by default
-    3. Size `one-third`
+## Rail Contract
 
-The old refactor summary mentioned `Recent Sources`, but that widget is not in
-the current registry and should not be documented as shipped behavior.
+`DashboardRailComponent` is purely presentational:
 
-## Layout And Persistence Contract
+1. Inputs: `label`, `items: DashboardRailCard[]`, optional `seeAllLink`,
+   optional `aspectRatio` (default `'2 / 3'`), optional `testId`.
+2. Behavior: horizontal flex track with `scroll-snap-type: x mandatory`.
+3. Chevron buttons fade in on hover (desktop only via `@media (hover: none)`).
+4. Cards are keyboard-focusable router links; `scroll-snap-align: start`
+   means arrow-key nav lands on card boundaries.
+5. Image handling: `loading="lazy"`, `decoding="async"`, fallback icon tile
+   when `imageUrl` is missing or `error` fires.
+6. Dashboard hero, rail containers, rail cards, and "Manage all" links expose
+   stable `data-test-id` hooks. Treat these as the supported Electron E2E
+   selector surface; do not target internal CSS class names.
 
-The dashboard persists a versioned layout object in local storage.
+## Data Flow
 
-Current storage details:
+1. `WorkspaceDashboardRailsComponent` injects `DashboardDataService`.
+2. It derives five signals via `computed()`:
+    1. `hero` — first item of `globalRecentItems()`.
+    2. `recentlyWatchedCards` — maps `globalRecentItems()` to rail cards.
+    3. `xtreamRecentlyAddedCards` — maps `xtreamRecentlyAddedItems()` to rail
+       cards. Aggregates newly added VOD and series across *all* Xtream
+       playlists via `DashboardDataService.reloadXtreamRecentlyAddedItems()`,
+       which calls `getGlobalRecentlyAdded('all', limit, 'xtream')` with the
+       DB-level `playlists.type = 'xtream'` filter. The rail is Electron-only
+       (PWA returns `[]`) and auto-hides when empty, so users without Xtream
+       playlists never see it. Cards carry a `playlist_name · type` subtitle
+       so users can tell which provider each item came from. Driven by an
+       effect that re-runs whenever the Xtream playlist count changes.
+    4. `favoriteCards` — maps `globalFavoriteItems()` to rail cards.
+    5. `sourceCards` — maps `recentPlaylists()` to rail cards. `recentPlaylists()`
+       ranks M3U, Xtream, and Stalker sources by their latest recent activity
+       from `globalRecentItems()`, then falls back to playlist
+       `updateDate` / `importDate` for sources that have never been used.
+3. `DashboardDataService` is passive on construction. The dashboard feature
+   owns the initial reloads for recent items, favorites, and Xtream recently
+   added rows on page entry.
+4. No `Layout` state, no localStorage keys, no migrations.
+5. Navigation state + deep-link targets come from the existing
+   `getRecentItemLink()` / `getGlobalFavoriteLink()` / `getPlaylistLink()`
+   helpers on `DashboardDataService` and reuse the workspace navigation
+   helpers in `@iptvnator/portal/shared/util`.
+6. Xtream VOD and series detail pages opportunistically backfill
+   `content.backdrop_url` when metadata exposes a backdrop, but that write
+   must not refresh recently viewed ordering by itself.
+7. The dashboard feature triggers a fresh reload of DB-backed recent/favorite
+   rows on dashboard entry so newly backfilled backdrop data is visible as soon
+   as the user returns from a detail page.
 
-1. Storage key: `workspace-dashboard-layout-v3`
-2. Schema version: `12`
-3. Size presets:
-    1. `one-third`
-    2. `half`
-    3. `two-thirds`
-    4. `full`
-4. Scope settings:
-    1. `providers: Array<'m3u' | 'xtream' | 'stalker'>`
-    2. `playlistIds: string[]`
+## Empty State
 
-Normalization rules in `DashboardLayoutService`:
+The welcome state is rendered via the existing
+`EmptyStateComponent` (`type="welcome"`) from
+`libs/playlist/shared/ui`:
 
-1. Stored widgets are merged against `DEFAULT_DASHBOARD_WIDGETS`.
-2. Missing widgets are restored from defaults.
-3. Removed or invalid settings fall back to normalized defaults.
-4. Titles and descriptions come from the current code-defined defaults, not
-   stale stored values.
-5. Widget order is reindexed after normalization.
-
-## Rendering Flow
-
-1. `WorkspaceDashboardComponent` reads `DashboardLayoutService.state()`.
-2. Enabled widgets are filtered and rendered in layout order.
-3. `DashboardWidgetHostComponent` maps `widget.type` to a concrete widget
-   component.
-4. Widgets receive the normalized config, including size and optional scope.
-5. Data comes from `DashboardDataService` and existing provider/state services.
-6. Widget actions deep-link back into workspace/provider routes.
-
-Dashboard detail handoff contract:
-
-1. Live items continue to activate their existing playback/provider route flows.
-2. Xtream and Stalker movies/series from `global-favorites` or
-   `recently-watched` should route into `/workspace/global-favorites` or
-   `/workspace/global-recent` with collection detail pre-opened from navigation
-   state.
-3. Those collection detail opens must not switch the active playlist in the
-   header playlist switcher.
-4. Those collection detail opens must not show the workspace category sidebar.
-5. The detail close/back action should return to the dashboard-origin view
-   rather than reopening provider/category navigation.
-
-## Customize Mode
-
-Customize mode is part of the current product, not future work.
-
-Supported actions:
-
-1. Toggle widget visibility.
-2. Drag-and-drop reorder for visible widgets.
-3. Change widget size within the fixed preset list.
-4. Configure provider scope for scoped widgets.
-5. Configure playlist scope for scoped widgets.
-6. Reset the layout to defaults.
-
-Scope-aware widgets currently rely on a provider/playlist filter model rather
-than per-widget custom query systems.
+1. Illustration + headline + description from the existing M3U welcome
+   strings (`HOME.PLAYLISTS.WELCOME_*`).
+2. Primary button emits `addPlaylistClicked`. The dashboard page wires this
+   to `WORKSPACE_SHELL_ACTIONS.openAddPlaylistDialog()`.
+3. Feature chips (M3U / Xtream / Stalker) are provided by the component.
 
 ## UX Rules
 
-1. Widgets should represent user tasks, not provider internals.
-2. Each widget must own its loading, empty, and error states.
-3. Dashboard failures must stay isolated to the widget that failed.
-4. Widget navigation should resolve directly into the relevant content context.
-5. Dashboard favorites/recent movie/series activations should preserve the
-   current playlist context and use the collection-owned detail host instead of
-   forcing provider/category side-navigation.
-6. New widgets should fit the existing constrained layout model unless the
-   dashboard architecture is explicitly being expanded.
+1. Rails represent content the user is likely to resume, not provider
+   internals. Never surface raw API objects.
+2. Each rail must auto-hide when its data source is empty.
+3. Image assets must degrade to a typed icon fallback — never show broken
+   images or empty tiles.
+4. The page must never show "No widgets" style text. If there is no content
+   and no playlists, render the welcome state; otherwise render whatever
+   rails have data.
+5. Navigation from a rail card must deep-link into the appropriate workspace
+   route without switching the active playlist in the header switcher.
+6. `Recently Used Sources` reflects recent source usage across all provider
+   types, not just recent imports.
 
-## Adding Or Changing Widgets
+## Adding Or Changing Rails
 
 Current workflow:
 
-1. Add or update the widget type in `dashboard-widget.model.ts`.
-2. Implement the widget UI under `libs/workspace/dashboard/ui/src/lib/widgets/`.
-3. Register the widget in `dashboard-widget-host.component.ts`.
-4. Add default state and migration-safe behavior in
-   `dashboard-layout.service.ts`.
-5. Extend `dashboard-data.service.ts` or reuse an existing feature service.
-6. Ensure the widget has explicit empty/error/loading states and valid
-   workspace deep links.
+1. Add a new `computed()` signal for the card list in
+   `WorkspaceDashboardRailsComponent`, mapping your source data to
+   `DashboardRailCard`.
+2. Drop a `<lib-dashboard-rail>` in the template, gated by
+   `@if (cards.length > 0)`.
+3. If the data source is new, extend `DashboardDataService` rather than
+   reaching into DB services directly from the component.
+4. Provide a `seeAllLink` only if there is a dedicated "manage all" route
+   for that content type.
 
 ## Deferred Work
 
-These items are intentionally not part of the current contract:
+Intentionally out of scope:
 
-1. Freeform drag/resize grid with collision management.
-2. External data widgets such as RSS, sports, or news adapters.
-3. A widget marketplace or plugin system.
+1. Customizable layout (drag/drop, resize, show/hide toggles, layout
+   persistence). Removed in favor of a curated, opinionated order.
+2. Freeform widget grid with collision management.
+3. External data rails such as RSS, sports, or news adapters.
+4. Per-user A/B variants of rail ordering.
