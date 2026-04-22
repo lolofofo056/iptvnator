@@ -87,6 +87,7 @@ export const content = sqliteTable(
         rating: text('rating'),
         added: text('added'),
         posterUrl: text('poster_url'),
+        backdropUrl: text('backdrop_url'),
         epgChannelId: text('epg_channel_id'),
         tvArchive: integer('tv_archive'),
         tvArchiveDuration: integer('tv_archive_duration'),

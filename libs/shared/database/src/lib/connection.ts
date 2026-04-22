@@ -112,6 +112,7 @@ const CREATE_TABLE_STATEMENTS = [
       rating TEXT,
       added TEXT,
       poster_url TEXT,
+      backdrop_url TEXT,
       epg_channel_id TEXT,
       tv_archive INTEGER,
       tv_archive_duration INTEGER,
@@ -269,6 +270,8 @@ const COLUMN_MIGRATION_STATEMENTS = [
     `ALTER TABLE content ADD COLUMN tv_archive INTEGER`,
     `ALTER TABLE content ADD COLUMN tv_archive_duration INTEGER`,
     `ALTER TABLE content ADD COLUMN direct_source TEXT`,
+    // v1.5.0 -> v1.6.0: Cinematic backdrop persisted on first detail fetch
+    `ALTER TABLE content ADD COLUMN backdrop_url TEXT`,
 ];
 
 const INDEX_MIGRATION_STATEMENTS = [

@@ -28,6 +28,7 @@ export interface XtreamContent {
     rating: string;
     added: string;
     poster_url: string;
+    backdrop_url?: string | null;
     epg_channel_id?: string | null;
     tv_archive?: number | null;
     tv_archive_duration?: number | null;
@@ -123,6 +124,13 @@ export function isDbAbortError(error: unknown): boolean {
 }
 
 export type GlobalRecentlyAddedKind = 'all' | 'vod' | 'series';
+
+export type GlobalRecentlyAddedPlaylistType =
+    | 'xtream'
+    | 'stalker'
+    | 'm3u-file'
+    | 'm3u-text'
+    | 'm3u-url';
 
 export interface GlobalRecentlyAddedItem extends XtreamContent {
     playlist_id: string;
@@ -581,15 +589,20 @@ export class DatabaseService {
 
     /**
      * Get recently added VOD and series items across all Xtream playlists.
+     * When `playlistType` is supplied, the LIMIT window is applied only to
+     * rows from playlists of that type, so Xtream items cannot be squeezed
+     * out by newer M3U/Stalker content.
      */
     async getGlobalRecentlyAdded(
         kind: GlobalRecentlyAddedKind,
-        limit = 200
+        limit = 200,
+        playlistType?: GlobalRecentlyAddedPlaylistType
     ): Promise<GlobalRecentlyAddedItem[]> {
         try {
             const items = await window.electron.dbGetGlobalRecentlyAdded(
                 kind,
-                limit
+                limit,
+                playlistType
             );
             return items || [];
         } catch (error) {
@@ -671,14 +684,22 @@ export class DatabaseService {
     }
 
     /**
-     * Add content to favorites
+     * Add content to favorites.
+     * @param backdropUrl optionally persisted to `content.backdrop_url` when
+     * the row doesn't already have one. Lets the dashboard hero surface a
+     * cinematic backdrop without a separate round-trip.
      */
     async addToFavorites(
         contentId: number,
-        playlistId: string
+        playlistId: string,
+        backdropUrl?: string
     ): Promise<boolean> {
         try {
-            await window.electron.dbAddFavorite(contentId, playlistId);
+            await window.electron.dbAddFavorite(
+                contentId,
+                playlistId,
+                backdropUrl
+            );
             return true;
         } catch (error) {
             console.error('Error adding to favorites:', error);
@@ -739,17 +760,51 @@ export class DatabaseService {
     }
 
     /**
-     * Add item to recently viewed
+     * Add item to recently viewed. See `addToFavorites` for `backdropUrl`.
      */
     async addRecentItem(
         contentId: number,
-        playlistId: string
+        playlistId: string,
+        backdropUrl?: string
     ): Promise<boolean> {
         try {
-            await window.electron.dbAddRecentItem(contentId, playlistId);
+            await window.electron.dbAddRecentItem(
+                contentId,
+                playlistId,
+                backdropUrl
+            );
             return true;
         } catch (error) {
             console.error('Error adding recent item:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Persist a backdrop URL onto an Xtream content row without touching
+     * recently viewed ordering or timestamps.
+     */
+    async setContentBackdropIfMissing(
+        contentId: number,
+        backdropUrl?: string
+    ): Promise<boolean> {
+        const normalizedBackdropUrl = backdropUrl?.trim();
+        if (!normalizedBackdropUrl) {
+            return true;
+        }
+
+        if (!window.electron?.dbSetContentBackdropIfMissing) {
+            return true;
+        }
+
+        try {
+            await window.electron.dbSetContentBackdropIfMissing(
+                contentId,
+                normalizedBackdropUrl
+            );
+            return true;
+        } catch (error) {
+            console.error('Error backfilling content backdrop:', error);
             return false;
         }
     }

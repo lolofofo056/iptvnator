@@ -222,14 +222,21 @@ declare global {
             ) => Promise<any[]>;
             dbGetGlobalRecentlyAdded: (
                 kind: 'all' | 'vod' | 'series',
-                limit?: number
+                limit?: number,
+                playlistType?:
+                    | 'xtream'
+                    | 'stalker'
+                    | 'm3u-file'
+                    | 'm3u-text'
+                    | 'm3u-url'
             ) => Promise<any[]>;
             dbGetRecentlyViewed: () => Promise<any[]>;
             dbClearRecentlyViewed: () => Promise<{ success: boolean }>;
             // Favorites
             dbAddFavorite: (
                 contentId: number,
-                playlistId: string
+                playlistId: string,
+                backdropUrl?: string
             ) => Promise<{ success: boolean }>;
             dbRemoveFavorite: (
                 contentId: number,
@@ -249,7 +256,8 @@ declare global {
             dbGetRecentItems: (playlistId: string) => Promise<any[]>;
             dbAddRecentItem: (
                 contentId: number,
-                playlistId: string
+                playlistId: string,
+                backdropUrl?: string
             ) => Promise<{ success: boolean }>;
             dbClearPlaylistRecentItems: (
                 playlistId: string
@@ -263,6 +271,10 @@ declare global {
                 playlistId: string,
                 contentType?: 'live' | 'movie' | 'series'
             ) => Promise<any | null>;
+            dbSetContentBackdropIfMissing: (
+                contentId: number,
+                backdropUrl?: string
+            ) => Promise<{ success: boolean }>;
             dbGetAppState: (key: string) => Promise<string | null>;
             dbSetAppState: (
                 key: string,
