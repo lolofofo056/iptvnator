@@ -7,10 +7,11 @@ const STALKER_PLAYLIST_METADATA_MIGRATION_FLAG =
     'm3u-playlists-stalker-metadata-v1';
 
 describe('PlaylistsService', () => {
-    const originalElectron = (window as Window & { electron?: unknown }).electron;
+    const testWindow = window as unknown as { electron?: unknown };
+    const originalElectron = testWindow.electron;
 
     afterEach(() => {
-        (window as Window & { electron?: unknown }).electron = originalElectron;
+        testWindow.electron = originalElectron;
         localStorage.removeItem(STALKER_PLAYLIST_METADATA_MIGRATION_FLAG);
         jest.restoreAllMocks();
     });
@@ -73,7 +74,7 @@ describe('PlaylistsService', () => {
                 );
             }),
         };
-        (window as Window & { electron?: unknown }).electron = electron;
+        testWindow.electron = electron;
 
         const service = createService();
 
@@ -110,7 +111,7 @@ describe('PlaylistsService', () => {
             dbUpsertAppPlaylist: jest.fn(),
             dbUpsertAppPlaylists: jest.fn(),
         };
-        (window as Window & { electron?: unknown }).electron = electron;
+        testWindow.electron = electron;
 
         const service = createService();
 
@@ -146,7 +147,7 @@ describe('PlaylistsService', () => {
                 return of(playlist);
             }),
         };
-        (window as Window & { electron?: unknown }).electron = undefined;
+        testWindow.electron = undefined;
 
         const service = createService(dbService);
 
@@ -186,7 +187,7 @@ describe('PlaylistsService', () => {
                 of(playlist)
             ),
         };
-        (window as Window & { electron?: unknown }).electron = undefined;
+        testWindow.electron = undefined;
 
         const service = createService(dbService);
 
@@ -226,7 +227,7 @@ describe('PlaylistsService', () => {
                 of(playlist)
             ),
         };
-        (window as Window & { electron?: unknown }).electron = undefined;
+        testWindow.electron = undefined;
 
         const service = createService(dbService);
 
