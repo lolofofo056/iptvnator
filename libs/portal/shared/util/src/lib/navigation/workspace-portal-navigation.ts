@@ -7,6 +7,7 @@ import {
 } from 'shared-interfaces';
 import {
     buildCollectionUid,
+    buildXtreamCollectionUid,
     CollectionContentType,
     CollectionSourceType,
     UnifiedCollectionItem,
@@ -550,7 +551,11 @@ function buildDashboardCollectionDetailItem(
 
     if (item.source === 'xtream') {
         return normalizeCollectionDetailItem({
-            uid: buildCollectionUid('xtream', item.playlist_id, item.xtream_id),
+            uid: buildXtreamCollectionUid(
+                item.playlist_id,
+                item.type,
+                item.xtream_id
+            ),
             name: item.title,
             contentType: item.type,
             sourceType: 'xtream',

@@ -24,7 +24,8 @@ export const withFavorites = function () {
                 async toggleFavorite(
                     xtreamId: number,
                     playlistId: string,
-                    contentType: 'live' | 'movie' | 'series'
+                    contentType: 'live' | 'movie' | 'series',
+                    backdropUrl?: string
                 ) {
                     if (!xtreamId || !playlistId) {
                         return false;
@@ -58,6 +59,7 @@ export const withFavorites = function () {
                         await favoritesService.addToFavorites({
                             content_id: content.id,
                             playlist_id: playlistId,
+                            backdrop_url: backdropUrl,
                         });
                         patchState(store, { isFavorite: true });
                         return true;

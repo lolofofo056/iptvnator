@@ -89,18 +89,6 @@ export function buildPortalRailLinks(
                 tooltip: 'Search (this playlist)',
                 path: [...root, 'search'],
                 section: 'search',
-            },
-            {
-                icon: 'history',
-                tooltip: 'Recently viewed (this playlist)',
-                path: [...root, 'recent'],
-                section: 'recent',
-            },
-            {
-                icon: 'favorite',
-                tooltip: 'Favorites (this playlist)',
-                path: [...root, 'favorites'],
-                section: 'favorites',
             }
         );
 
@@ -145,18 +133,6 @@ export function buildPortalRailLinks(
                 path: [...root, 'search'],
                 section: 'search',
             },
-            {
-                icon: 'history',
-                tooltip: 'Recently viewed (this playlist)',
-                path: [...root, 'recent'],
-                section: 'recent',
-            },
-            {
-                icon: 'favorite',
-                tooltip: 'Favorites (this playlist)',
-                path: [...root, 'favorites'],
-                section: 'favorites',
-            },
         ];
 
         if (isElectron) {
@@ -186,20 +162,6 @@ export function buildPortalRailLinks(
                 path: [...root, 'groups'],
                 exact: true,
                 section: 'groups',
-            },
-            {
-                icon: 'history',
-                tooltip: 'Recently viewed (this playlist)',
-                path: [...root, 'recent'],
-                exact: true,
-                section: 'recent',
-            },
-            {
-                icon: 'favorite',
-                tooltip: 'Favorites (this playlist)',
-                path: [...root, 'favorites'],
-                exact: true,
-                section: 'favorites',
             },
         ];
 

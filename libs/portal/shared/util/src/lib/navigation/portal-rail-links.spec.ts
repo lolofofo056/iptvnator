@@ -17,14 +17,11 @@ describe('buildPortalRailLinks', () => {
         expect(links.secondary.map((link) => link.section)).toEqual([
             'recently-added',
             'search',
-            'recent',
-            'favorites',
             'downloads',
         ]);
 
         expect(links.primary[0]?.tooltip).toBe('Movies (this playlist)');
-        expect(links.secondary[3]?.tooltip).toBe('Favorites (this playlist)');
-        expect(links.secondary[4]?.tooltip).toBe('Downloads (this playlist)');
+        expect(links.secondary[2]?.tooltip).toBe('Downloads (this playlist)');
     });
 
     it('builds workspace Xtream links without downloads on web', () => {
@@ -60,15 +57,10 @@ describe('buildPortalRailLinks', () => {
             'itv',
             'series',
         ]);
-        expect(links.secondary.map((link) => link.section)).toEqual([
-            'search',
-            'recent',
-            'favorites',
-        ]);
+        expect(links.secondary.map((link) => link.section)).toEqual(['search']);
 
         expect(links.primary[1]?.tooltip).toBe('Live TV (this playlist)');
         expect(links.secondary[0]?.tooltip).toBe('Search (this playlist)');
-        expect(links.secondary[2]?.tooltip).toBe('Favorites (this playlist)');
     });
 
     it('builds M3U playlist links with scoped tooltip labels', () => {
@@ -93,20 +85,6 @@ describe('buildPortalRailLinks', () => {
                 path: ['/workspace', 'playlists', 'm3u-1', 'groups'],
                 exact: true,
                 section: 'groups',
-            },
-            {
-                icon: 'history',
-                tooltip: 'Recently viewed (this playlist)',
-                path: ['/workspace', 'playlists', 'm3u-1', 'recent'],
-                exact: true,
-                section: 'recent',
-            },
-            {
-                icon: 'favorite',
-                tooltip: 'Favorites (this playlist)',
-                path: ['/workspace', 'playlists', 'm3u-1', 'favorites'],
-                exact: true,
-                section: 'favorites',
             },
         ]);
         expect(links.secondary).toEqual([]);

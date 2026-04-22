@@ -228,6 +228,9 @@ describe('withContent import state', () => {
         const liveOperationId =
             optionsByType.get('live')?.operationId ?? 'live-op';
         expect(store.isImporting()).toBe(true);
+        expect(store.activeImportContentType()).toBe('live');
+        expect(store.activeImportCurrentCount()).toBe(1);
+        expect(store.activeImportTotalCount()).toBe(2);
         expect(store.importCount()).toBe(1);
         expect(store.itemsToImport()).toBe(2);
         expect(store.activeImportOperationIds()).toEqual([liveOperationId]);
@@ -246,6 +249,9 @@ describe('withContent import state', () => {
         await waitForCondition(() => store.importCount() === 2);
         const movieOperationId =
             optionsByType.get('movie')?.operationId ?? 'movie-op';
+        expect(store.activeImportContentType()).toBe('vod');
+        expect(store.activeImportCurrentCount()).toBe(1);
+        expect(store.activeImportTotalCount()).toBe(3);
         expect(store.itemsToImport()).toBe(5);
         expect(store.activeImportOperationIds()).toEqual([movieOperationId]);
 
@@ -262,6 +268,9 @@ describe('withContent import state', () => {
         await waitForCondition(() => store.importCount() === 3);
         const seriesOperationId =
             optionsByType.get('series')?.operationId ?? 'series-op';
+        expect(store.activeImportContentType()).toBe('series');
+        expect(store.activeImportCurrentCount()).toBe(1);
+        expect(store.activeImportTotalCount()).toBe(4);
         expect(store.itemsToImport()).toBe(9);
         expect(store.activeImportOperationIds()).toEqual([seriesOperationId]);
 
@@ -287,6 +296,9 @@ describe('withContent import state', () => {
         });
         expect(store.activeImportOperationIds()).toEqual([]);
         expect(store.importPhase()).toBeNull();
+        expect(store.activeImportContentType()).toBeNull();
+        expect(store.activeImportCurrentCount()).toBe(0);
+        expect(store.activeImportTotalCount()).toBe(0);
         expect(store.importCount()).toBe(0);
         expect(store.itemsToImport()).toBe(0);
     });
@@ -715,6 +727,9 @@ describe('withContent import state', () => {
         );
         const liveOperationId =
             optionsByType.get('live')?.operationId ?? 'live-op';
+        expect(store.activeImportContentType()).toBe('live');
+        expect(store.activeImportCurrentCount()).toBe(2);
+        expect(store.activeImportTotalCount()).toBe(5);
 
         await store.cancelImport();
 
@@ -748,6 +763,9 @@ describe('withContent import state', () => {
         });
         expect(store.activeImportOperationIds()).toEqual([]);
         expect(store.importPhase()).toBeNull();
+        expect(store.activeImportContentType()).toBeNull();
+        expect(store.activeImportCurrentCount()).toBe(0);
+        expect(store.activeImportTotalCount()).toBe(0);
         expect(store.importCount()).toBe(0);
         expect(store.itemsToImport()).toBe(0);
     });

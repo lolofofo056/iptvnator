@@ -12,8 +12,13 @@ export class FavoritesService {
     async addToFavorites(item: {
         content_id: number;
         playlist_id: string;
+        backdrop_url?: string;
     }): Promise<void> {
-        await this.dbService.addToFavorites(item.content_id, item.playlist_id);
+        await this.dbService.addToFavorites(
+            item.content_id,
+            item.playlist_id,
+            item.backdrop_url
+        );
     }
 
     async removeFromFavorites(

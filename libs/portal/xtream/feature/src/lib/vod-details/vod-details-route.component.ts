@@ -66,6 +66,7 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
     private readonly translateService = inject(TranslateService);
     private readonly logger = createLogger('VodDetailsRoute');
     private readonly detailsInitDone = signal(false);
+    private readonly backdropBackfillKey = signal<string | null>(null);
     readonly inlinePlayback = signal<ResolvedPortalPlayback | null>(null);
     readonly vodPlaybackPosition = signal<PlaybackPositionData | null>(null);
 
@@ -269,6 +270,29 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
             this.detailsInitDone.set(true);
         });
 
+        effect(() => {
+            const playlistId = this.xtreamStore.currentPlaylist()?.id;
+            const vodId = Number(this.route.snapshot.params.vodId);
+            const backdropUrl = this.selectedVodInfo()?.backdrop_path?.[0]?.trim();
+
+            if (!playlistId || !Number.isFinite(vodId) || vodId <= 0 || !backdropUrl) {
+                return;
+            }
+
+            const backfillKey = `${playlistId}:${vodId}:${backdropUrl}`;
+            if (this.backdropBackfillKey() === backfillKey) {
+                return;
+            }
+
+            this.backdropBackfillKey.set(backfillKey);
+            void this.xtreamStore.backfillContentBackdrop({
+                xtreamId: vodId,
+                contentType: 'movie',
+                playlist: this.xtreamStore.currentPlaylist,
+                backdropUrl,
+            });
+        });
+
         if (window.electron?.onPlaybackPositionUpdate) {
             this.unsubscribePositionUpdates =
                 window.electron.onPlaybackPositionUpdate(
@@ -392,7 +416,8 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
         this.xtreamStore.toggleFavorite(
             this.route.snapshot.params.vodId,
             this.xtreamStore.currentPlaylist().id,
-            'movie'
+            'movie',
+            this.selectedVodInfo()?.backdrop_path?.[0]
         );
     }
 
@@ -485,8 +510,10 @@ export class VodDetailsRouteComponent implements OnInit, OnDestroy {
 
     private addToRecentlyViewed(): void {
         this.xtreamStore.addRecentItem({
-            contentId: this.route.snapshot.params.vodId,
+            xtreamId: Number(this.route.snapshot.params.vodId),
+            contentType: 'movie',
             playlist: this.xtreamStore.currentPlaylist,
+            backdropUrl: this.selectedVodInfo()?.backdrop_path?.[0],
         });
     }
 

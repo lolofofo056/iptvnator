@@ -49,6 +49,7 @@ import {
     UnifiedCollectionItem,
     UnifiedFavoritesDataService,
     UnifiedRecentDataService,
+    WorkspaceViewCommandService,
 } from '@iptvnator/portal/shared/util';
 import { selectAllPlaylistsMeta, selectPlaylistsLoadingFlag } from 'm3u-state';
 import { UnifiedLiveTabComponent } from './unified-live-tab.component';
@@ -92,6 +93,7 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
     private readonly recentData = inject(UnifiedRecentDataService);
     private readonly dialogService = inject(DialogService);
     private readonly translate = inject(TranslateService);
+    private readonly workspaceViewCommands = inject(WorkspaceViewCommandService);
     readonly detailTemplate = contentChild(UnifiedCollectionDetailDirective);
     private readonly playlists = this.store.selectSignal(
         selectAllPlaylistsMeta
@@ -355,6 +357,39 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
                 state: navigation.state,
             });
         });
+    });
+    private readonly workspaceCommandEffect = effect((onCleanup) => {
+        if (!this.isWorkspaceLayout) {
+            return;
+        }
+
+        const items = this.currentTypeItems();
+        if (items.length === 0) {
+            return;
+        }
+
+        const unregister = this.workspaceViewCommands.registerCommand({
+            id: `unified-collection-clear-current-${this.mode()}`,
+            group: 'view',
+            icon: 'delete_sweep',
+            labelKey: this.clearButtonTooltipKey(),
+            labelParams: () => ({
+                type: this.translate.instant(this.currentTypeLabelKey()),
+            }),
+            descriptionKey:
+                'WORKSPACE.SHELL.COMMANDS.CLEAR_CURRENT_VIEW_DESCRIPTION',
+            descriptionParams: () => ({
+                type: this.translate.instant(this.currentTypeLabelKey()),
+            }),
+            keywords: () =>
+                this.mode() === 'favorites'
+                    ? ['clear', 'favorites', 'remove', this.selectedContentType()]
+                    : ['clear', 'recent', 'history', this.selectedContentType()],
+            priority: 10,
+            run: () => this.clearAllCurrent(),
+        });
+
+        onCleanup(unregister);
     });
 
     constructor() {

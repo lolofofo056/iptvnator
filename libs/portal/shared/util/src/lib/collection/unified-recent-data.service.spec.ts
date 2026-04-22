@@ -184,4 +184,126 @@ describe('UnifiedRecentDataService', () => {
         );
         expect(recorded.viewedAt).toBeTruthy();
     });
+
+    it('records Xtream playback with a type-aware fallback lookup', async () => {
+        dbService.getContentByXtreamId.mockResolvedValue({
+            id: 3867578,
+            xtream_id: 290,
+            type: 'live',
+            title: 'SE: V Film Premiere FHD',
+        });
+
+        const item = {
+            uid: 'xtream::xtream-1::live:290',
+            name: 'SE: V Film Premiere FHD',
+            contentType: 'live',
+            sourceType: 'xtream',
+            playlistId: 'xtream-1',
+            playlistName: 'Xtream One',
+            xtreamId: 290,
+        } satisfies UnifiedCollectionItem;
+
+        const recorded = await service.recordLivePlayback(item);
+
+        expect(dbService.getContentByXtreamId).toHaveBeenCalledWith(
+            290,
+            'xtream-1',
+            'live'
+        );
+        expect(dbService.addRecentItem).toHaveBeenCalledWith(
+            3867578,
+            'xtream-1'
+        );
+        expect(recorded).toEqual(
+            expect.objectContaining({
+                contentId: 3867578,
+                viewedAt: expect.any(String),
+            })
+        );
+    });
+
+    it('builds distinct Xtream recent UIDs when live and series share an xtream id', async () => {
+        store.select.mockReturnValue(
+            of([
+                {
+                    _id: 'xtream-1',
+                    title: 'Xtream One',
+                    serverUrl: 'https://example.com',
+                } satisfies Partial<PlaylistMeta>,
+            ])
+        );
+        dbService.getRecentItems.mockResolvedValue([
+            {
+                id: 3867578,
+                category_id: 11,
+                title: 'SE: V Film Premiere FHD',
+                poster_url: 'https://example.com/live.png',
+                xtream_id: 290,
+                type: 'live',
+                viewed_at: '2026-04-21T20:42:27.000Z',
+            },
+            {
+                id: 3941697,
+                category_id: 17,
+                title: 'Krypton',
+                poster_url: 'https://example.com/krypton.png',
+                xtream_id: 290,
+                type: 'series',
+                viewed_at: '2026-04-21T20:43:27.000Z',
+            },
+        ]);
+
+        const items = await service.getRecentItems('playlist', 'xtream-1', 'xtream');
+
+        expect(items).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    uid: 'xtream::xtream-1::live:290',
+                    contentType: 'live',
+                    contentId: 3867578,
+                }),
+                expect.objectContaining({
+                    uid: 'xtream::xtream-1::series:290',
+                    contentType: 'series',
+                    contentId: 3941697,
+                }),
+            ])
+        );
+    });
+
+    it('normalizes SQLite-style Xtream recent timestamps to ISO before exposing them', async () => {
+        store.select.mockReturnValue(
+            of([
+                playlistMeta,
+                {
+                    _id: 'xtream-1',
+                    title: 'Xtream One',
+                    serverUrl: 'https://example.com',
+                } satisfies Partial<PlaylistMeta>,
+            ])
+        );
+        dbService.getGlobalRecentlyViewed.mockResolvedValue([
+            {
+                id: 3940227,
+                category_id: 18,
+                title: 'Unter Nachbarn - 2011',
+                poster_url: 'https://example.com/unter.png',
+                xtream_id: 815302,
+                type: 'movie',
+                playlist_id: 'xtream-1',
+                playlist_name: 'Xtream One',
+                viewed_at: '2026-04-21 22:49:02',
+            },
+        ]);
+
+        const items = await service.getRecentItems('all');
+        const xtreamItem = items.find((item) => item.sourceType === 'xtream');
+
+        expect(xtreamItem).toEqual(
+            expect.objectContaining({
+                name: 'Unter Nachbarn - 2011',
+                viewedAt: '2026-04-21T22:49:02.000Z',
+            })
+        );
+    });
 });

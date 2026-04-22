@@ -84,6 +84,7 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
     readonly xtreamDownloadContext =
         signal<SeasonContainerXtreamDownloadContext | null>(null);
     private readonly detailsInitDone = signal(false);
+    private readonly backdropBackfillKey = signal<string | null>(null);
     private lastSaveTime = 0;
     private unsubscribePositionUpdates: (() => void) | null = null;
     readonly openingEpisodeId = signal<number | null>(null);
@@ -129,6 +130,30 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
 
             this.initializeSerialDetails(playlistId, categoryId, serialId);
             this.detailsInitDone.set(true);
+        });
+
+        effect(() => {
+            const playlistId = this.currentPlaylistId();
+            const selectedItem = this.selectedItem();
+            const xtreamId = Number(selectedItem?.series_id ?? 0);
+            const backdropUrl = selectedItem?.info?.backdrop_path?.[0]?.trim();
+
+            if (!playlistId || !Number.isFinite(xtreamId) || xtreamId <= 0 || !backdropUrl) {
+                return;
+            }
+
+            const backfillKey = `${playlistId}:${xtreamId}:${backdropUrl}`;
+            if (this.backdropBackfillKey() === backfillKey) {
+                return;
+            }
+
+            this.backdropBackfillKey.set(backfillKey);
+            void this.xtreamStore.backfillContentBackdrop({
+                xtreamId,
+                contentType: 'series',
+                playlist: this.xtreamStore.currentPlaylist,
+                backdropUrl,
+            });
         });
 
         effect(() => {
@@ -236,7 +261,8 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
         this.xtreamStore.toggleFavorite(
             this.route.snapshot.params.serialId,
             this.xtreamStore.currentPlaylist().id,
-            'series'
+            'series',
+            this.selectedItem()?.info?.backdrop_path?.[0]
         );
     }
 
@@ -285,8 +311,10 @@ export class SerialDetailsComponent implements OnInit, OnDestroy {
 
     private addToRecentlyViewed(xtreamId: number): void {
         this.xtreamStore.addRecentItem({
-            contentId: xtreamId,
+            xtreamId,
+            contentType: 'series',
             playlist: this.xtreamStore.currentPlaylist,
+            backdropUrl: this.selectedItem()?.info?.backdrop_path?.[0],
         });
     }
 

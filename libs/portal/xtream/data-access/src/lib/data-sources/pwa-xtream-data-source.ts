@@ -318,7 +318,13 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         return results as XtreamContentItem[];
     }
 
-    async addFavorite(contentId: number, playlistId: string): Promise<void> {
+    async addFavorite(
+        contentId: number,
+        playlistId: string,
+        // PWA uses localStorage with no content table, so backdrop persistence
+        // is electron-only. Accept the param for interface parity.
+        _backdropUrl?: string
+    ): Promise<void> {
         const allFavorites = this.getFavoritesFromStorage();
         if (!allFavorites[playlistId]) {
             allFavorites[playlistId] = [];
@@ -530,7 +536,11 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         return results as XtreamContentItem[];
     }
 
-    async addRecentItem(contentId: number, playlistId: string): Promise<void> {
+    async addRecentItem(
+        contentId: number,
+        playlistId: string,
+        _backdropUrl?: string
+    ): Promise<void> {
         const allRecent = this.getRecentItemsFromStorage();
         if (!allRecent[playlistId]) {
             allRecent[playlistId] = [];

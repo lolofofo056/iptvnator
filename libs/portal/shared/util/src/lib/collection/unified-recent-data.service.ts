@@ -14,15 +14,16 @@ import {
     extractStalkerItemType,
     isM3uRecentlyViewedItem,
     M3uRecentlyViewedItem,
+    normalizeStalkerDate,
     Playlist,
     PlaylistMeta,
     PlaylistRecentlyViewedItem,
     PlaylistUpdateState,
     StalkerPortalItem,
-    normalizeStalkerDate,
 } from 'shared-interfaces';
 import {
     buildCollectionUid,
+    buildXtreamCollectionUid,
     UnifiedCollectionItem,
 } from './unified-collection-item.interface';
 import { CollectionScope } from './scope-toggle.service';
@@ -155,7 +156,8 @@ export class UnifiedRecentDataService {
                     ? (
                           await this.dbService.getContentByXtreamId(
                               item.xtreamId,
-                              item.playlistId
+                              item.playlistId,
+                              item.contentType
                           )
                       )?.id
                     : null);
@@ -240,7 +242,11 @@ export class UnifiedRecentDataService {
         try {
             const rows = await this.dbService.getGlobalRecentlyViewed();
             return (rows || []).map((row) => ({
-                uid: buildCollectionUid('xtream', row.playlist_id, row.xtream_id),
+                uid: buildXtreamCollectionUid(
+                    row.playlist_id,
+                    xtreamContentType(row.type),
+                    row.xtream_id
+                ),
                 name: row.title,
                 contentType: xtreamContentType(row.type),
                 sourceType: 'xtream' as const,
@@ -252,7 +258,7 @@ export class UnifiedRecentDataService {
                 categoryId: row.category_id,
                 tvgId: row.type === 'live' ? String(row.xtream_id) : undefined,
                 contentId: row.id,
-                viewedAt: row.viewed_at,
+                viewedAt: normalizeStalkerDate(row.viewed_at),
             }));
         } catch {
             return [];
@@ -267,7 +273,11 @@ export class UnifiedRecentDataService {
             const meta = await this.getPlaylistMeta(playlistId);
 
             return (rows || []).map((row) => ({
-                uid: buildCollectionUid('xtream', playlistId, row.xtream_id),
+                uid: buildXtreamCollectionUid(
+                    playlistId,
+                    xtreamContentType(row.type),
+                    row.xtream_id
+                ),
                 name: row.title,
                 contentType: xtreamContentType(row.type),
                 sourceType: 'xtream' as const,
@@ -279,7 +289,7 @@ export class UnifiedRecentDataService {
                 categoryId: row.category_id,
                 tvgId: row.type === 'live' ? String(row.xtream_id) : undefined,
                 contentId: row.id,
-                viewedAt: row.viewed_at ?? '',
+                viewedAt: normalizeStalkerDate(row.viewed_at),
             }));
         } catch {
             return [];

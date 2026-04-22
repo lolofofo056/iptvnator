@@ -93,6 +93,9 @@ export interface ContentState {
     importCount: number;
     importPhase: string | null;
     itemsToImport: number;
+    activeImportContentType: ContentType | null;
+    activeImportCurrentCount: number;
+    activeImportTotalCount: number;
     activeImportSessionId: string | null;
     activeImportOperationIds: string[];
     isContentInitialized: boolean;
@@ -123,6 +126,9 @@ const initialContentState: ContentState = {
     importCount: 0,
     importPhase: null,
     itemsToImport: 0,
+    activeImportContentType: null,
+    activeImportCurrentCount: 0,
+    activeImportTotalCount: 0,
     activeImportSessionId: null,
     activeImportOperationIds: [],
     isContentInitialized: false,
@@ -219,6 +225,18 @@ export function withContent() {
                         [type]: loadState,
                     },
                 }));
+            };
+
+            const setActiveImportProgress = (
+                type: ContentType | null,
+                current = 0,
+                total = 0
+            ): void => {
+                patchState(store, {
+                    activeImportContentType: type,
+                    activeImportCurrentCount: current,
+                    activeImportTotalCount: total,
+                });
             };
 
             const resolveInitBlockReason = (
@@ -354,13 +372,25 @@ export function withContent() {
                               : state.activeImportOperationIds.includes(
                                       operationId
                                   )
-                                ? state.activeImportOperationIds
+                                    ? state.activeImportOperationIds
                                 : [
                                       ...state.activeImportOperationIds,
                                       operationId,
                                   ],
                     isCancellingImport: state.isCancellingImport,
                 }));
+
+                if (
+                    event.operation === 'save-content' &&
+                    store.activeImportContentType()
+                ) {
+                    patchState(store, (state) => ({
+                        activeImportCurrentCount:
+                            event.current ?? state.activeImportCurrentCount,
+                        activeImportTotalCount:
+                            event.total ?? state.activeImportTotalCount,
+                    }));
+                }
             };
 
             const registerImportOperation = (operationId: string): void => {
@@ -473,6 +503,9 @@ export function withContent() {
                     importCount: 0,
                     importPhase: null,
                     itemsToImport: 0,
+                    activeImportContentType: null,
+                    activeImportCurrentCount: 0,
+                    activeImportTotalCount: 0,
                     activeImportSessionId: importSessionId,
                     activeImportOperationIds: [],
                     contentLoadStateByType: {
@@ -574,6 +607,9 @@ export function withContent() {
                         importCount: 0,
                         importPhase: null,
                         itemsToImport: 0,
+                        activeImportContentType: null,
+                        activeImportCurrentCount: 0,
+                        activeImportTotalCount: 0,
                         activeImportSessionId: null,
                         activeImportOperationIds: [],
                     });
@@ -700,16 +736,24 @@ export function withContent() {
 
                     const onTotal = (count: number) => {
                         totalItems += count;
-                        patchState(store, { itemsToImport: totalItems });
+                        patchState(store, {
+                            itemsToImport: totalItems,
+                            activeImportTotalCount: count,
+                        });
                     };
 
                     const onProgress = (count: number) => {
                         importedItems += count;
-                        patchState(store, { importCount: importedItems });
+                        patchState(store, (state) => ({
+                            importCount: importedItems,
+                            activeImportCurrentCount:
+                                state.activeImportCurrentCount + count,
+                        }));
                     };
 
                     try {
                         throwIfImportCancelled(options?.importSessionId);
+                        setActiveImportProgress('live');
                         const liveOperationId =
                             databaseService.createOperationId(
                                 'db-save-content'
@@ -746,6 +790,7 @@ export function withContent() {
                         updateContentTypeLoadState('live', 'ready');
 
                         throwIfImportCancelled(options?.importSessionId);
+                        setActiveImportProgress('vod');
                         const vodOperationId =
                             databaseService.createOperationId(
                                 'db-save-content'
@@ -781,6 +826,7 @@ export function withContent() {
                         updateContentTypeLoadState('vod', 'ready');
 
                         throwIfImportCancelled(options?.importSessionId);
+                        setActiveImportProgress('series');
                         const seriesOperationId =
                             databaseService.createOperationId(
                                 'db-save-content'
@@ -880,6 +926,9 @@ export function withContent() {
                     patchState(store, {
                         isCancellingImport: true,
                         contentInitBlockReason: 'cancelled',
+                        activeImportContentType: null,
+                        activeImportCurrentCount: 0,
+                        activeImportTotalCount: 0,
                         activeImportSessionId: null,
                     });
                     const ctx = getCredentialsFromStore();

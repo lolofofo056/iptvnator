@@ -14,11 +14,13 @@ import { DialogService } from 'components';
 import {
     COLLECTION_VIEW_STATE_KEY,
     CollectionScope,
+    FavoritesChannelSortMode,
     OPEN_COLLECTION_DETAIL_STATE_KEY,
     ScopeToggleService,
     UnifiedCollectionItem,
     UnifiedFavoritesDataService,
     UnifiedRecentDataService,
+    WorkspaceViewCommandService,
 } from '@iptvnator/portal/shared/util';
 import { selectAllPlaylistsMeta, selectPlaylistsLoadingFlag } from 'm3u-state';
 import { BehaviorSubject } from 'rxjs';
@@ -38,6 +40,7 @@ class StubUnifiedLiveTabComponent {
     readonly mode = input<'favorites' | 'recent'>('favorites');
     readonly searchTerm = input('');
     readonly autoOpenItem = input<unknown>(null);
+    readonly sortMode = input<FavoritesChannelSortMode>('custom');
 
     readonly removeItem = output<UnifiedCollectionItem>();
     readonly reorderItems = output<UnifiedCollectionItem[]>();
@@ -130,6 +133,9 @@ describe('UnifiedCollectionPageComponent', () => {
     const dialogService = {
         openConfirmDialog: jest.fn(),
     };
+    const workspaceViewCommands = {
+        registerCommand: jest.fn(),
+    };
     const router = {
         navigate: jest.fn().mockResolvedValue(true),
         url: '/workspace/global-favorites',
@@ -165,6 +171,7 @@ describe('UnifiedCollectionPageComponent', () => {
         playlistsLoaded.set(false);
         playlists.set([]);
         jest.clearAllMocks();
+        workspaceViewCommands.registerCommand.mockReturnValue(jest.fn());
         routeParamMap$ = new BehaviorSubject(convertToParamMap({}));
         routeQueryParamMap$ = new BehaviorSubject(convertToParamMap({}));
         workspaceParamMap$ = new BehaviorSubject(convertToParamMap({}));
@@ -260,6 +267,10 @@ describe('UnifiedCollectionPageComponent', () => {
                 {
                     provide: DialogService,
                     useValue: dialogService,
+                },
+                {
+                    provide: WorkspaceViewCommandService,
+                    useValue: workspaceViewCommands,
                 },
             ],
         })
@@ -461,6 +472,63 @@ describe('UnifiedCollectionPageComponent', () => {
         expect(favoritesData.clearFavorites).toHaveBeenCalledTimes(1);
         expect(favoritesData.clearFavorites).toHaveBeenCalledWith(liveItems);
         expect(favoritesData.removeFavorite).not.toHaveBeenCalled();
+    });
+
+    it('registers a workspace command when the current view has actionable items', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        expect(fixture.componentInstance.isWorkspaceLayout).toBe(true);
+
+        fixture.componentInstance.allItems.set([
+            {
+                uid: 'm3u::playlist-1::one',
+                name: 'Favorite One',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'playlist-1',
+                playlistName: 'Playlist One',
+                streamUrl: 'https://example.com/one.m3u8',
+            },
+        ]);
+        TestBed.flushEffects();
+
+        expect(workspaceViewCommands.registerCommand).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'unified-collection-clear-current-favorites',
+                group: 'view',
+                icon: 'delete_sweep',
+                labelKey: 'WORKSPACE.SHELL.CLEAR_FAVORITES_TYPE',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.CLEAR_CURRENT_VIEW_DESCRIPTION',
+            })
+        );
+    });
+
+    it('unregisters the workspace command when the current view becomes empty', async () => {
+        const unregister = jest.fn();
+        workspaceViewCommands.registerCommand.mockReturnValue(unregister);
+
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        fixture.componentInstance.allItems.set([
+            {
+                uid: 'm3u::playlist-1::one',
+                name: 'Favorite One',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'playlist-1',
+                playlistName: 'Playlist One',
+                streamUrl: 'https://example.com/one.m3u8',
+            },
+        ]);
+        TestBed.flushEffects();
+
+        fixture.componentInstance.allItems.set([]);
+        TestBed.flushEffects();
+        fixture.detectChanges();
+
+        expect(unregister).toHaveBeenCalled();
     });
 
     it('reloads favorites when bulk clear persistence fails', async () => {

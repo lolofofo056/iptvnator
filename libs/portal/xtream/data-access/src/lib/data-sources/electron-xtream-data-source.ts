@@ -376,8 +376,12 @@ export class ElectronXtreamDataSource implements IXtreamDataSource {
         return this.dbService.getFavorites(playlistId);
     }
 
-    async addFavorite(contentId: number, playlistId: string): Promise<void> {
-        await this.dbService.addToFavorites(contentId, playlistId);
+    async addFavorite(
+        contentId: number,
+        playlistId: string,
+        backdropUrl?: string
+    ): Promise<void> {
+        await this.dbService.addToFavorites(contentId, playlistId, backdropUrl);
     }
 
     async removeFavorite(contentId: number, playlistId: string): Promise<void> {
@@ -396,8 +400,12 @@ export class ElectronXtreamDataSource implements IXtreamDataSource {
         return this.dbService.getRecentItems(playlistId);
     }
 
-    async addRecentItem(contentId: number, playlistId: string): Promise<void> {
-        await this.dbService.addRecentItem(contentId, playlistId);
+    async addRecentItem(
+        contentId: number,
+        playlistId: string,
+        backdropUrl?: string
+    ): Promise<void> {
+        await this.dbService.addRecentItem(contentId, playlistId, backdropUrl);
     }
 
     async removeRecentItem(

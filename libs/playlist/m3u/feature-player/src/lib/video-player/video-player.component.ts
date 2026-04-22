@@ -758,6 +758,13 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
             icon: 'view_list',
             tooltipKey: 'TOP_MENU.OPEN_MULTI_EPG',
             ariaLabelKey: 'TOP_MENU.OPEN_MULTI_EPG',
+            palette: {
+                labelKey: 'TOP_MENU.OPEN_MULTI_EPG',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_MULTI_EPG_DESCRIPTION',
+                keywords: ['epg', 'guide', 'schedule'],
+                priority: 10,
+            },
             run: () => this.openMultiEpgView(),
         });
     }

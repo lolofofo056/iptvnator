@@ -17,6 +17,7 @@ import {
 } from 'shared-interfaces';
 import {
     buildCollectionUid,
+    buildXtreamCollectionUid,
     UnifiedCollectionItem,
 } from './unified-collection-item.interface';
 import { CollectionScope } from './scope-toggle.service';
@@ -384,7 +385,7 @@ export class UnifiedFavoritesDataService {
     private mapXtreamRow(row: XtreamFavoriteRow): UnifiedCollectionItem {
         const ct = xtreamContentType(row.type);
         return {
-            uid: buildCollectionUid('xtream', row.playlist_id, row.xtream_id),
+            uid: buildXtreamCollectionUid(row.playlist_id, ct, row.xtream_id),
             name: row.title,
             contentType: ct,
             sourceType: 'xtream',
@@ -396,7 +397,9 @@ export class UnifiedFavoritesDataService {
             categoryId: row.category_id,
             tvgId: ct === 'live' ? String(row.xtream_id) : undefined,
             rating: row.rating ?? undefined,
-            addedAt: row.added_at ?? new Date(0).toISOString(),
+            addedAt:
+                normalizeStalkerDate(row.added_at) ||
+                new Date(0).toISOString(),
             position: row.position ?? 0,
             contentId: row.id,
         };

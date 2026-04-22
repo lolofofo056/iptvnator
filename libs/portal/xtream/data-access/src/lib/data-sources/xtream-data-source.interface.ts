@@ -277,9 +277,16 @@ export interface IXtreamDataSource {
     getFavorites(playlistId: string): Promise<XtreamContentItem[]>;
 
     /**
-     * Add content to favorites
+     * Add content to favorites.
+     * @param backdropUrl optionally persisted to `content.backdrop_url` when
+     * the row doesn't already have one. Enables the dashboard hero to surface
+     * a cinematic backdrop without a separate round-trip.
      */
-    addFavorite(contentId: number, playlistId: string): Promise<void>;
+    addFavorite(
+        contentId: number,
+        playlistId: string,
+        backdropUrl?: string
+    ): Promise<void>;
 
     /**
      * Remove content from favorites
@@ -301,9 +308,13 @@ export interface IXtreamDataSource {
     getRecentItems(playlistId: string): Promise<XtreamContentItem[]>;
 
     /**
-     * Add item to recently viewed
+     * Add item to recently viewed. See `addFavorite` for `backdropUrl`.
      */
-    addRecentItem(contentId: number, playlistId: string): Promise<void>;
+    addRecentItem(
+        contentId: number,
+        playlistId: string,
+        backdropUrl?: string
+    ): Promise<void>;
 
     /**
      * Remove item from recently viewed

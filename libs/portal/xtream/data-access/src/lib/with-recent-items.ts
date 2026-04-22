@@ -26,6 +26,7 @@ function mapDbRecentItem(
         title: string;
         type: string;
         poster_url: string;
+        backdrop_url?: string | null;
         viewed_at?: string;
         xtream_id: number;
         category_id: number;
@@ -37,6 +38,7 @@ function mapDbRecentItem(
         title: item.title,
         type: item.type as 'live' | 'movie' | 'series',
         poster_url: item.poster_url,
+        backdrop_url: item.backdrop_url ?? undefined,
         content_id: item.id,
         playlist_id: playlistId,
         viewed_at: item.viewed_at || '',
@@ -75,22 +77,30 @@ export const withRecentItems = function () {
                 playlistsService = inject(PlaylistsService)
             ) => ({
                 addRecentItem: rxMethod<{
-                    contentId: number;
+                    xtreamId: number;
+                    contentType: 'live' | 'movie' | 'series';
                     playlist: Signal<{ id: string }>;
+                    backdropUrl?: string;
                 }>(
                     pipe(
-                        switchMap(async ({ contentId, playlist }) => {
-                            // contentId is actually xtream_id, need to look up the database content.id
+                        switchMap(
+                            async ({
+                                xtreamId,
+                                contentType,
+                                playlist,
+                                backdropUrl,
+                            }) => {
                             const playlistId = playlist().id;
-                            const content =
-                                await dbService.getContentByXtreamId(
-                                    contentId,
-                                    playlistId
-                                );
+                            const content = await dbService.getContentByXtreamId(
+                                xtreamId,
+                                playlistId,
+                                contentType
+                            );
                             if (content) {
                                 await dbService.addRecentItem(
                                     content.id,
-                                    playlistId
+                                    playlistId,
+                                    backdropUrl
                                 );
 
                                 // Reload after add/update so re-watched items
@@ -106,6 +116,41 @@ export const withRecentItems = function () {
                         })
                     )
                 ),
+                async backfillContentBackdrop({
+                    xtreamId,
+                    contentType,
+                    playlist,
+                    backdropUrl,
+                }: {
+                    xtreamId: number;
+                    contentType: 'live' | 'movie' | 'series';
+                    playlist: Signal<{ id: string }>;
+                    backdropUrl?: string;
+                }): Promise<void> {
+                    if (!window.electron) {
+                        return;
+                    }
+
+                    const playlistId = playlist().id;
+                    const normalizedBackdropUrl = backdropUrl?.trim();
+                    if (!playlistId || !normalizedBackdropUrl) {
+                        return;
+                    }
+
+                    const content = await dbService.getContentByXtreamId(
+                        xtreamId,
+                        playlistId,
+                        contentType
+                    );
+                    if (!content) {
+                        return;
+                    }
+
+                    await dbService.setContentBackdropIfMissing(
+                        content.id,
+                        normalizedBackdropUrl
+                    );
+                },
                 clearRecentItems: rxMethod<{ id: string }>(
                     pipe(
                         switchMap(async (playlist) => {
@@ -160,6 +205,7 @@ export const withRecentItems = function () {
                             title: item.title,
                             type: item.type as 'live' | 'movie' | 'series',
                             poster_url: item.poster_url,
+                            backdrop_url: item.backdrop_url ?? undefined,
                             content_id: item.id,
                             playlist_id: item.playlist_id,
                             playlist_name: item.playlist_name,
