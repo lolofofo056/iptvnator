@@ -42,7 +42,7 @@ export const routes: Routes = [
                 canActivate: [dashboardAccessGuard],
                 loadComponent: () =>
                     import('workspace-dashboard-feature').then(
-                        (c) => c.WorkspaceDashboardComponent
+                        (c) => c.WorkspaceDashboardRailsComponent
                     ),
             },
             {
