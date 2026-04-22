@@ -43,6 +43,7 @@ import {
     saveContent,
     searchContent,
 } from '../database/operations/content.operations';
+import { setContentBackdropIfMissing } from '../database/operations/content-backdrop.operations';
 import {
     clearAllPlaybackPositions,
     clearPlaybackPosition,
@@ -345,8 +346,19 @@ async function executeRequest(message: DbWorkerRequestMessage) {
             const payload = message.payload as {
                 kind?: 'all' | 'vod' | 'series';
                 limit?: number;
+                playlistType?:
+                    | 'xtream'
+                    | 'stalker'
+                    | 'm3u-file'
+                    | 'm3u-text'
+                    | 'm3u-url';
             };
-            return getGlobalRecentlyAdded(db, payload.kind, payload.limit);
+            return getGlobalRecentlyAdded(
+                db,
+                payload.kind,
+                payload.limit,
+                payload.playlistType
+            );
         }
 
         case 'DB_SAVE_CONTENT': {
@@ -410,6 +422,18 @@ async function executeRequest(message: DbWorkerRequestMessage) {
                 payload.xtreamId,
                 payload.playlistId,
                 payload.contentType
+            );
+        }
+
+        case 'DB_SET_CONTENT_BACKDROP_IF_MISSING': {
+            const payload = message.payload as {
+                contentId: number;
+                backdropUrl?: string;
+            };
+            return setContentBackdropIfMissing(
+                db,
+                payload.contentId,
+                payload.backdropUrl
             );
         }
 
@@ -661,8 +685,11 @@ async function executeRequest(message: DbWorkerRequestMessage) {
             const payload = message.payload as {
                 contentId: number;
                 playlistId: string;
+                backdropUrl?: string;
             };
-            return addFavorite(db, payload.contentId, payload.playlistId);
+            return addFavorite(db, payload.contentId, payload.playlistId, {
+                backdropUrl: payload.backdropUrl,
+            });
         }
 
         case 'DB_REMOVE_FAVORITE': {
@@ -714,8 +741,11 @@ async function executeRequest(message: DbWorkerRequestMessage) {
             const payload = message.payload as {
                 contentId: number;
                 playlistId: string;
+                backdropUrl?: string;
             };
-            return addRecentItem(db, payload.contentId, payload.playlistId);
+            return addRecentItem(db, payload.contentId, payload.playlistId, {
+                backdropUrl: payload.backdropUrl,
+            });
         }
 
         case 'DB_CLEAR_PLAYLIST_RECENT_ITEMS': {

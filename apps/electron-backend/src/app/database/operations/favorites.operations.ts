@@ -7,18 +7,22 @@ import {
     type OperationControl,
     reportOperationProgress,
 } from './operation-control';
+import { persistContentBackdropIfMissing } from './content-backdrop.operations';
 
 const DEFAULT_BATCH_SIZE = 100;
 
 export async function addFavorite(
     db: AppDatabase,
     contentId: number,
-    playlistId: string
+    playlistId: string,
+    options?: { backdropUrl?: string }
 ): Promise<{ success: boolean }> {
     await db.insert(schema.favorites).values({
         contentId,
         playlistId,
     });
+
+    await persistContentBackdropIfMissing(db, contentId, options?.backdropUrl);
 
     return { success: true };
 }
@@ -127,6 +131,7 @@ export async function getAllGlobalFavorites(db: AppDatabase) {
             rating: schema.content.rating,
             added: schema.content.added,
             poster_url: schema.content.posterUrl,
+            backdrop_url: schema.content.backdropUrl,
             xtream_id: schema.content.xtreamId,
             type: schema.content.type,
             playlist_id: schema.playlists.id,

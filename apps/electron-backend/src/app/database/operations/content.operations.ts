@@ -107,16 +107,34 @@ export async function getContent(
         : baseQuery.orderBy(desc(schema.content.added));
 }
 
+export type RecentlyAddedPlaylistType =
+    | 'xtream'
+    | 'stalker'
+    | 'm3u-file'
+    | 'm3u-text'
+    | 'm3u-url';
+
 export async function getGlobalRecentlyAdded(
     db: AppDatabase,
     kind: GlobalRecentlyAddedKind = 'all',
-    limit = 200
+    limit = 200,
+    playlistType?: RecentlyAddedPlaylistType
 ) {
     const contentTypes = getRecentlyAddedContentTypes(kind);
     const normalizedLimit = Number.isFinite(limit)
         ? Math.min(Math.max(Math.trunc(limit), 1), 200)
         : 200;
     const addedOrder = sql<number>`CAST(${schema.content.added} AS INTEGER)`;
+
+    const whereConditions = [
+        inArray(schema.content.type, contentTypes),
+        eq(schema.categories.hidden, false),
+        sql`${schema.content.added} <> ''`,
+    ];
+
+    if (playlistType) {
+        whereConditions.push(eq(schema.playlists.type, playlistType));
+    }
 
     return db
         .select({
@@ -134,13 +152,7 @@ export async function getGlobalRecentlyAdded(
             schema.playlists,
             eq(schema.categories.playlistId, schema.playlists.id)
         )
-        .where(
-            and(
-                inArray(schema.content.type, contentTypes),
-                eq(schema.categories.hidden, false),
-                sql`${schema.content.added} <> ''`
-            )
-        )
+        .where(and(...whereConditions))
         .orderBy(desc(addedOrder))
         .limit(normalizedLimit);
 }

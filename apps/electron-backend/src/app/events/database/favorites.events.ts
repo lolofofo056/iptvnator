@@ -7,9 +7,10 @@ import { handleWorkerRequest } from './worker-events.utils';
 
 handleWorkerRequest(
     'DB_ADD_FAVORITE',
-    (contentId: number, playlistId: string) => ({
+    (contentId: number, playlistId: string, backdropUrl?: string) => ({
         contentId,
         playlistId,
+        backdropUrl,
     })
 );
 

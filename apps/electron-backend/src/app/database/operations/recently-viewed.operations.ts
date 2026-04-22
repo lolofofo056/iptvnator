@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import * as schema from 'database-schema';
 import type { AppDatabase } from '../database.types';
+import { persistContentBackdropIfMissing } from './content-backdrop.operations';
 
 export async function getRecentlyViewed(db: AppDatabase) {
     return db
@@ -11,6 +12,7 @@ export async function getRecentlyViewed(db: AppDatabase) {
             rating: schema.content.rating,
             added: schema.content.added,
             poster_url: schema.content.posterUrl,
+            backdrop_url: schema.content.backdropUrl,
             xtream_id: schema.content.xtreamId,
             type: schema.content.type,
             playlist_id: schema.categories.playlistId,
@@ -53,6 +55,7 @@ export async function getRecentItems(
             rating: schema.content.rating,
             added: schema.content.added,
             poster_url: schema.content.posterUrl,
+            backdrop_url: schema.content.backdropUrl,
             xtream_id: schema.content.xtreamId,
             type: schema.content.type,
             viewed_at: schema.recentlyViewed.viewedAt,
@@ -70,7 +73,8 @@ export async function getRecentItems(
 export async function addRecentItem(
     db: AppDatabase,
     contentId: number,
-    playlistId: string
+    playlistId: string,
+    options?: { backdropUrl?: string }
 ): Promise<{ success: boolean }> {
     const existing = await db
         .select()
@@ -99,6 +103,8 @@ export async function addRecentItem(
             playlistId,
         });
     }
+
+    await persistContentBackdropIfMissing(db, contentId, options?.backdropUrl);
 
     return { success: true };
 }

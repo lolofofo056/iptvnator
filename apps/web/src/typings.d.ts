@@ -242,7 +242,8 @@ declare global {
             // Favorites
             dbAddFavorite: (
                 contentId: number,
-                playlistId: string
+                playlistId: string,
+                backdropUrl?: string
             ) => Promise<{ success: boolean }>;
             dbRemoveFavorite: (
                 contentId: number,
@@ -262,7 +263,8 @@ declare global {
             dbGetRecentItems: (playlistId: string) => Promise<XtreamContent[]>;
             dbAddRecentItem: (
                 contentId: number,
-                playlistId: string
+                playlistId: string,
+                backdropUrl?: string
             ) => Promise<{ success: boolean }>;
             dbClearPlaylistRecentItems: (
                 playlistId: string
@@ -276,6 +278,10 @@ declare global {
                 playlistId: string,
                 contentType?: 'live' | 'movie' | 'series'
             ) => Promise<XtreamContent | null>;
+            dbSetContentBackdropIfMissing: (
+                contentId: number,
+                backdropUrl?: string
+            ) => Promise<{ success: boolean }>;
             dbGetAppState: (key: string) => Promise<string | null>;
             dbSetAppState: (
                 key: string,
