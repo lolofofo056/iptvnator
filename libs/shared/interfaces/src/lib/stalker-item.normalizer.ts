@@ -3,6 +3,9 @@ import {
     StalkerPortalItem,
 } from './stalker-portal-item.interface';
 
+const SQLITE_UTC_TIMESTAMP_PATTERN =
+    /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/;
+
 /**
  * Extract a stable ID from an untyped Stalker portal item.
  *
@@ -93,6 +96,10 @@ export function normalizeStalkerDate(value: unknown): string {
                 return new Date(ms).toISOString();
             }
         }
+        const sqliteUtcIso = normalizeSqliteUtcTimestamp(trimmed);
+        if (sqliteUtcIso) {
+            return sqliteUtcIso;
+        }
         const parsed = Date.parse(trimmed);
         if (!Number.isNaN(parsed)) {
             return new Date(parsed).toISOString();
@@ -116,4 +123,35 @@ export function stalkerItemMatchesId(
     const item = (raw ?? {}) as Record<string, unknown>;
     const rawId = extractStalkerItemId(item, fallbackPrefix, fallbackIndex);
     return rawId === targetId;
+}
+
+function normalizeSqliteUtcTimestamp(value: string): string | null {
+    const match = SQLITE_UTC_TIMESTAMP_PATTERN.exec(value);
+    if (!match) {
+        return null;
+    }
+
+    const [
+        ,
+        year,
+        month,
+        day,
+        hours,
+        minutes,
+        seconds,
+        milliseconds = '0',
+    ] = match;
+
+    const normalizedMs = milliseconds.padEnd(3, '0').slice(0, 3);
+    return new Date(
+        Date.UTC(
+            Number(year),
+            Number(month) - 1,
+            Number(day),
+            Number(hours),
+            Number(minutes),
+            Number(seconds),
+            Number(normalizedMs)
+        )
+    ).toISOString();
 }

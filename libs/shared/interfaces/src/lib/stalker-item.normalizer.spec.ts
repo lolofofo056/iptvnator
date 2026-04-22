@@ -1,0 +1,27 @@
+import { normalizeStalkerDate } from './stalker-item.normalizer';
+
+describe('normalizeStalkerDate', () => {
+    it('normalizes SQLite UTC timestamps without relying on engine-specific parsing', () => {
+        const originalParse = Date.parse;
+        const parseSpy = jest
+            .spyOn(Date, 'parse')
+            .mockImplementation((value: string) => {
+                if (value === '2026-04-21 22:49:02') {
+                    return Number.NaN;
+                }
+
+                return originalParse(value);
+            });
+
+        expect(normalizeStalkerDate('2026-04-21 22:49:02')).toBe(
+            '2026-04-21T22:49:02.000Z'
+        );
+        expect(parseSpy).not.toHaveBeenCalledWith('2026-04-21 22:49:02');
+    });
+
+    it('preserves fractional seconds in SQLite UTC timestamps', () => {
+        expect(normalizeStalkerDate('2026-04-21 22:49:02.7')).toBe(
+            '2026-04-21T22:49:02.700Z'
+        );
+    });
+});
