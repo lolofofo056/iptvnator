@@ -85,9 +85,6 @@
             ],
             "workspace-dashboard-data-access": [
                 "libs/workspace/dashboard/data-access/src/index.ts"
-            ],
-            "workspace-dashboard-ui": [
-                "libs/workspace/dashboard/ui/src/index.ts"
             ]
         }
     },
