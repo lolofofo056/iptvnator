@@ -39,7 +39,6 @@ export class WorkspaceShellHeaderComponent {
     readonly searchPlaceholder = input('');
     readonly searchScopeLabel = input('');
     readonly searchStatusLabel = input('');
-    readonly isGlobalFavoritesActive = input(false);
     readonly headerShortcut = input<WorkspaceHeaderAction | null>(null);
     readonly canRefreshPlaylist = input(false);
     readonly isRefreshingPlaylist = input(false);
@@ -51,7 +50,6 @@ export class WorkspaceShellHeaderComponent {
     readonly searchSubmitted = output<string>();
     readonly commandPaletteRequested = output<void>();
     readonly addPlaylistRequested = output<void>();
-    readonly globalFavoritesRequested = output<void>();
     readonly headerShortcutRequested = output<void>();
     readonly refreshPlaylistRequested = output<void>();
     readonly downloadsRequested = output<void>();
@@ -82,10 +80,6 @@ export class WorkspaceShellHeaderComponent {
 
     onCommandPaletteRequested(): void {
         this.commandPaletteRequested.emit();
-    }
-
-    onGlobalFavoritesRequested(): void {
-        this.globalFavoritesRequested.emit();
     }
 
     onHeaderShortcutRequested(): void {

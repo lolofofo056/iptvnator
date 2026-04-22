@@ -15,47 +15,20 @@ import {
 } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
-
-export type WorkspaceCommandScope = 'global' | 'playlist' | 'section';
-
-export type WorkspaceCommandId =
-    | 'global-search'
-    | 'playlist-search'
-    | 'open-global-favorites'
-    | 'open-downloads'
-    | 'open-global-recent'
-    | 'open-settings'
-    | 'open-sources'
-    | 'open-dashboard'
-    | 'add-playlist'
-    | 'refresh-playlist'
-    | 'playlist-info'
-    | 'account-info'
-    | 'go-to-vod'
-    | 'go-to-live'
-    | 'go-to-series';
-
-export interface WorkspaceCommandItem {
-    id: WorkspaceCommandId;
-    label: string;
-    description: string;
-    scope: WorkspaceCommandScope;
-    enabled: boolean;
-}
-
-export interface WorkspaceCommandSelection {
-    commandId: WorkspaceCommandId;
-    query: string;
-}
+import {
+    WorkspaceCommandGroup,
+    WorkspaceCommandSelection,
+    WorkspaceResolvedCommandItem,
+} from '@iptvnator/portal/shared/util';
 
 interface WorkspaceCommandPaletteData {
-    commands: WorkspaceCommandItem[];
+    commands: WorkspaceResolvedCommandItem[];
     query?: string;
 }
 
-interface WorkspaceCommandGroup {
-    scope: WorkspaceCommandScope;
-    items: WorkspaceCommandItem[];
+interface WorkspaceCommandGroupSection {
+    group: WorkspaceCommandGroup;
+    items: WorkspaceResolvedCommandItem[];
 }
 
 @Component({
@@ -80,48 +53,70 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
     readonly query = signal(this.data?.query ?? '');
     readonly selectedIndex = signal(0);
 
+    readonly visibleCommands = computed(() =>
+        this.data.commands.filter((command) => command.visible)
+    );
+
     readonly filteredCommands = computed(() => {
         const term = this.query().trim().toLowerCase();
+        const commands = this.visibleCommands();
+
         if (!term) {
-            return this.data.commands;
+            return commands;
         }
 
-        return this.data.commands.filter((command) => {
-            const haystack =
-                `${command.label} ${command.description}`.toLowerCase();
+        return commands.filter((command) => {
+            const haystack = [
+                command.label,
+                command.description,
+                ...(command.keywords ?? []),
+            ]
+                .join(' ')
+                .toLowerCase();
+
             return haystack.includes(term);
         });
     });
 
-    readonly commandGroups = computed<WorkspaceCommandGroup[]>(() => {
+    readonly commandGroups = computed<WorkspaceCommandGroupSection[]>(() => {
         const commands = this.filteredCommands();
-        const grouped: WorkspaceCommandGroup[] = [];
+        const sections: WorkspaceCommandGroupSection[] = [];
 
-        const buildGroup = (
-            scope: WorkspaceCommandScope
-        ): WorkspaceCommandGroup | null => {
-            const items = commands.filter((command) => command.scope === scope);
+        const buildSection = (
+            group: WorkspaceCommandGroup
+        ): WorkspaceCommandGroupSection | null => {
+            const items = commands.filter((command) => command.group === group);
+
             if (items.length === 0) {
                 return null;
             }
-            return { scope, items };
+
+            return { group, items };
         };
 
         const groups = [
-            buildGroup('global'),
-            buildGroup('playlist'),
-            buildGroup('section'),
-        ].filter((group): group is WorkspaceCommandGroup => group !== null);
+            buildSection('view'),
+            buildSection('playlist'),
+            buildSection('global'),
+        ].filter(
+            (group): group is WorkspaceCommandGroupSection => group !== null
+        );
 
-        grouped.push(...groups);
-        return grouped;
+        sections.push(...groups);
+        return sections;
     });
 
     readonly flatCommands = computed(() =>
-        this.commandGroups().reduce<WorkspaceCommandItem[]>(
+        this.commandGroups().reduce<WorkspaceResolvedCommandItem[]>(
             (items, group) => items.concat(group.items),
             []
         )
+    );
+
+    readonly selectableIndices = computed(() =>
+        this.flatCommands()
+            .map((command, index) => (command.enabled ? index : -1))
+            .filter((index) => index >= 0)
     );
 
     constructor() {
@@ -132,9 +127,15 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
                 return;
             }
 
+            const selectableIndices = this.selectableIndices();
+            if (selectableIndices.length === 0) {
+                this.selectedIndex.set(-1);
+                return;
+            }
+
             const currentIndex = this.selectedIndex();
-            if (currentIndex < 0 || currentIndex >= items.length) {
-                this.selectedIndex.set(0);
+            if (!selectableIndices.includes(currentIndex)) {
+                this.selectedIndex.set(selectableIndices[0]);
             }
         });
     }
@@ -176,7 +177,11 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
         }
     }
 
-    onCommandHover(command: WorkspaceCommandItem): void {
+    onCommandHover(command: WorkspaceResolvedCommandItem): void {
+        if (!command.enabled) {
+            return;
+        }
+
         const index = this.flatCommands().findIndex(
             (item) => item.id === command.id
         );
@@ -185,7 +190,7 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
         }
     }
 
-    onCommandClick(command: WorkspaceCommandItem): void {
+    onCommandClick(command: WorkspaceResolvedCommandItem): void {
         if (!command.enabled) {
             return;
         }
@@ -196,23 +201,39 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
         });
     }
 
-    isCommandSelected(command: WorkspaceCommandItem): boolean {
+    isCommandSelected(command: WorkspaceResolvedCommandItem): boolean {
         const index = this.flatCommands().findIndex(
             (item) => item.id === command.id
         );
         return index >= 0 && this.selectedIndex() === index;
     }
 
+    getGroupTitleKey(group: WorkspaceCommandGroup): string {
+        if (group === 'view') {
+            return 'WORKSPACE.COMMAND_PALETTE.GROUP_VIEW';
+        }
+        if (group === 'playlist') {
+            return 'WORKSPACE.COMMAND_PALETTE.GROUP_PLAYLIST';
+        }
+        return 'WORKSPACE.COMMAND_PALETTE.GROUP_GLOBAL';
+    }
+
     private moveSelection(direction: 1 | -1): void {
-        const items = this.flatCommands();
-        if (items.length === 0) {
+        const selectableIndices = this.selectableIndices();
+        if (selectableIndices.length === 0) {
             return;
         }
 
-        const currentIndex = this.selectedIndex();
-        const safeIndex = currentIndex < 0 ? 0 : currentIndex;
-        const nextIndex = (safeIndex + direction + items.length) % items.length;
-        this.selectedIndex.set(nextIndex);
+        const currentPosition = selectableIndices.indexOf(this.selectedIndex());
+        const nextPosition =
+            currentPosition === -1
+                ? direction === 1
+                    ? 0
+                    : selectableIndices.length - 1
+                : (currentPosition + direction + selectableIndices.length) %
+                  selectableIndices.length;
+
+        this.selectedIndex.set(selectableIndices[nextPosition]);
     }
 
     private selectCurrent(): void {
@@ -227,52 +248,5 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
         }
 
         this.onCommandClick(items[index]);
-    }
-
-    getScopeTitleKey(scope: WorkspaceCommandScope): string {
-        if (scope === 'global') {
-            return 'WORKSPACE.COMMAND_PALETTE.GROUP_GLOBAL';
-        }
-        if (scope === 'playlist') {
-            return 'WORKSPACE.COMMAND_PALETTE.GROUP_PLAYLIST';
-        }
-        return 'WORKSPACE.COMMAND_PALETTE.GROUP_SECTION';
-    }
-
-    getCommandIcon(command: WorkspaceCommandItem): string {
-        switch (command.id) {
-            case 'global-search':
-                return 'search';
-            case 'playlist-search':
-                return 'playlist_play';
-            case 'open-global-favorites':
-                return 'star';
-            case 'open-downloads':
-                return 'download';
-            case 'open-global-recent':
-                return 'history';
-            case 'open-settings':
-                return 'settings';
-            case 'open-sources':
-                return 'library_books';
-            case 'open-dashboard':
-                return 'dashboard';
-            case 'add-playlist':
-                return 'add_circle_outline';
-            case 'refresh-playlist':
-                return 'sync';
-            case 'playlist-info':
-                return 'info';
-            case 'account-info':
-                return 'account_circle';
-            case 'go-to-vod':
-                return 'movie';
-            case 'go-to-live':
-                return 'live_tv';
-            case 'go-to-series':
-                return 'video_library';
-            default:
-                return 'bolt';
-        }
     }
 }

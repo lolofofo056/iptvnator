@@ -157,8 +157,12 @@ app-workspace-shell-context-sidebar {
 }
 
 .workspace-loading-overlay__progress-copy {
+    max-width: 30ch;
+    justify-self: center;
+    line-height: 1.45;
     font-variant-numeric: tabular-nums;
     color: var(--app-muted-color, var(--mat-sys-on-surface-variant));
+    text-wrap: balance;
 }
 
 .workspace-loading-overlay__action {

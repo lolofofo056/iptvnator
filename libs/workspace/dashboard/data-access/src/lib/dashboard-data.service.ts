@@ -67,12 +67,16 @@ export class DashboardDataService {
     private readonly playlistsService = inject(PlaylistsService);
     private readonly ngZone = inject(NgZone);
     private readonly translate = inject(TranslateService);
+    private favoritesAutoRefreshEnabled = false;
     private readonly languageTick = toSignal(
         this.translate.onLangChange.pipe(startWith(null)),
         { initialValue: null }
     );
 
     private readonly xtreamGlobalRecentItems = signal<GlobalRecentItem[]>([]);
+    private readonly xtreamRecentlyAddedItemsState = signal<
+        DashboardRecentlyAddedItem[]
+    >([]);
     private readonly xtreamGlobalFavorites = signal<DashboardFavoriteItem[]>(
         []
     );
@@ -82,16 +86,35 @@ export class DashboardDataService {
     private readonly globalRecentDbLoadedState = signal(!window.electron);
     private readonly globalFavoritesLoadingState = signal(true);
     private readonly globalFavoritesLoadedState = signal(false);
+    private readonly xtreamRecentlyAddedLoadingState = signal(true);
+    private readonly xtreamRecentlyAddedLoadedState = signal(false);
     readonly playlists = this.store.selectSignal(selectAllPlaylistsMeta);
     readonly playlistsLoaded = this.store.selectSignal(
         selectPlaylistsLoadingFlag
     );
+    readonly xtreamPlaylistCount = computed(
+        () => this.playlists().filter((playlist) => !!playlist.serverUrl).length
+    );
+    readonly hasXtreamPlaylists = computed(() => this.xtreamPlaylistCount() > 0);
     readonly globalRecentLoading = this.globalRecentLoadingState.asReadonly();
     readonly globalRecentLoaded = this.globalRecentLoadedState.asReadonly();
     readonly globalFavoritesLoading =
         this.globalFavoritesLoadingState.asReadonly();
     readonly globalFavoritesLoaded =
         this.globalFavoritesLoadedState.asReadonly();
+    readonly xtreamRecentlyAddedLoading =
+        this.xtreamRecentlyAddedLoadingState.asReadonly();
+    readonly xtreamRecentlyAddedLoaded =
+        this.xtreamRecentlyAddedLoadedState.asReadonly();
+    readonly xtreamRecentlyAddedItems =
+        this.xtreamRecentlyAddedItemsState.asReadonly();
+    readonly dashboardReady = computed(
+        () =>
+            this.playlistsLoaded() &&
+            this.globalRecentLoaded() &&
+            this.globalFavoritesLoaded() &&
+            (!this.hasXtreamPlaylists() || this.xtreamRecentlyAddedLoaded())
+    );
 
     private readonly playlistFavoritesReloadKey = computed(() => {
         if (!this.playlistsLoaded()) {
@@ -155,12 +178,25 @@ export class DashboardDataService {
             .slice(0, 200)
     );
 
-    constructor() {
-        void this.reloadGlobalFavorites();
+    private readonly recentPlaylistActivityTimestamps = computed(() => {
+        const timestamps = new Map<string, number>();
 
+        for (const item of this.globalRecentItems()) {
+            const viewedAt = toDateTimestamp(item.viewed_at);
+            const current = timestamps.get(item.playlist_id) ?? 0;
+
+            if (viewedAt > current) {
+                timestamps.set(item.playlist_id, viewedAt);
+            }
+        }
+
+        return timestamps;
+    });
+
+    constructor() {
         effect(() => {
             this.playlistFavoritesReloadKey();
-            if (!this.playlistsLoaded()) {
+            if (!this.playlistsLoaded() || !this.favoritesAutoRefreshEnabled) {
                 return;
             }
 
@@ -170,11 +206,20 @@ export class DashboardDataService {
         effect(() => {
             this.playlistsLoaded();
             this.finishInitialGlobalRecentLoadIfReady();
+            this.finishInitialGlobalFavoritesLoadIfReady();
         });
 
-        if (window.electron) {
-            void this.reloadGlobalRecentItems();
-        }
+        effect(() => {
+            if (this.hasXtreamPlaylists()) {
+                return;
+            }
+
+            this.ngZone.run(() => {
+                this.xtreamRecentlyAddedItemsState.set([]);
+                this.xtreamRecentlyAddedLoadingState.set(false);
+                this.xtreamRecentlyAddedLoadedState.set(true);
+            });
+        });
     }
 
     readonly stats = computed(() => {
@@ -190,10 +235,22 @@ export class DashboardDataService {
 
     readonly recentPlaylists = computed(() =>
         [...this.playlists()]
-            .sort(
-                (a, b) =>
-                    this.getRecentTimestamp(b) - this.getRecentTimestamp(a)
-            )
+            .sort((a, b) => {
+                const activityDelta =
+                    this.getPlaylistActivityTimestamp(b) -
+                    this.getPlaylistActivityTimestamp(a);
+                if (activityDelta !== 0) {
+                    return activityDelta;
+                }
+
+                const metadataDelta =
+                    this.getRecentTimestamp(b) - this.getRecentTimestamp(a);
+                if (metadataDelta !== 0) {
+                    return metadataDelta;
+                }
+
+                return a._id.localeCompare(b._id);
+            })
             .slice(0, 12)
     );
 
@@ -238,6 +295,7 @@ export class DashboardDataService {
         const m3uReload = this.refreshPlaylistBackedGlobalFavorites();
 
         await Promise.all([xtreamReload, m3uReload]);
+        this.favoritesAutoRefreshEnabled = true;
     }
 
     async getGlobalRecentlyAddedItems(
@@ -252,6 +310,56 @@ export class DashboardDataService {
         return items
             .map((item) => mapDbRecentlyAddedToItem(item))
             .sort((a, b) => toTimestamp(b.added_at) - toTimestamp(a.added_at));
+    }
+
+    async getXtreamRecentlyAddedItems(
+        limit = 20
+    ): Promise<DashboardRecentlyAddedItem[]> {
+        if (!window.electron) {
+            return [];
+        }
+
+        const items = await this.dbService.getGlobalRecentlyAdded(
+            'all',
+            limit,
+            'xtream'
+        );
+        return items
+            .map((item) => mapDbRecentlyAddedToItem(item))
+            .sort((a, b) => toTimestamp(b.added_at) - toTimestamp(a.added_at));
+    }
+
+    async reloadXtreamRecentlyAddedItems(limit = 20): Promise<void> {
+        if (!this.xtreamRecentlyAddedLoaded()) {
+            this.xtreamRecentlyAddedLoadingState.set(true);
+        }
+
+        if (!window.electron) {
+            this.ngZone.run(() => {
+                this.xtreamRecentlyAddedItemsState.set([]);
+                this.xtreamRecentlyAddedLoadingState.set(false);
+                this.xtreamRecentlyAddedLoadedState.set(true);
+            });
+            return;
+        }
+
+        try {
+            const items = await this.getXtreamRecentlyAddedItems(limit);
+            this.ngZone.run(() =>
+                this.xtreamRecentlyAddedItemsState.set(items)
+            );
+        } catch (err) {
+            console.warn(
+                '[DashboardData] Failed to reload Xtream recently added items',
+                err
+            );
+            this.ngZone.run(() => this.xtreamRecentlyAddedItemsState.set([]));
+        } finally {
+            this.ngZone.run(() => {
+                this.xtreamRecentlyAddedLoadingState.set(false);
+                this.xtreamRecentlyAddedLoadedState.set(true);
+            });
+        }
     }
 
     private async reloadXtreamGlobalFavorites(): Promise<void> {
@@ -704,6 +812,10 @@ export class DashboardDataService {
         return typeof playlist.importDate === 'string'
             ? playlist.importDate
             : null;
+    }
+
+    private getPlaylistActivityTimestamp(item: PlaylistMeta): number {
+        return this.recentPlaylistActivityTimestamps().get(item._id) ?? 0;
     }
 
     private getRecentTimestamp(item: PlaylistMeta): number {

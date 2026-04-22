@@ -29,23 +29,24 @@
                     </p>
                 }
                 @if (
-                    facade.xtreamImportCount() !== 0 &&
-                    facade.xtreamItemsToImport() !== 0
+                    facade.xtreamActiveImportCount() !== 0 &&
+                    facade.xtreamActiveItemsToImport() !== 0
                 ) {
                     <mat-progress-bar
                         mode="determinate"
                         [value]="
-                            (facade.xtreamImportCount() /
-                                facade.xtreamItemsToImport()) *
+                            (facade.xtreamActiveImportCount() /
+                                facade.xtreamActiveItemsToImport()) *
                             100
                         "
                     />
-                    <p class="workspace-loading-overlay__progress-copy">
-                        {{ facade.xtreamImportCount() }} /
-                        {{ facade.xtreamItemsToImport() }}
-                    </p>
                 } @else {
                     <mat-progress-bar mode="indeterminate" />
+                }
+                @if (facade.xtreamImportProgressLabel()) {
+                    <p class="workspace-loading-overlay__progress-copy">
+                        {{ facade.xtreamImportProgressLabel() }}
+                    </p>
                 }
                 @if (facade.canCancelXtreamImport()) {
                     <button
@@ -90,9 +91,6 @@
         [searchPlaceholder]="facade.searchPlaceholder()"
         [searchScopeLabel]="facade.searchScopeLabel()"
         [searchStatusLabel]="facade.searchStatusLabel()"
-        [isGlobalFavoritesActive]="
-            facade.isGlobalFavoritesRoute() || facade.isPortalFavoritesAllScope()
-        "
         [headerShortcut]="facade.headerShortcut()"
         [canRefreshPlaylist]="facade.canRefreshPlaylist()"
         [isRefreshingPlaylist]="facade.isRefreshingPlaylist()"
@@ -104,7 +102,6 @@
         (searchSubmitted)="facade.onSearchEnter($event)"
         (commandPaletteRequested)="facade.openCommandPalette()"
         (addPlaylistRequested)="facade.openAddPlaylistDialog()"
-        (globalFavoritesRequested)="facade.navigateToGlobalFavorites()"
         (headerShortcutRequested)="facade.runHeaderShortcut()"
         (downloadsRequested)="facade.openDownloadsShortcut()"
         (playlistInfoRequested)="facade.openPlaylistInfo()"

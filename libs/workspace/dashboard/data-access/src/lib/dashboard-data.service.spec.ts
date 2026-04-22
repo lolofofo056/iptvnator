@@ -12,7 +12,7 @@ describe('DashboardDataService', () => {
     let service: DashboardDataService;
     const playlistsLoadedSignal = signal(true);
 
-    const playlistsSignal = signal<PlaylistMeta[]>([
+    const createDefaultPlaylists = (): PlaylistMeta[] => [
         {
             _id: 'm3u-1',
             title: 'M3U Playlist',
@@ -44,7 +44,9 @@ describe('DashboardDataService', () => {
             autoRefresh: false,
             serverUrl: 'https://example.com',
         },
-    ]);
+    ];
+
+    const playlistsSignal = signal<PlaylistMeta[]>(createDefaultPlaylists());
 
     const storeMock = {
         selectSignal: jest.fn((selector: unknown) => {
@@ -116,6 +118,7 @@ describe('DashboardDataService', () => {
             configurable: true,
         });
         playlistsLoadedSignal.set(true);
+        playlistsSignal.set(createDefaultPlaylists());
         playlistsServiceMock.getPlaylistById.mockClear();
         playlistsServiceMock.getPlaylistById.mockReturnValue(of(playlistMock));
         playlistsServiceMock.setFavorites.mockClear();
@@ -162,6 +165,47 @@ describe('DashboardDataService', () => {
 
     afterEach(() => {
         jest.clearAllMocks();
+    });
+
+    it('does not eagerly load dashboard datasets on construction', () => {
+        expect(dbServiceMock.getGlobalRecentlyViewed).not.toHaveBeenCalled();
+        expect(dbServiceMock.getAllGlobalFavorites).not.toHaveBeenCalled();
+        expect(dbServiceMock.getGlobalRecentlyAdded).not.toHaveBeenCalled();
+        expect(playlistsServiceMock.getPlaylistById).not.toHaveBeenCalled();
+        expect(service.dashboardReady()).toBe(false);
+    });
+
+    it('keeps dashboardReady false until xtream recently added finishes its first load', async () => {
+        expect(service.dashboardReady()).toBe(false);
+
+        await service.reloadGlobalRecentItems();
+        expect(service.dashboardReady()).toBe(false);
+
+        await service.reloadGlobalFavorites();
+        expect(service.dashboardReady()).toBe(false);
+
+        await service.reloadXtreamRecentlyAddedItems();
+        expect(service.dashboardReady()).toBe(true);
+    });
+
+    it('does not wait on xtream recently added when no xtream playlists exist', async () => {
+        playlistsSignal.set([
+            {
+                _id: 'm3u-1',
+                title: 'M3U Playlist',
+                count: 1,
+                importDate: '2026-01-01T00:00:00.000Z',
+                autoRefresh: false,
+                favorites: [],
+                recentlyViewed: [],
+            },
+        ]);
+
+        await service.reloadGlobalRecentItems();
+        expect(service.dashboardReady()).toBe(false);
+
+        await service.reloadGlobalFavorites();
+        expect(service.dashboardReady()).toBe(true);
     });
 
     it('includes M3U favorites in global favorite items', async () => {
@@ -301,7 +345,7 @@ describe('DashboardDataService', () => {
         expect(service.getGlobalFavoriteNavigationState(movieItem!)).toEqual({
             openCollectionDetailItem: {
                 item: expect.objectContaining({
-                    uid: 'xtream::xtream-1::5001',
+                    uid: 'xtream::xtream-1::movie:5001',
                     name: 'Action Movie',
                     contentType: 'movie',
                     sourceType: 'xtream',
@@ -339,6 +383,154 @@ describe('DashboardDataService', () => {
                     xtream_id: 'https://example.com/stream-1.m3u8',
                 }),
             ])
+        );
+    });
+
+    it('prioritizes recently used Xtream sources over newer imported M3U sources', async () => {
+        playlistsSignal.set([
+            {
+                _id: 'm3u-fresh',
+                title: 'Fresh Import',
+                count: 1,
+                importDate: '2026-04-20T12:00:00.000Z',
+                autoRefresh: false,
+                favorites: [],
+                recentlyViewed: [],
+            },
+            {
+                _id: 'xtream-1',
+                title: 'Xtream Playlist',
+                count: 1,
+                importDate: '2026-01-01T00:00:00.000Z',
+                autoRefresh: false,
+                serverUrl: 'https://example.com',
+            },
+        ]);
+        dbServiceMock.getGlobalRecentlyViewed.mockResolvedValue([
+            {
+                id: 91,
+                category_id: 18,
+                title: 'Recent Movie',
+                rating: '7.8',
+                viewed_at: '2026-04-21T10:00:00.000Z',
+                poster_url: 'https://example.com/recent-movie.png',
+                xtream_id: 7001,
+                type: 'movie',
+                playlist_id: 'xtream-1',
+                playlist_name: 'Xtream Playlist',
+            },
+        ]);
+
+        await service.reloadGlobalRecentItems();
+
+        expect(service.recentPlaylists().map((playlist) => playlist._id)).toEqual(
+            ['xtream-1', 'm3u-fresh']
+        );
+    });
+
+    it('includes M3U, Xtream, and Stalker sources when all have recent activity', async () => {
+        playlistsSignal.set([
+            {
+                _id: 'm3u-1',
+                title: 'M3U Playlist',
+                count: 1,
+                importDate: '2026-01-01T00:00:00.000Z',
+                autoRefresh: false,
+                favorites: [],
+                recentlyViewed: [
+                    {
+                        source: 'm3u',
+                        id: 'https://example.com/stream-1.m3u8',
+                        url: 'https://example.com/stream-1.m3u8',
+                        title: 'Channel One',
+                        category_id: 'live',
+                        added_at: '2026-04-19T10:00:00.000Z',
+                    },
+                ],
+            },
+            {
+                _id: 'stalker-1',
+                title: 'Stalker Playlist',
+                count: 1,
+                importDate: '2026-01-01T00:00:00.000Z',
+                autoRefresh: false,
+                macAddress: '00:11:22:33:44:55',
+                recentlyViewed: [
+                    {
+                        id: 'stalker-item-1',
+                        name: 'Stalker Movie',
+                        category_id: 'vod',
+                        added_at: '2026-04-20T10:00:00.000Z',
+                    },
+                ],
+            },
+            {
+                _id: 'xtream-1',
+                title: 'Xtream Playlist',
+                count: 1,
+                importDate: '2026-01-01T00:00:00.000Z',
+                autoRefresh: false,
+                serverUrl: 'https://example.com',
+            },
+        ]);
+        dbServiceMock.getGlobalRecentlyViewed.mockResolvedValue([
+            {
+                id: 91,
+                category_id: 18,
+                title: 'Recent Movie',
+                rating: '7.8',
+                viewed_at: '2026-04-21T10:00:00.000Z',
+                poster_url: 'https://example.com/recent-movie.png',
+                xtream_id: 7001,
+                type: 'movie',
+                playlist_id: 'xtream-1',
+                playlist_name: 'Xtream Playlist',
+            },
+        ]);
+
+        await service.reloadGlobalRecentItems();
+
+        expect(service.recentPlaylists().map((playlist) => playlist._id)).toEqual(
+            ['xtream-1', 'stalker-1', 'm3u-1']
+        );
+    });
+
+    it('falls back to playlist metadata ordering when sources have no recent activity', async () => {
+        playlistsSignal.set([
+            {
+                _id: 'xtream-1',
+                title: 'Xtream Playlist',
+                count: 1,
+                importDate: '2026-01-01T00:00:00.000Z',
+                autoRefresh: false,
+                serverUrl: 'https://example.com',
+            },
+            {
+                _id: 'stalker-1',
+                title: 'Stalker Playlist',
+                count: 1,
+                importDate: '2026-03-01T00:00:00.000Z',
+                autoRefresh: false,
+                macAddress: '00:11:22:33:44:55',
+                recentlyViewed: [],
+            },
+            {
+                _id: 'm3u-1',
+                title: 'M3U Playlist',
+                count: 1,
+                importDate: '2026-02-01T00:00:00.000Z',
+                updateDate: Date.parse('2026-04-01T00:00:00.000Z'),
+                autoRefresh: false,
+                favorites: [],
+                recentlyViewed: [],
+            },
+        ]);
+        dbServiceMock.getGlobalRecentlyViewed.mockResolvedValue([]);
+
+        await service.reloadGlobalRecentItems();
+
+        expect(service.recentPlaylists().map((playlist) => playlist._id)).toEqual(
+            ['m3u-1', 'stalker-1', 'xtream-1']
         );
     });
 
@@ -435,6 +627,7 @@ describe('DashboardDataService', () => {
                 rating: '7.8',
                 viewed_at: '2026-02-04T10:00:00.000Z',
                 poster_url: 'https://example.com/recent-movie.png',
+                backdrop_url: 'https://example.com/recent-movie-backdrop.png',
                 xtream_id: 7001,
                 type: 'movie',
                 playlist_id: 'xtream-1',
@@ -447,7 +640,11 @@ describe('DashboardDataService', () => {
             .globalRecentItems()
             .find((item) => item.source === 'xtream');
 
-        expect(movieItem).toBeDefined();
+        expect(movieItem).toEqual(
+            expect.objectContaining({
+                backdrop_url: 'https://example.com/recent-movie-backdrop.png',
+            })
+        );
         expect(service.getRecentItemLink(movieItem!)).toEqual([
             '/workspace',
             'global-recent',
@@ -455,7 +652,7 @@ describe('DashboardDataService', () => {
         expect(service.getRecentItemNavigationState(movieItem!)).toEqual({
             openCollectionDetailItem: {
                 item: expect.objectContaining({
-                    uid: 'xtream::xtream-1::7001',
+                    uid: 'xtream::xtream-1::movie:7001',
                     name: 'Recent Movie',
                     contentType: 'movie',
                     sourceType: 'xtream',
@@ -463,6 +660,34 @@ describe('DashboardDataService', () => {
                 }),
             },
         });
+    });
+
+    it('normalizes SQLite-style Xtream recent timestamps before sorting and rendering', async () => {
+        dbServiceMock.getGlobalRecentlyViewed.mockResolvedValue([
+            {
+                id: 91,
+                category_id: 18,
+                title: 'Recent Movie',
+                rating: '7.8',
+                viewed_at: '2026-02-04 10:00:00',
+                poster_url: 'https://example.com/recent-movie.png',
+                xtream_id: 7001,
+                type: 'movie',
+                playlist_id: 'xtream-1',
+                playlist_name: 'Xtream Playlist',
+            },
+        ]);
+
+        await service.reloadGlobalRecentItems();
+        const movieItem = service
+            .globalRecentItems()
+            .find((item) => item.source === 'xtream');
+
+        expect(movieItem).toEqual(
+            expect.objectContaining({
+                viewed_at: '2026-02-04T10:00:00.000Z',
+            })
+        );
     });
 
     it('removes M3U recently viewed via PlaylistsService', async () => {

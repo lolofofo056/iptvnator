@@ -6,7 +6,11 @@ import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
-import { PORTAL_EXTERNAL_PLAYBACK } from '@iptvnator/portal/shared/util';
+import {
+    PORTAL_EXTERNAL_PLAYBACK,
+    WorkspaceHeaderContextService,
+    WorkspaceViewCommandService,
+} from '@iptvnator/portal/shared/util';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
 import {
@@ -25,8 +29,15 @@ class MockXtreamStore {
     readonly searchTerm = signal('');
     readonly categorySearchTerm = signal('');
     readonly isImporting = signal(false);
+    readonly isCancellingImport = signal(false);
     readonly activeImportSessionId = signal<string | null>(null);
     readonly currentImportPhase = signal<string | null>(null);
+    readonly activeImportContentType = signal<'live' | 'vod' | 'series' | null>(
+        null
+    );
+    readonly activeImportCurrentCount = signal(0);
+    readonly activeImportTotalCount = signal(0);
+    readonly getImportCount = signal(0);
     readonly itemsToImport = signal(0);
     readonly getSelectedCategory = signal<{
         category_name?: string;
@@ -99,7 +110,9 @@ describe('WorkspaceShellFacade', () => {
         openAccountInfo: jest.Mock;
     };
     let storeDispatch: jest.Mock;
-    let activePlaylistSignal: ReturnType<typeof signal<PlaylistSignalMeta>>;
+    let activePlaylistSignal: ReturnType<
+        typeof signal<PlaylistSignalMeta | null>
+    >;
     let playlistsSignal: ReturnType<typeof signal<PlaylistSignalMeta[]>>;
     let stalkerStore: MockStalkerStore;
     let showDashboardSignal: ReturnType<typeof signal<boolean>>;
@@ -230,7 +243,19 @@ describe('WorkspaceShellFacade', () => {
                 {
                     provide: TranslateService,
                     useValue: {
-                        instant: (key: string) => key,
+                        instant: (
+                            key: string,
+                            params?: Record<string, string | number>
+                        ) => {
+                            if (
+                                key === 'WORKSPACE.SHELL.XTREAM_IMPORT_PROGRESS' &&
+                                params
+                            ) {
+                                return `${params.type} imported: ${params.current} / ${params.total}`;
+                            }
+
+                            return key;
+                        },
                         get: (key: string) => of(key),
                         stream: (key: string) => of(key),
                         onLangChange: of(null),
@@ -299,6 +324,21 @@ describe('WorkspaceShellFacade', () => {
         );
     });
 
+    it('builds a type-aware xtream import progress label', () => {
+        const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+
+        xtreamStore.activeImportContentType.set('vod');
+        xtreamStore.activeImportCurrentCount.set(20);
+        xtreamStore.activeImportTotalCount.set(12323);
+
+        expect(facade.xtreamImportTypeLabel()).toBe(
+            'WORKSPACE.SHELL.RAIL_MOVIES'
+        );
+        expect(facade.xtreamImportProgressLabel()).toBe(
+            'WORKSPACE.SHELL.RAIL_MOVIES imported: 20 / 12,323'
+        );
+    });
+
     it('keeps stalker local-filter routes on the same page and syncs q', () => {
         router.navigate.mockClear();
         router.navigateByUrl.mockClear();
@@ -329,18 +369,15 @@ describe('WorkspaceShellFacade', () => {
         });
     });
 
-    it('prefers provider-scoped global favorites when rail context exists', () => {
+    it('navigates to the global favorites route', () => {
         router.navigate.mockClear();
         facade.currentUrl.set('/workspace/xtreams/pl-1/vod');
 
         facade.navigateToGlobalFavorites();
 
-        expect(router.navigate).toHaveBeenCalledWith(
-            ['/workspace', 'xtreams', 'pl-1', 'favorites'],
-            {
-                queryParams: { scope: 'all' },
-            }
-        );
+        expect(router.navigate).toHaveBeenCalledWith([
+            '/workspace/global-favorites',
+        ]);
     });
 
     it('clears stalker recent items and refreshes the route', async () => {
@@ -410,6 +447,18 @@ describe('WorkspaceShellFacade', () => {
                 tooltip: 'WORKSPACE.SHELL.RAIL_SOURCES',
                 path: ['/workspace/sources'],
             },
+            {
+                icon: 'favorite',
+                tooltip: 'WORKSPACE.SHELL.RAIL_GLOBAL_FAVORITES',
+                path: ['/workspace/global-favorites'],
+                exact: true,
+            },
+            {
+                icon: 'history',
+                tooltip: 'WORKSPACE.SHELL.RAIL_GLOBAL_RECENT',
+                path: ['/workspace/global-recent'],
+                exact: true,
+            },
         ]);
         expect(facade.brandLink()).toBe('/workspace/sources');
     });
@@ -425,5 +474,100 @@ describe('WorkspaceShellFacade', () => {
         (facade as { syncSearchFromRoute: () => void }).syncSearchFromRoute();
 
         expect(facade.searchScopeLabel()).toBe('PORTALS.RECENTLY_VIEWED');
+    });
+
+    it('shows only actionable global commands on an empty dashboard', () => {
+        activePlaylistSignal.set(null);
+        playlistsSignal.set([]);
+        facade.currentUrl.set('/workspace/dashboard');
+
+        const commands = facade.commandPaletteCommands();
+
+        expect(commands.map((command) => command.id)).toEqual([
+            'open-global-favorites',
+            'open-global-recent',
+            'open-downloads',
+            'open-settings',
+            'open-sources',
+            'add-playlist',
+        ]);
+        expect(commands.every((command) => command.group === 'global')).toBe(
+            true
+        );
+        expect(commands.every((command) => command.enabled)).toBe(true);
+    });
+
+    it('includes M3U navigation, playlist actions, and Multi-EPG on playlist routes', () => {
+        const headerContext = TestBed.inject(WorkspaceHeaderContextService);
+
+        activePlaylistSignal.set({
+            _id: 'pl-m3u',
+            title: 'Playlist M3U',
+            count: 10,
+            importDate: '2026-04-22T10:00:00.000Z',
+            autoRefresh: false,
+        });
+        facade.currentUrl.set('/workspace/playlists/pl-m3u/groups');
+        headerContext.setAction({
+            id: 'm3u-multi-epg',
+            icon: 'view_list',
+            tooltipKey: 'TOP_MENU.OPEN_MULTI_EPG',
+            ariaLabelKey: 'TOP_MENU.OPEN_MULTI_EPG',
+            palette: {
+                labelKey: 'TOP_MENU.OPEN_MULTI_EPG',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_MULTI_EPG_DESCRIPTION',
+                keywords: ['epg', 'guide', 'schedule'],
+                priority: 10,
+            },
+            run: jest.fn(),
+        });
+
+        const commands = facade.commandPaletteCommands();
+
+        expect(commands.map((command) => command.id)).toEqual(
+            expect.arrayContaining([
+                'm3u-multi-epg',
+                'go-to-all',
+                'go-to-favorites',
+                'go-to-recent',
+                'playlist-info',
+            ])
+        );
+        expect(
+            commands.find((command) => command.id === 'm3u-multi-epg')?.group
+        ).toBe('view');
+        expect(commands.some((command) => command.id === 'account-info')).toBe(
+            false
+        );
+    });
+
+    it('places registered current-view commands ahead of globals on global favorites routes', () => {
+        const viewCommands = TestBed.inject(WorkspaceViewCommandService);
+        const clearCurrent = jest.fn();
+        const unregister = viewCommands.registerCommand({
+            id: 'clear-current-favorites',
+            group: 'view',
+            icon: 'delete_sweep',
+            labelKey: 'WORKSPACE.SHELL.CLEAR_FAVORITES_TYPE',
+            labelParams: () => ({ type: 'Live TV' }),
+            descriptionKey:
+                'WORKSPACE.SHELL.COMMANDS.CLEAR_CURRENT_VIEW_DESCRIPTION',
+            descriptionParams: () => ({ type: 'Live TV' }),
+            priority: 10,
+            run: clearCurrent,
+        });
+
+        facade.currentUrl.set('/workspace/global-favorites');
+
+        const commands = facade.commandPaletteCommands();
+
+        expect(commands[0]?.id).toBe('clear-current-favorites');
+        expect(commands[0]?.group).toBe('view');
+        expect(commands.some((command) => command.id === 'playlist-search')).toBe(
+            false
+        );
+
+        unregister();
     });
 });

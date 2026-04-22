@@ -22,10 +22,10 @@
         <div class="palette-divider"></div>
 
         <div class="palette-results">
-            @for (group of commandGroups(); track group.scope) {
+            @for (group of commandGroups(); track group.group) {
                 <section class="palette-group">
                     <h3 class="palette-group__title">
-                        {{ getScopeTitleKey(group.scope) | translate }}
+                        {{ getGroupTitleKey(group.group) | translate }}
                     </h3>
                     @for (command of group.items; track command.id) {
                         <button
@@ -37,16 +37,16 @@
                             (click)="onCommandClick(command)"
                         >
                             <span class="palette-command__icon">
-                                <mat-icon>{{
-                                    getCommandIcon(command)
-                                }}</mat-icon>
+                                <mat-icon>{{ command.icon }}</mat-icon>
                             </span>
                             <span class="palette-command__label">{{
                                 command.label
                             }}</span>
-                            <span class="palette-command__desc">{{
-                                command.description
-                            }}</span>
+                            @if (command.description) {
+                                <span class="palette-command__desc">{{
+                                    command.description
+                                }}</span>
+                            }
                         </button>
                     }
                 </section>

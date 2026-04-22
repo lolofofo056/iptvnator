@@ -1,0 +1,130 @@
+<section class="rails-page" data-test-id="dashboard-page">
+    @if (!ready()) {
+        <!-- Precise ghosts that mirror the real hero + rails so the layout
+             doesn't reflow when data arrives. -->
+        <section
+            class="rails-page__skeleton-hero"
+            aria-hidden="true"
+            aria-busy="true"
+        >
+            <div class="rails-page__skeleton-hero-poster"></div>
+            <div class="rails-page__skeleton-hero-body">
+                <div class="rails-page__skeleton-hero-title"></div>
+                <div
+                    class="rails-page__skeleton-hero-title rails-page__skeleton-hero-title--short"
+                ></div>
+                <div class="rails-page__skeleton-hero-subtitle"></div>
+                <div class="rails-page__skeleton-hero-cta"></div>
+            </div>
+        </section>
+
+        @for (_ of skeletonRails; track $index) {
+            <section
+                class="rails-page__skeleton-rail"
+                aria-hidden="true"
+                aria-busy="true"
+            >
+                <div class="rails-page__skeleton-header"></div>
+                <div class="rails-page__skeleton-track">
+                    @for (slot of skeletonSlots; track slot) {
+                        <div class="rails-page__skeleton-card"></div>
+                    }
+                </div>
+            </section>
+        }
+    } @else if (!hasPlaylists()) {
+        <app-empty-state
+            [type]="'welcome'"
+            (addPlaylistClicked)="onAddPlaylist()"
+        />
+    } @else {
+        @if (hero(); as item) {
+            <a
+                class="hero"
+                data-test-id="dashboard-hero"
+                [class.hero--with-image]="!!item.posterUrl || !!item.backdropUrl"
+                [class.hero--has-backdrop]="item.hasBackdrop"
+                [routerLink]="item.link"
+                [state]="item.state ?? {}"
+            >
+                @if (item.backdropUrl) {
+                    <span
+                        class="hero__backdrop"
+                        aria-hidden="true"
+                        [style.backgroundImage]="'url(' + item.backdropUrl + ')'"
+                    ></span>
+                }
+                <span class="hero__vignette" aria-hidden="true"></span>
+
+                <span class="hero__poster">
+                    @if (item.posterUrl) {
+                        <img
+                            [src]="item.posterUrl"
+                            [alt]="item.title"
+                            loading="eager"
+                            decoding="async"
+                        />
+                    } @else {
+                        <span class="hero__poster-fallback">
+                            <mat-icon>{{ item.icon }}</mat-icon>
+                        </span>
+                    }
+                </span>
+
+                <span class="hero__body">
+                    <h1 class="hero__title">{{ item.title }}</h1>
+                    <p class="hero__subtitle">{{ item.subtitle }}</p>
+
+                    <span class="hero__cta">
+                        <mat-icon>play_arrow</mat-icon>
+                        <span>{{
+                            'WORKSPACE.DASHBOARD.CONTINUE_WATCHING' | translate
+                        }}</span>
+                    </span>
+                </span>
+            </a>
+        }
+
+        @if (recentlyWatchedCards().length > 0) {
+            <lib-dashboard-rail
+                [label]="'WORKSPACE.DASHBOARD.RECENTLY_WATCHED' | translate"
+                [items]="recentlyWatchedCards()"
+                [totalCount]="data.globalRecentItems().length"
+                [seeAllLink]="['/workspace/global-recent']"
+                [testId]="'dashboard-recently-watched-rail'"
+            />
+        }
+
+        @if (favoriteCards().length > 0) {
+            <lib-dashboard-rail
+                [label]="'WORKSPACE.DASHBOARD.GLOBAL_FAVORITES' | translate"
+                [items]="favoriteCards()"
+                [totalCount]="data.globalFavoriteItems().length"
+                [seeAllLink]="['/workspace/global-favorites']"
+                [testId]="'dashboard-global-favorites-rail'"
+            />
+        }
+
+        @if (sourceCards().length > 0) {
+            <lib-dashboard-rail
+                [label]="'WORKSPACE.DASHBOARD.RECENT_SOURCES' | translate"
+                [items]="sourceCards()"
+                [totalCount]="data.playlists().length"
+                [seeAllLink]="['/workspace/sources']"
+                aspectRatio="16 / 9"
+                [testId]="'dashboard-recent-sources-rail'"
+            />
+        }
+
+        @if (xtreamRecentlyAddedCards().length > 0) {
+            <lib-dashboard-rail
+                [label]="
+                    'WORKSPACE.DASHBOARD.XTREAM_RECENTLY_ADDED' | translate
+                "
+                [items]="xtreamRecentlyAddedCards()"
+                [totalCount]="data.xtreamRecentlyAddedItems().length"
+                [testId]="'dashboard-xtream-recently-added-rail'"
+            />
+        }
+    }
+</section>

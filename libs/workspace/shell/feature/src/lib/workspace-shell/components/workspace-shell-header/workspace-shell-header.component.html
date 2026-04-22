@@ -75,22 +75,9 @@
                 <mat-icon>sync</mat-icon>
             </button>
         }
-        <span class="header-actions-divider" aria-hidden="true"></span>
-        <button
-            type="button"
-            class="header-shortcut"
-            mat-icon-button
-            [class.is-active]="isGlobalFavoritesActive()"
-            (click)="onGlobalFavoritesRequested()"
-            [matTooltip]="
-                'WORKSPACE.SHELL.OPEN_GLOBAL_FAVORITES' | translate
-            "
-            [attr.aria-label]="
-                'WORKSPACE.SHELL.OPEN_GLOBAL_FAVORITES' | translate
-            "
-        >
-            <mat-icon>star</mat-icon>
-        </button>
+        @if (headerShortcut() || isElectron()) {
+            <span class="header-actions-divider" aria-hidden="true"></span>
+        }
         @if (headerShortcut(); as action) {
             <button
                 type="button"

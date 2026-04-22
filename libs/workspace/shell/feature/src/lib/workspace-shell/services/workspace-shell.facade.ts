@@ -22,8 +22,12 @@ import {
     PORTAL_EXTERNAL_PLAYBACK,
     PortalRailLink,
     PortalRailSection,
+    WorkspaceCommandContribution,
+    WorkspaceCommandSelection,
     WorkspaceHeaderAction,
     WorkspaceHeaderContextService,
+    WorkspaceResolvedCommandItem,
+    WorkspaceViewCommandService,
 } from '@iptvnator/portal/shared/util';
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
@@ -41,38 +45,13 @@ import {
     WorkspaceAccountInfoData,
     WORKSPACE_SHELL_ACTIONS,
 } from '@iptvnator/workspace/shell/util';
-import {
-    WorkspaceCommandId,
-    WorkspaceCommandItem,
-    WorkspaceCommandPaletteComponent,
-    WorkspaceCommandScope,
-    WorkspaceCommandSelection,
-} from '../../workspace-command-palette/workspace-command-palette.component';
+import { WorkspaceCommandPaletteComponent } from '../../workspace-command-palette/workspace-command-palette.component';
 
 export interface WorkspaceHeaderBulkAction {
     icon: string;
     tooltip: string;
     ariaLabel: string;
     disabled: boolean;
-}
-
-interface WorkspaceCommandAvailability {
-    context: WorkspacePortalContext | null;
-    dashboardXtreamContext: WorkspacePortalContext | null;
-    hasXtreamPlaylists: boolean;
-    isElectron: boolean;
-    canRefreshPlaylist: boolean;
-    hasActivePlaylist: boolean;
-    isXtreamPlaylist: boolean;
-    isPortalPlaylist: boolean;
-}
-
-interface WorkspaceCommandDefinition {
-    id: WorkspaceCommandId;
-    labelKey: string;
-    descriptionKey: string;
-    scope: WorkspaceCommandScope;
-    isEnabled: (state: WorkspaceCommandAvailability) => boolean;
 }
 
 type XtreamImportPhaseTone = 'remote' | 'local' | null;
@@ -104,123 +83,6 @@ const RAIL_TOOLTIP_KEYS: Readonly<Partial<Record<PortalRailSection, string>>> =
         groups: 'WORKSPACE.SHELL.RAIL_GROUPS',
     };
 
-const WORKSPACE_COMMAND_DEFINITIONS: readonly WorkspaceCommandDefinition[] = [
-    {
-        id: 'global-search',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.GLOBAL_SEARCH_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.GLOBAL_SEARCH_DESCRIPTION',
-        scope: 'global',
-        isEnabled: (state) => state.hasXtreamPlaylists,
-    },
-    {
-        id: 'playlist-search',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.PLAYLIST_SEARCH_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.PLAYLIST_SEARCH_DESCRIPTION',
-        scope: 'playlist',
-        isEnabled: (state) =>
-            Boolean(
-                state.dashboardXtreamContext ||
-                (state.context &&
-                    (state.context.provider === 'xtreams' ||
-                        state.context.provider === 'stalker'))
-            ),
-    },
-    {
-        id: 'open-global-favorites',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_FAVORITES_LABEL',
-        descriptionKey:
-            'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_FAVORITES_DESCRIPTION',
-        scope: 'global',
-        isEnabled: () => true,
-    },
-    {
-        id: 'open-downloads',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_DOWNLOADS_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_DOWNLOADS_DESCRIPTION',
-        scope: 'global',
-        isEnabled: (state) => state.isElectron,
-    },
-    {
-        id: 'open-global-recent',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_RECENT_LABEL',
-        descriptionKey:
-            'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_RECENT_DESCRIPTION',
-        scope: 'global',
-        isEnabled: () => true,
-    },
-    {
-        id: 'open-settings',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_SETTINGS_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_SETTINGS_DESCRIPTION',
-        scope: 'global',
-        isEnabled: () => true,
-    },
-    {
-        id: 'open-sources',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_SOURCES_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_SOURCES_DESCRIPTION',
-        scope: 'global',
-        isEnabled: () => true,
-    },
-    {
-        id: 'open-dashboard',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_DASHBOARD_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_DASHBOARD_DESCRIPTION',
-        scope: 'global',
-        isEnabled: () => true,
-    },
-    {
-        id: 'add-playlist',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_DESCRIPTION',
-        scope: 'global',
-        isEnabled: () => true,
-    },
-    {
-        id: 'refresh-playlist',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.REFRESH_PLAYLIST_LABEL',
-        descriptionKey:
-            'WORKSPACE.SHELL.COMMANDS.REFRESH_PLAYLIST_DESCRIPTION',
-        scope: 'playlist',
-        isEnabled: (state) => state.canRefreshPlaylist,
-    },
-    {
-        id: 'playlist-info',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.PLAYLIST_INFO_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.PLAYLIST_INFO_DESCRIPTION',
-        scope: 'playlist',
-        isEnabled: (state) => state.hasActivePlaylist,
-    },
-    {
-        id: 'account-info',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.ACCOUNT_INFO_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.ACCOUNT_INFO_DESCRIPTION',
-        scope: 'playlist',
-        isEnabled: (state) => state.isXtreamPlaylist,
-    },
-    {
-        id: 'go-to-vod',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.GO_TO_VOD_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.GO_TO_VOD_DESCRIPTION',
-        scope: 'section',
-        isEnabled: (state) => state.isPortalPlaylist,
-    },
-    {
-        id: 'go-to-live',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.GO_TO_LIVE_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.GO_TO_LIVE_DESCRIPTION',
-        scope: 'section',
-        isEnabled: (state) => state.isPortalPlaylist,
-    },
-    {
-        id: 'go-to-series',
-        labelKey: 'WORKSPACE.SHELL.COMMANDS.GO_TO_SERIES_LABEL',
-        descriptionKey: 'WORKSPACE.SHELL.COMMANDS.GO_TO_SERIES_DESCRIPTION',
-        scope: 'section',
-        isEnabled: (state) => state.isPortalPlaylist,
-    },
-];
-
 @Injectable()
 export class WorkspaceShellFacade {
     private readonly router = inject(Router);
@@ -239,6 +101,7 @@ export class WorkspaceShellFacade {
         WorkspaceStartupPreferencesService
     );
     readonly headerContext = inject(WorkspaceHeaderContextService);
+    private readonly viewCommands = inject(WorkspaceViewCommandService);
     private readonly playlistRefreshAction = inject(
         PlaylistRefreshActionService
     );
@@ -308,6 +171,9 @@ export class WorkspaceShellFacade {
     );
     readonly currentContext = computed(() => this.currentRoute().context);
     readonly currentSection = computed(() => this.currentRoute().section);
+    readonly commandPaletteCommands = computed<WorkspaceResolvedCommandItem[]>(
+        () => this.getCommandPaletteItems()
+    );
     readonly workspaceLinks = computed<PortalRailLink[]>(() => {
         this.languageTick();
 
@@ -328,6 +194,22 @@ export class WorkspaceShellFacade {
             path: ['/workspace/sources'],
         });
 
+        links.push({
+            icon: 'favorite',
+            tooltip: this.translateText(
+                'WORKSPACE.SHELL.RAIL_GLOBAL_FAVORITES'
+            ),
+            path: ['/workspace/global-favorites'],
+            exact: true,
+        });
+
+        links.push({
+            icon: 'history',
+            tooltip: this.translateText('WORKSPACE.SHELL.RAIL_GLOBAL_RECENT'),
+            path: ['/workspace/global-recent'],
+            exact: true,
+        });
+
         return links;
     });
     readonly isDashboardRoute = computed(
@@ -338,12 +220,6 @@ export class WorkspaceShellFacade {
     );
     readonly isSettingsRoute = computed(
         () => this.currentRoute().kind === 'settings'
-    );
-    readonly isGlobalFavoritesRoute = computed(
-        () => this.currentRoute().kind === 'global-favorites'
-    );
-    readonly isPortalFavoritesAllScope = computed(
-        () => this.currentRoute().isPortalFavoritesAllScope
     );
     readonly isGlobalDownloadsRoute = computed(
         () => this.currentRoute().kind === 'downloads'
@@ -400,6 +276,9 @@ export class WorkspaceShellFacade {
     );
     readonly xtreamImportCount = this.xtreamStore.getImportCount;
     readonly xtreamItemsToImport = this.xtreamStore.itemsToImport;
+    readonly xtreamActiveImportCount = this.xtreamStore.activeImportCurrentCount;
+    readonly xtreamActiveItemsToImport =
+        this.xtreamStore.activeImportTotalCount;
     readonly xtreamImportPhase = this.xtreamStore.currentImportPhase;
     readonly isCancellingXtreamImport = this.xtreamStore.isCancellingImport;
     readonly canCancelXtreamImport = computed(
@@ -412,6 +291,34 @@ export class WorkspaceShellFacade {
     readonly xtreamImportTitleLabel = computed(() =>
         this.translateText('WORKSPACE.SHELL.XTREAM_IMPORT_TITLE')
     );
+    readonly xtreamImportTypeLabel = computed(() => {
+        this.languageTick();
+
+        switch (this.xtreamStore.activeImportContentType()) {
+            case 'live':
+                return this.translateText('WORKSPACE.SHELL.RAIL_LIVE');
+            case 'vod':
+                return this.translateText('WORKSPACE.SHELL.RAIL_MOVIES');
+            case 'series':
+                return this.translateText('WORKSPACE.SHELL.RAIL_SERIES');
+            default:
+                return '';
+        }
+    });
+    readonly xtreamImportProgressLabel = computed(() => {
+        const type = this.xtreamImportTypeLabel();
+        const total = this.xtreamActiveItemsToImport();
+
+        if (!type || total === 0) {
+            return '';
+        }
+
+        return this.translateText('WORKSPACE.SHELL.XTREAM_IMPORT_PROGRESS', {
+            type,
+            current: this.formatLocalizedNumber(this.xtreamActiveImportCount()),
+            total: this.formatLocalizedNumber(total),
+        });
+    });
     readonly xtreamImportPhaseTone = computed<XtreamImportPhaseTone>(() => {
         switch (this.xtreamStore.currentImportPhase()) {
             case 'loading-categories':
@@ -845,9 +752,10 @@ export class WorkspaceShellFacade {
     }
 
     openCommandPalette(): void {
+        const commands = this.commandPaletteCommands();
         const dialogRef = this.dialog.open<
             WorkspaceCommandPaletteComponent,
-            { commands: WorkspaceCommandItem[]; query: string },
+            { commands: WorkspaceResolvedCommandItem[]; query: string },
             WorkspaceCommandSelection | undefined
         >(WorkspaceCommandPaletteComponent, {
             width: 'min(760px, 92vw)',
@@ -855,7 +763,7 @@ export class WorkspaceShellFacade {
             panelClass: 'workspace-command-palette-overlay',
             autoFocus: false,
             data: {
-                commands: this.getCommandPaletteItems(),
+                commands,
                 query: this.searchQuery(),
             },
         });
@@ -868,7 +776,13 @@ export class WorkspaceShellFacade {
                     return;
                 }
 
-                this.runCommandPaletteAction(selection);
+                const command = commands.find(
+                    (item) =>
+                        item.id === selection.commandId &&
+                        item.visible &&
+                        item.enabled
+                );
+                command?.run({ query: selection.query.trim() });
             });
     }
 
@@ -920,23 +834,6 @@ export class WorkspaceShellFacade {
     }
 
     navigateToGlobalFavorites(): void {
-        const context = this.railContext();
-        if (
-            context &&
-            (context.provider === 'xtreams' || context.provider === 'stalker')
-        ) {
-            void this.router.navigate(
-                [
-                    '/workspace',
-                    context.provider,
-                    context.playlistId,
-                    'favorites',
-                ],
-                { queryParams: { scope: 'all' } }
-            );
-            return;
-        }
-
         void this.router.navigate(['/workspace/global-favorites']);
     }
 
@@ -994,129 +891,390 @@ export class WorkspaceShellFacade {
         this.playlistRefreshAction.refresh(playlist);
     }
 
-    private getCommandPaletteItems(): WorkspaceCommandItem[] {
+    private getCommandPaletteItems(): WorkspaceResolvedCommandItem[] {
+        this.languageTick();
+
+        return [
+            ...this.getViewCommandDefinitions(),
+            ...this.getPlaylistCommandDefinitions(),
+            ...this.getGlobalCommandDefinitions(),
+            ...this.viewCommands.commands(),
+        ]
+            .map((command) => this.resolveCommand(command))
+            .filter((command) => command.visible)
+            .sort((left, right) => this.comparePaletteCommands(left, right));
+    }
+
+    private getViewCommandDefinitions(): WorkspaceCommandContribution[] {
         const context = this.currentContext();
-        const provider = context?.provider;
-        const availability: WorkspaceCommandAvailability = {
-            context,
-            dashboardXtreamContext: this.dashboardXtreamContext(),
-            hasXtreamPlaylists: this.playlists().some(
-                (playlist) => !!playlist.serverUrl
-            ),
-            isElectron: this.isElectron,
-            canRefreshPlaylist: this.canRefreshPlaylist(),
-            hasActivePlaylist: !!this.activePlaylist(),
-            isXtreamPlaylist: provider === 'xtreams',
-            isPortalPlaylist:
-                provider === 'xtreams' || provider === 'stalker',
+        const section = this.currentSection();
+
+        if (!context || !section) {
+            return [];
+        }
+
+        if (context.provider === 'playlists') {
+            return this.getM3uNavigationCommands(context, section);
+        }
+
+        if (context.provider === 'xtreams' || context.provider === 'stalker') {
+            return this.getPortalNavigationCommands(context, section);
+        }
+
+        return [];
+    }
+
+    private getPlaylistCommandDefinitions(): WorkspaceCommandContribution[] {
+        const route = this.currentRoute();
+        const context = route.context;
+
+        if (
+            !context ||
+            (context.provider !== 'xtreams' &&
+                context.provider !== 'stalker' &&
+                context.provider !== 'playlists')
+        ) {
+            return [];
+        }
+
+        const hasActivePlaylist = !!this.activePlaylist();
+        const canOpenPlaylistSearch =
+            context.provider === 'xtreams' || context.provider === 'stalker';
+
+        return [
+            {
+                id: 'playlist-search',
+                group: 'playlist',
+                icon: 'playlist_play',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.PLAYLIST_SEARCH_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.PLAYLIST_SEARCH_DESCRIPTION',
+                priority: 10,
+                visible: canOpenPlaylistSearch,
+                run: ({ query }) => this.openPlaylistSearchFromPalette(query),
+            },
+            {
+                id: 'refresh-playlist',
+                group: 'playlist',
+                icon: 'sync',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.REFRESH_PLAYLIST_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.REFRESH_PLAYLIST_DESCRIPTION',
+                priority: 20,
+                visible: this.canRefreshPlaylist(),
+                run: () => this.refreshCurrentPlaylist(),
+            },
+            {
+                id: 'playlist-info',
+                group: 'playlist',
+                icon: 'info',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.PLAYLIST_INFO_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.PLAYLIST_INFO_DESCRIPTION',
+                priority: 30,
+                visible: hasActivePlaylist,
+                run: () => this.openPlaylistInfo(),
+            },
+            {
+                id: 'account-info',
+                group: 'playlist',
+                icon: 'account_circle',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.ACCOUNT_INFO_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.ACCOUNT_INFO_DESCRIPTION',
+                priority: 40,
+                visible: context.provider === 'xtreams',
+                run: () => this.openAccountInfo(),
+            },
+        ];
+    }
+
+    private getGlobalCommandDefinitions(): WorkspaceCommandContribution[] {
+        const route = this.currentRoute();
+        const hasXtreamPlaylists = this.playlists().some(
+            (playlist) => !!playlist.serverUrl
+        );
+
+        return [
+            {
+                id: 'global-search',
+                group: 'global',
+                icon: 'search',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.GLOBAL_SEARCH_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.GLOBAL_SEARCH_DESCRIPTION',
+                priority: 10,
+                visible: hasXtreamPlaylists,
+                keywords: ['xtream'],
+                run: ({ query }) => this.openGlobalSearch(query),
+            },
+            {
+                id: 'open-global-favorites',
+                group: 'global',
+                icon: 'star',
+                labelKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_FAVORITES_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_FAVORITES_DESCRIPTION',
+                priority: 20,
+                visible: route.kind !== 'global-favorites',
+                run: () => this.navigateToGlobalFavorites(),
+            },
+            {
+                id: 'open-global-recent',
+                group: 'global',
+                icon: 'history',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_RECENT_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_GLOBAL_RECENT_DESCRIPTION',
+                priority: 30,
+                visible: route.kind !== 'global-recent',
+                run: () => this.openGlobalRecent(),
+            },
+            {
+                id: 'open-downloads',
+                group: 'global',
+                icon: 'download',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_DOWNLOADS_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_DOWNLOADS_DESCRIPTION',
+                priority: 40,
+                visible: this.isElectron && route.kind !== 'downloads',
+                run: () => this.openDownloadsShortcut(),
+            },
+            {
+                id: 'open-settings',
+                group: 'global',
+                icon: 'settings',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_SETTINGS_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_SETTINGS_DESCRIPTION',
+                priority: 50,
+                visible: route.kind !== 'settings',
+                run: () => {
+                    void this.router.navigate(['/workspace', 'settings']);
+                },
+            },
+            {
+                id: 'open-sources',
+                group: 'global',
+                icon: 'library_books',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_SOURCES_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_SOURCES_DESCRIPTION',
+                priority: 60,
+                visible: route.kind !== 'sources',
+                run: () => {
+                    void this.router.navigate(['/workspace', 'sources']);
+                },
+            },
+            {
+                id: 'open-dashboard',
+                group: 'global',
+                icon: 'dashboard',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_DASHBOARD_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.OPEN_DASHBOARD_DESCRIPTION',
+                priority: 70,
+                visible: this.showDashboard() && route.kind !== 'dashboard',
+                run: () => {
+                    void this.router.navigate(['/workspace', 'dashboard']);
+                },
+            },
+            {
+                id: 'add-playlist',
+                group: 'global',
+                icon: 'add_circle_outline',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_DESCRIPTION',
+                priority: 80,
+                run: () => this.openAddPlaylistDialog(),
+            },
+        ];
+    }
+
+    private getPortalNavigationCommands(
+        context: WorkspacePortalContext,
+        section: PortalRailSection
+    ): WorkspaceCommandContribution[] {
+        const liveSection = context.provider === 'stalker' ? 'itv' : 'live';
+
+        return [
+            this.createNavigationCommand({
+                id: 'go-to-vod',
+                context,
+                targetSection: 'vod',
+                currentSection: section,
+                icon: 'movie',
+                labelKey: 'WORKSPACE.SHELL.RAIL_MOVIES',
+                priority: 100,
+            }),
+            this.createNavigationCommand({
+                id: 'go-to-live',
+                context,
+                targetSection: liveSection,
+                currentSection: section,
+                icon: 'live_tv',
+                labelKey: 'WORKSPACE.SHELL.RAIL_LIVE',
+                priority: 110,
+            }),
+            this.createNavigationCommand({
+                id: 'go-to-series',
+                context,
+                targetSection: 'series',
+                currentSection: section,
+                icon: 'video_library',
+                labelKey: 'WORKSPACE.SHELL.RAIL_SERIES',
+                priority: 120,
+            }),
+        ].filter(
+            (command): command is WorkspaceCommandContribution => command !== null
+        );
+    }
+
+    private getM3uNavigationCommands(
+        context: WorkspacePortalContext,
+        section: PortalRailSection
+    ): WorkspaceCommandContribution[] {
+        return [
+            this.createNavigationCommand({
+                id: 'go-to-all',
+                context,
+                targetSection: 'all',
+                currentSection: section,
+                icon: 'format_list_bulleted',
+                labelKey: 'WORKSPACE.SHELL.RAIL_ALL_CHANNELS',
+                priority: 100,
+            }),
+            this.createNavigationCommand({
+                id: 'go-to-groups',
+                context,
+                targetSection: 'groups',
+                currentSection: section,
+                icon: 'folder_open',
+                labelKey: 'WORKSPACE.SHELL.RAIL_GROUPS',
+                priority: 110,
+            }),
+            this.createNavigationCommand({
+                id: 'go-to-favorites',
+                context,
+                targetSection: 'favorites',
+                currentSection: section,
+                icon: 'star',
+                labelKey: 'WORKSPACE.SHELL.RAIL_FAVORITES',
+                priority: 120,
+            }),
+            this.createNavigationCommand({
+                id: 'go-to-recent',
+                context,
+                targetSection: 'recent',
+                currentSection: section,
+                icon: 'history',
+                labelKey: 'WORKSPACE.SHELL.RAIL_RECENT',
+                priority: 130,
+            }),
+        ].filter(
+            (command): command is WorkspaceCommandContribution => command !== null
+        );
+    }
+
+    private createNavigationCommand(config: {
+        id: string;
+        context: WorkspacePortalContext;
+        targetSection: string;
+        currentSection: PortalRailSection;
+        icon: string;
+        labelKey: string;
+        priority: number;
+    }): WorkspaceCommandContribution | null {
+        if (config.currentSection === config.targetSection) {
+            return null;
+        }
+
+        return {
+            id: config.id,
+            group: 'view',
+            icon: config.icon,
+            labelKey: config.labelKey,
+            descriptionKey: 'WORKSPACE.SHELL.COMMANDS.OPEN_VIEW_DESCRIPTION',
+            descriptionParams: () => ({
+                view: this.translateText(config.labelKey),
+            }),
+            priority: config.priority,
+            run: () => {
+                void this.router.navigate([
+                    '/workspace',
+                    config.context.provider,
+                    config.context.playlistId,
+                    config.targetSection,
+                ]);
+            },
         };
-
-        return WORKSPACE_COMMAND_DEFINITIONS.map((definition) => ({
-            id: definition.id,
-            label: this.translateText(definition.labelKey),
-            description: this.translateText(definition.descriptionKey),
-            scope: definition.scope,
-            enabled: definition.isEnabled(availability),
-        }));
     }
 
-    private runCommandPaletteAction(
-        selection: WorkspaceCommandSelection
-    ): void {
-        const query = selection.query.trim();
+    private resolveCommand(
+        command: WorkspaceCommandContribution
+    ): WorkspaceResolvedCommandItem {
+        const labelParams = this.resolveCommandValue(command.labelParams);
+        const descriptionParams = this.resolveCommandValue(
+            command.descriptionParams
+        );
 
-        if (selection.commandId === 'global-search') {
-            this.openGlobalSearch(query);
-            return;
-        }
-
-        if (selection.commandId === 'playlist-search') {
-            this.openPlaylistSearchFromPalette(query);
-            return;
-        }
-
-        if (selection.commandId === 'open-global-favorites') {
-            this.navigateToGlobalFavorites();
-            return;
-        }
-
-        if (selection.commandId === 'open-downloads') {
-            this.openDownloadsShortcut();
-            return;
-        }
-
-        if (selection.commandId === 'open-global-recent') {
-            this.openGlobalRecent();
-            return;
-        }
-
-        if (selection.commandId === 'open-settings') {
-            void this.router.navigate(['/workspace', 'settings']);
-            return;
-        }
-
-        if (selection.commandId === 'open-sources') {
-            void this.router.navigate(['/workspace', 'sources']);
-            return;
-        }
-
-        if (selection.commandId === 'open-dashboard') {
-            void this.router.navigate(['/workspace', 'dashboard']);
-            return;
-        }
-
-        if (selection.commandId === 'add-playlist') {
-            this.openAddPlaylistDialog();
-            return;
-        }
-
-        if (selection.commandId === 'refresh-playlist') {
-            this.refreshCurrentPlaylist();
-            return;
-        }
-
-        if (selection.commandId === 'playlist-info') {
-            this.openPlaylistInfo();
-            return;
-        }
-
-        if (selection.commandId === 'account-info') {
-            this.openAccountInfo();
-            return;
-        }
-
-        this.navigateToPortalSection(selection.commandId);
+        return {
+            id: command.id,
+            group: command.group,
+            icon: command.icon,
+            label: this.translateText(command.labelKey, labelParams),
+            description: command.descriptionKey
+                ? this.translateText(command.descriptionKey, descriptionParams)
+                : '',
+            keywords: this.resolveCommandValue(command.keywords) ?? [],
+            priority: command.priority ?? 100,
+            visible: this.resolveCommandValue(command.visible) ?? true,
+            enabled: this.resolveCommandValue(command.enabled) ?? true,
+            run: command.run,
+        };
     }
 
-    private navigateToPortalSection(commandId: WorkspaceCommandId): void {
-        const context = this.currentContext();
-        if (!context) {
-            return;
+    private comparePaletteCommands(
+        left: WorkspaceResolvedCommandItem,
+        right: WorkspaceResolvedCommandItem
+    ): number {
+        const groupOrder =
+            this.getCommandGroupOrder(left.group) -
+            this.getCommandGroupOrder(right.group);
+
+        if (groupOrder !== 0) {
+            return groupOrder;
         }
 
-        const isStalker = context.provider === 'stalker';
-        let section: string;
+        if (left.priority !== right.priority) {
+            return left.priority - right.priority;
+        }
 
-        switch (commandId) {
-            case 'go-to-vod':
-                section = 'vod';
-                break;
-            case 'go-to-live':
-                section = isStalker ? 'itv' : 'live';
-                break;
-            case 'go-to-series':
-                section = 'series';
-                break;
+        return left.label.localeCompare(right.label);
+    }
+
+    private getCommandGroupOrder(group: WorkspaceResolvedCommandItem['group']) {
+        switch (group) {
+            case 'view':
+                return 0;
+            case 'playlist':
+                return 1;
             default:
-                return;
+                return 2;
+        }
+    }
+
+    private resolveCommandValue<T>(
+        value: T | (() => T | undefined) | undefined
+    ): T | undefined {
+        if (typeof value === 'function') {
+            return (value as () => T | undefined)();
         }
 
-        void this.router.navigate([
-            '/workspace',
-            context.provider,
-            context.playlistId,
-            section,
-        ]);
+        return value;
     }
 
     private openPlaylistSearchFromPalette(query: string): void {
@@ -1383,6 +1541,12 @@ export class WorkspaceShellFacade {
 
     private translateRailSection(section: PortalRailSection): string {
         return this.translateText(this.getRailTooltipKey('playlists', section));
+    }
+
+    private formatLocalizedNumber(value: number): string {
+        const locale =
+            this.translate.currentLang || this.translate.defaultLang || 'en';
+        return new Intl.NumberFormat(locale).format(value);
     }
 
     private translateText(

@@ -43,6 +43,7 @@ export function mapDbFavoriteToItem(
         category_id: item.category_id,
         xtream_id: item.xtream_id,
         poster_url: item.poster_url,
+        backdrop_url: item.backdrop_url ?? undefined,
         source: 'xtream',
     };
 }
@@ -58,6 +59,7 @@ export function mapDbRecentToItem(item: DbGlobalRecentItem): PortalRecentItem {
         category_id: item.category_id,
         xtream_id: item.xtream_id,
         poster_url: item.poster_url,
+        backdrop_url: item.backdrop_url ?? undefined,
         source: 'xtream',
     };
 }
@@ -171,7 +173,7 @@ export function toDateTimestamp(value: unknown): number {
             }
             return 0;
         }
-        const parsed = Date.parse(trimmed);
+        const parsed = Date.parse(normalizeStalkerDate(trimmed) || trimmed);
         return Number.isNaN(parsed) ? 0 : parsed;
     }
 
@@ -181,7 +183,7 @@ export function toDateTimestamp(value: unknown): number {
 export function toTimestamp(value?: string | number): number {
     if (typeof value === 'number') return value;
     if (typeof value === 'string') {
-        const parsed = Date.parse(value);
+        const parsed = Date.parse(normalizeStalkerDate(value) || value);
         return Number.isNaN(parsed) ? 0 : parsed;
     }
     return 0;

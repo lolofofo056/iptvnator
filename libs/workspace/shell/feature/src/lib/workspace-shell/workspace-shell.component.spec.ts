@@ -5,6 +5,7 @@ import {
     signal,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterOutlet, provideRouter } from '@angular/router';
 import {
     WorkspacePortalContext,
@@ -49,17 +50,19 @@ class MockWorkspaceShellHeaderComponent {
     readonly searchPlaceholder = input('');
     readonly searchScopeLabel = input('');
     readonly searchStatusLabel = input('');
-    readonly isGlobalFavoritesActive = input(false);
     readonly headerShortcut = input<unknown>(null);
+    readonly canRefreshPlaylist = input(false);
+    readonly isRefreshingPlaylist = input(false);
     readonly isElectron = input(false);
     readonly isDownloadsView = input(false);
+    readonly hasActiveDownloads = input(false);
     readonly headerBulkAction = input<WorkspaceHeaderBulkAction | null>(null);
     readonly searchChanged = output<string>();
     readonly searchSubmitted = output<string>();
     readonly commandPaletteRequested = output<void>();
     readonly addPlaylistRequested = output<void>();
-    readonly globalFavoritesRequested = output<void>();
     readonly headerShortcutRequested = output<void>();
+    readonly refreshPlaylistRequested = output<void>();
     readonly downloadsRequested = output<void>();
     readonly headerBulkActionRequested = output<void>();
     readonly playlistInfoRequested = output<void>();
@@ -108,10 +111,11 @@ class MockWorkspaceShellFacade {
     );
     readonly searchScopeLabel = signal('Movies / All Items');
     readonly searchStatusLabel = signal('');
-    readonly isGlobalFavoritesRoute = signal(false);
-    readonly isPortalFavoritesAllScope = signal(false);
     readonly headerShortcut = signal(null);
+    readonly canRefreshPlaylist = signal(false);
+    readonly isRefreshingPlaylist = signal(false);
     readonly isDownloadsView = signal(false);
+    readonly hasActiveDownloads = signal(false);
     readonly headerBulkAction = signal<WorkspaceHeaderBulkAction | null>(null);
     readonly showContextPanel = signal(true);
     readonly contextPanel = signal<WorkspaceShellContextPanel>('settings');
@@ -121,6 +125,8 @@ class MockWorkspaceShellFacade {
     readonly showXtreamImportOverlay = signal(false);
     readonly xtreamImportCount = signal(0);
     readonly xtreamItemsToImport = signal(0);
+    readonly xtreamActiveImportCount = signal(0);
+    readonly xtreamActiveItemsToImport = signal(0);
     readonly xtreamImportTitleLabel = signal(
         'WORKSPACE.SHELL.XTREAM_IMPORT_TITLE'
     );
@@ -133,6 +139,7 @@ class MockWorkspaceShellFacade {
     readonly xtreamImportDetailLabel = signal(
         'WORKSPACE.SHELL.XTREAM_IMPORT_DETAIL_REMOTE'
     );
+    readonly xtreamImportProgressLabel = signal('');
     readonly xtreamImportPhaseTone = signal<'remote' | 'local' | null>(
         'remote'
     );
@@ -145,8 +152,8 @@ class MockWorkspaceShellFacade {
     onSearchEnter = jest.fn();
     openCommandPalette = jest.fn();
     openAddPlaylistDialog = jest.fn();
-    navigateToGlobalFavorites = jest.fn();
     runHeaderShortcut = jest.fn();
+    refreshCurrentPlaylist = jest.fn();
     openDownloadsShortcut = jest.fn();
     runHeaderBulkAction = jest.fn();
     openPlaylistInfo = jest.fn();
@@ -166,6 +173,7 @@ describe('WorkspaceShellComponent', () => {
             .overrideComponent(WorkspaceShellComponent, {
                 set: {
                     imports: [
+                        MatProgressBarModule,
                         RouterOutlet,
                         MockExternalPlaybackDockComponent,
                         MockWorkspaceShellContextSidebarComponent,
@@ -200,5 +208,47 @@ describe('WorkspaceShellComponent', () => {
         expect(
             fixture.nativeElement.querySelector('app-external-playback-dock')
         ).not.toBeNull();
+    });
+
+    it('renders type-aware xtream import progress copy in the overlay', async () => {
+        const facade = new MockWorkspaceShellFacade();
+
+        await TestBed.configureTestingModule({
+            imports: [WorkspaceShellComponent],
+            providers: [provideRouter([])],
+        })
+            .overrideComponent(WorkspaceShellComponent, {
+                set: {
+                    imports: [
+                        MatProgressBarModule,
+                        RouterOutlet,
+                        MockExternalPlaybackDockComponent,
+                        MockWorkspaceShellContextSidebarComponent,
+                        MockWorkspaceShellHeaderComponent,
+                        MockWorkspaceShellRailComponent,
+                    ],
+                    providers: [
+                        {
+                            provide: WorkspaceShellFacade,
+                            useValue: facade,
+                        },
+                    ],
+                },
+            })
+            .compileComponents();
+
+        facade.showXtreamImportOverlay.set(true);
+        facade.xtreamActiveImportCount.set(20);
+        facade.xtreamActiveItemsToImport.set(12323);
+        facade.xtreamImportProgressLabel.set('Movies imported: 20 / 12,323');
+
+        const fixture = TestBed.createComponent(WorkspaceShellComponent);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '.workspace-loading-overlay__progress-copy'
+            )?.textContent
+        ).toContain('Movies imported: 20 / 12,323');
     });
 });

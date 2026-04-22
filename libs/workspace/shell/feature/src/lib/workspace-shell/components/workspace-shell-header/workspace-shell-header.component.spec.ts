@@ -23,8 +23,10 @@ class MockPlaylistSwitcherComponent {
     readonly subtitle = input('');
     readonly showPlaylistInfo = input(false);
     readonly showAccountInfo = input(false);
+    readonly showAddPlaylist = input(false);
     readonly playlistInfoRequested = output<void>();
     readonly accountInfoRequested = output<void>();
+    readonly addPlaylistRequested = output<void>();
 }
 
 describe('WorkspaceShellHeaderComponent', () => {
@@ -88,19 +90,40 @@ describe('WorkspaceShellHeaderComponent', () => {
         expect(emitted).toEqual(['matrix']);
     });
 
-    it('emits header bulk action requests when the action button is clicked', () => {
+    it('emits add playlist requests when the toolbar add button is clicked', () => {
         const requested = jest.fn();
-        component.headerBulkActionRequested.subscribe(requested);
-        fixture.componentRef.setInput('headerBulkAction', {
-            icon: 'delete_sweep',
-            tooltip: 'clear',
-            ariaLabel: 'clear recent',
-            disabled: false,
+        component.addPlaylistRequested.subscribe(requested);
+
+        const button: HTMLButtonElement = fixture.nativeElement.querySelector(
+            'button[aria-label="WORKSPACE.SHELL.ADD_PLAYLIST"]'
+        );
+        button.click();
+
+        expect(requested).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not render the removed global favorites shortcut', () => {
+        const button: HTMLButtonElement | null =
+            fixture.nativeElement.querySelector(
+                'button[aria-label="WORKSPACE.SHELL.OPEN_GLOBAL_FAVORITES"]'
+            );
+
+        expect(button).toBeNull();
+    });
+
+    it('emits contextual header shortcut requests when configured', () => {
+        const requested = jest.fn();
+        component.headerShortcutRequested.subscribe(requested);
+        fixture.componentRef.setInput('headerShortcut', {
+            icon: 'tune',
+            tooltipKey: 'shortcut.tooltip',
+            ariaLabelKey: 'shortcut.aria',
+            run: () => undefined,
         });
         fixture.detectChanges();
 
         const button: HTMLButtonElement = fixture.nativeElement.querySelector(
-            'button[aria-label="clear recent"]'
+            'button[aria-label="shortcut.aria"]'
         );
         button.click();
 
