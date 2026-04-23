@@ -1,3 +1,5 @@
+import type { Page } from '@playwright/test';
+
 import {
     addStalkerPortal,
     addXtreamPortal,
@@ -30,11 +32,10 @@ test.describe('Electron Provider Smoke Tests', () => {
             await expectPortalDebugSuccess(app.mainWindow, 'xtream');
 
             await goToDashboard(app.mainWindow);
-            await expect(
-                app.mainWindow.getByRole('link', {
-                    name: new RegExp(defaultXtreamPortalName, 'i'),
-                })
-            ).toBeVisible();
+            await expectRecentSourceCard(
+                app.mainWindow,
+                defaultXtreamPortalName
+            );
         } finally {
             await closeElectronApp(app);
         }
@@ -56,13 +57,31 @@ test.describe('Electron Provider Smoke Tests', () => {
             await expectPortalDebugSuccess(app.mainWindow, 'stalker');
 
             await goToDashboard(app.mainWindow);
-            await expect(
-                app.mainWindow.getByRole('link', {
-                    name: new RegExp(defaultStalkerPortalName, 'i'),
-                })
-            ).toBeVisible();
+            await expectRecentSourceCard(
+                app.mainWindow,
+                defaultStalkerPortalName
+            );
         } finally {
             await closeElectronApp(app);
         }
     });
 });
+
+async function expectRecentSourceCard(
+    page: Page,
+    title: string
+): Promise<void> {
+    await expect(
+        page.getByTestId('dashboard-recent-sources-rail')
+    ).toBeVisible({
+        timeout: 20000,
+    });
+
+    await expect(
+        page.getByTestId('dashboard-recent-sources-rail-card').filter({
+            hasText: title,
+        }).first()
+    ).toBeVisible({
+        timeout: 20000,
+    });
+}
