@@ -5,14 +5,25 @@ import {
     ElementRef,
     OnDestroy,
     effect,
+    input,
+    output,
     signal,
     viewChild,
-    input,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
+
+export interface DashboardRailAction {
+    id: string;
+    labelKey: string;
+    icon: string;
+    destructive?: boolean;
+    disabled?: boolean;
+    separatorBefore?: boolean;
+}
 
 export interface DashboardRailCard {
     id: string;
@@ -22,11 +33,23 @@ export interface DashboardRailCard {
     icon: string;
     link: string[];
     state?: Record<string, unknown>;
+    actions?: DashboardRailAction[];
+}
+
+export interface DashboardRailActionSelection {
+    action: DashboardRailAction;
+    card: DashboardRailCard;
 }
 
 @Component({
     selector: 'lib-dashboard-rail',
-    imports: [MatButtonModule, MatIcon, RouterLink, TranslatePipe],
+    imports: [
+        MatButtonModule,
+        MatIcon,
+        MatMenuModule,
+        RouterLink,
+        TranslatePipe,
+    ],
     templateUrl: './dashboard-rail.component.html',
     styleUrl: './dashboard-rail.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,13 +60,15 @@ export class DashboardRailComponent implements AfterViewInit, OnDestroy {
     readonly seeAllLink = input<string[] | null>(null);
     readonly aspectRatio = input<string>('2 / 3');
     readonly testId = input<string | null>(null);
+    readonly actionSelected = output<DashboardRailActionSelection>();
     /**
      * True total in the underlying dataset. Shown as a count badge next to
      * the rail label. Falls back to `items().length` when not supplied.
      */
     readonly totalCount = input<number | null>(null);
 
-    private readonly track = viewChild.required<ElementRef<HTMLDivElement>>('track');
+    private readonly track =
+        viewChild.required<ElementRef<HTMLDivElement>>('track');
 
     readonly canScrollLeft = signal(false);
     readonly canScrollRight = signal(false);
@@ -65,7 +90,9 @@ export class DashboardRailComponent implements AfterViewInit, OnDestroy {
     ngAfterViewInit(): void {
         this.viewReady.set(true);
         this.updateScrollState();
-        this.resizeObserver = new ResizeObserver(() => this.updateScrollState());
+        this.resizeObserver = new ResizeObserver(() =>
+            this.updateScrollState()
+        );
         this.resizeObserver.observe(this.track().nativeElement);
     }
 
@@ -90,6 +117,19 @@ export class DashboardRailComponent implements AfterViewInit, OnDestroy {
         this.failedImages.update((state) =>
             state[id] ? state : { ...state, [id]: true }
         );
+    }
+
+    stopActionEvent(event: Event): void {
+        event.stopPropagation();
+    }
+
+    selectAction(
+        card: DashboardRailCard,
+        action: DashboardRailAction,
+        event: Event
+    ): void {
+        event.stopPropagation();
+        this.actionSelected.emit({ card, action });
     }
 
     private updateScrollState(): void {

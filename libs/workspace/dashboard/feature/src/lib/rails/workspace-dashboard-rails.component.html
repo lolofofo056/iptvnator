@@ -42,7 +42,9 @@
             <a
                 class="hero"
                 data-test-id="dashboard-hero"
-                [class.hero--with-image]="!!item.posterUrl || !!item.backdropUrl"
+                [class.hero--with-image]="
+                    !!item.posterUrl || !!item.backdropUrl
+                "
                 [class.hero--has-backdrop]="item.hasBackdrop"
                 [routerLink]="item.link"
                 [state]="item.state ?? {}"
@@ -51,7 +53,9 @@
                     <span
                         class="hero__backdrop"
                         aria-hidden="true"
-                        [style.backgroundImage]="'url(' + item.backdropUrl + ')'"
+                        [style.backgroundImage]="
+                            'url(' + item.backdropUrl + ')'
+                        "
                     ></span>
                 }
                 <span class="hero__vignette" aria-hidden="true"></span>
@@ -113,6 +117,7 @@
                 [seeAllLink]="['/workspace/sources']"
                 aspectRatio="16 / 9"
                 [testId]="'dashboard-recent-sources-rail'"
+                (actionSelected)="onSourceActionSelected($event)"
             />
         }
 

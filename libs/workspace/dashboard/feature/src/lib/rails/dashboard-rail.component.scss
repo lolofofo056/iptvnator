@@ -173,10 +173,9 @@
     max-width: var(--rail-card-width);
     min-width: 0;
     scroll-snap-align: start;
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    text-decoration: none;
     color: inherit;
     border-radius: var(--rail-radius);
     transition:
@@ -195,6 +194,21 @@
         .rail__card-title {
             color: var(--app-selection-color, #2f7bff);
         }
+    }
+}
+
+.rail__card-link {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+    border-radius: inherit;
+
+    &:focus-visible {
+        outline: 2px solid var(--app-selection-color, #2f7bff);
+        outline-offset: 3px;
     }
 }
 
@@ -235,6 +249,52 @@
         height: 44px;
         color: var(--app-selection-color, #78adff);
         opacity: 0.55;
+    }
+}
+
+.rail__action-trigger {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 3;
+    width: 30px;
+    height: 30px;
+    padding: 3px;
+    border-radius: 50%;
+    color: #fff;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    opacity: 0.92;
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+    --mdc-icon-button-state-layer-size: 30px;
+
+    mat-icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+        line-height: 18px;
+    }
+
+    &:hover,
+    &:focus-visible {
+        opacity: 1;
+        transform: translateY(-1px);
+    }
+}
+
+.rail__menu-action--separated {
+    border-top: 1px solid var(--app-separator);
+    margin-top: 4px;
+}
+
+.rail__menu-action--danger {
+    color: var(--mat-sys-error);
+
+    mat-icon {
+        color: var(--mat-sys-error);
     }
 }
 

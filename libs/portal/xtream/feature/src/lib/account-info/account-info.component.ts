@@ -15,6 +15,7 @@ import {
     XtreamStore,
 } from '@iptvnator/portal/xtream/data-access';
 import { createLogger } from '@iptvnator/portal/shared/util';
+import type { XtreamAccountInfoDialogData } from 'shared-interfaces';
 
 type AccountLoadState = 'loading' | 'ready' | 'error';
 
@@ -46,23 +47,21 @@ interface AccountPort {
     changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountInfoComponent {
-    readonly data = inject<{
-        vodStreamsCount: number;
-        liveStreamsCount: number;
-        seriesCount: number;
-    }>(MAT_DIALOG_DATA);
+    readonly data =
+        inject<XtreamAccountInfoDialogData | null>(MAT_DIALOG_DATA, {
+            optional: true,
+        }) ?? {};
     private readonly xtreamApiService = inject(XtreamApiService);
     private readonly xtreamStore = inject(XtreamStore);
     private readonly logger = createLogger('XtreamAccountInfo');
 
-    readonly currentPlaylist = this.xtreamStore.currentPlaylist;
+    readonly currentPlaylist = computed(
+        () => this.data.playlist ?? this.xtreamStore.currentPlaylist()
+    );
     readonly loadState = signal<AccountLoadState>('loading');
     readonly accountInfo = signal<XtreamAccountInfo | null>(null);
     readonly skeletonStats = [1, 2, 3, 4];
     readonly skeletonPanels = [1, 2];
-    readonly vodStreamsCount = this.data.vodStreamsCount;
-    readonly liveStreamsCount = this.data.liveStreamsCount;
-    readonly seriesCount = this.data.seriesCount;
 
     readonly isActive = computed(
         () => this.accountInfo()?.user_info?.status === 'Active'
@@ -76,6 +75,7 @@ export class AccountInfoComponent {
 
         return (
             playlist?.title ||
+            playlist?.name ||
             info?.server_info?.url ||
             info?.user_info?.username ||
             '-'
@@ -103,7 +103,8 @@ export class AccountInfoComponent {
         );
     });
     readonly activeConnectionsLabel = computed(
-        () => `${this.activeConnections()}/${Math.max(this.maxConnections(), 0)}`
+        () =>
+            `${this.activeConnections()}/${Math.max(this.maxConnections(), 0)}`
     );
     readonly formattedExpDate = computed(() =>
         this.formatUnixDate(this.accountInfo()?.user_info?.exp_date)
@@ -142,19 +143,19 @@ export class AccountInfoComponent {
         {
             icon: 'live_tv',
             labelKey: 'XTREAM.ACCOUNT_INFO.LIVE_TV',
-            value: String(this.liveStreamsCount),
+            value: this.formatOptionalCount(this.data.liveStreamsCount),
             meter: null,
         },
         {
             icon: 'movie',
             labelKey: 'XTREAM.ACCOUNT_INFO.MOVIES',
-            value: String(this.vodStreamsCount),
+            value: this.formatOptionalCount(this.data.vodStreamsCount),
             meter: null,
         },
         {
             icon: 'tv',
             labelKey: 'XTREAM.ACCOUNT_INFO.TV_SERIES',
-            value: String(this.seriesCount),
+            value: this.formatOptionalCount(this.data.seriesCount),
             meter: null,
         },
     ]);
@@ -219,7 +220,7 @@ export class AccountInfoComponent {
     async reload(): Promise<void> {
         const playlist = this.currentPlaylist();
 
-        if (!playlist) {
+        if (!playlist?.serverUrl || !playlist.username || !playlist.password) {
             this.loadState.set('error');
             this.accountInfo.set(null);
             return;
@@ -256,5 +257,9 @@ export class AccountInfoComponent {
     private parseNumber(value?: string): number {
         const parsed = Number.parseInt(value ?? '', 10);
         return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    private formatOptionalCount(value?: number): string {
+        return Number.isFinite(value) ? String(value) : '-';
     }
 }

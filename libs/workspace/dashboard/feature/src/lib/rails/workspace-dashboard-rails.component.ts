@@ -6,21 +6,34 @@ import {
     inject,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { RouterLink } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { EmptyStateComponent } from '@iptvnator/playlist/shared/ui';
+import {
+    EmptyStateComponent,
+    PlaylistInfoComponent,
+} from '@iptvnator/playlist/shared/ui';
+import { PlaylistRefreshActionService } from '@iptvnator/playlist/shared/util';
 import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
+import { DialogService } from 'components';
+import { PlaylistActions } from 'm3u-state';
+import { DatabaseService } from 'services';
 import {
     DashboardDataService,
     DashboardFavoriteItem,
     DashboardRecentlyAddedItem,
     GlobalRecentItem,
 } from 'workspace-dashboard-data-access';
-import {
+import { DashboardRailComponent } from './dashboard-rail.component';
+import type {
+    DashboardRailAction,
     DashboardRailCard,
-    DashboardRailComponent,
+    DashboardRailActionSelection,
 } from './dashboard-rail.component';
+import type { PlaylistMeta } from 'shared-interfaces';
 
 // Cap dashboard rails at 20 items. Users get ~3× what's visible at once,
 // the DOM stays cheap, and the "Manage all" link is one click away for the
@@ -43,6 +56,65 @@ interface DashboardHeroModel {
     readonly title: string;
 }
 
+export type DashboardSourceActionId =
+    | 'refresh'
+    | 'playlist-info'
+    | 'account-info'
+    | 'remove';
+
+export function buildDashboardSourceActions(
+    playlist: PlaylistMeta,
+    canRefresh: boolean
+): DashboardRailAction[] {
+    const actions: DashboardRailAction[] = [];
+
+    if (canRefresh) {
+        actions.push({
+            id: 'refresh',
+            icon: 'sync',
+            labelKey: playlist.serverUrl
+                ? 'HOME.PLAYLISTS.REFRESH_XTREAM'
+                : 'HOME.PLAYLISTS.REFRESH',
+        });
+    }
+
+    actions.push({
+        id: 'playlist-info',
+        icon: 'edit',
+        labelKey: 'HOME.PLAYLISTS.SHOW_DETAILS',
+    });
+
+    if (isXtreamAccountPlaylist(playlist)) {
+        actions.push({
+            id: 'account-info',
+            icon: 'person',
+            labelKey: 'WORKSPACE.SHELL.ACCOUNT_INFO',
+        });
+    }
+
+    actions.push({
+        id: 'remove',
+        icon: 'delete',
+        labelKey: 'HOME.PLAYLISTS.REMOVE_DIALOG.TITLE',
+        destructive: true,
+        separatorBefore: true,
+    });
+
+    return actions;
+}
+
+function isXtreamAccountPlaylist(
+    playlist: PlaylistMeta
+): playlist is PlaylistMeta & {
+    serverUrl: string;
+    username: string;
+    password: string;
+} {
+    return Boolean(
+        playlist.serverUrl && playlist.username && playlist.password
+    );
+}
+
 @Component({
     selector: 'lib-workspace-dashboard-rails',
     imports: [
@@ -59,6 +131,14 @@ interface DashboardHeroModel {
 })
 export class WorkspaceDashboardRailsComponent {
     readonly data = inject(DashboardDataService);
+    private readonly databaseService = inject(DatabaseService);
+    private readonly dialog = inject(MatDialog);
+    private readonly dialogService = inject(DialogService);
+    private readonly playlistRefreshAction = inject(
+        PlaylistRefreshActionService
+    );
+    private readonly snackBar = inject(MatSnackBar);
+    private readonly store = inject(Store);
     private readonly translate = inject(TranslateService);
     private readonly shellActions = inject(WORKSPACE_SHELL_ACTIONS);
 
@@ -122,6 +202,10 @@ export class WorkspaceDashboardRailsComponent {
                   ? 'cast'
                   : 'folder_open',
             link: this.data.getPlaylistLink(playlist),
+            actions: buildDashboardSourceActions(
+                playlist,
+                this.playlistRefreshAction.canRefresh(playlist)
+            ),
         }))
     );
 
@@ -145,6 +229,31 @@ export class WorkspaceDashboardRailsComponent {
 
     onAddPlaylist(): void {
         this.shellActions.openAddPlaylistDialog();
+    }
+
+    onSourceActionSelected(selection: DashboardRailActionSelection): void {
+        const playlist = this.data
+            .playlists()
+            .find((item) => item._id === selection.card.id);
+
+        if (!playlist) {
+            return;
+        }
+
+        switch (selection.action.id as DashboardSourceActionId) {
+            case 'refresh':
+                this.playlistRefreshAction.refresh(playlist);
+                break;
+            case 'playlist-info':
+                this.dialog.open(PlaylistInfoComponent, { data: playlist });
+                break;
+            case 'account-info':
+                this.openXtreamAccountInfo(playlist);
+                break;
+            case 'remove':
+                this.confirmRemovePlaylist(playlist);
+                break;
+        }
     }
 
     private buildHeroSubtitle(item: GlobalRecentItem): string {
@@ -202,6 +311,64 @@ export class WorkspaceDashboardRailsComponent {
         if (type === 'live') return 'live_tv';
         if (type === 'movie') return 'movie';
         return 'video_library';
+    }
+
+    private openXtreamAccountInfo(playlist: PlaylistMeta): void {
+        if (!isXtreamAccountPlaylist(playlist)) {
+            return;
+        }
+
+        const title =
+            playlist.title ||
+            playlist.filename ||
+            this.t('WORKSPACE.DASHBOARD.UNTITLED_SOURCE');
+
+        this.shellActions.openAccountInfo({
+            playlist: {
+                id: playlist._id,
+                name: title,
+                title,
+                serverUrl: playlist.serverUrl,
+                username: playlist.username,
+                password: playlist.password,
+            },
+        });
+    }
+
+    private confirmRemovePlaylist(playlist: PlaylistMeta): void {
+        this.dialogService.openConfirmDialog({
+            title: this.translate.instant('HOME.PLAYLISTS.REMOVE_DIALOG.TITLE'),
+            message: this.translate.instant(
+                'HOME.PLAYLISTS.REMOVE_DIALOG.MESSAGE'
+            ),
+            onConfirm: () => {
+                void this.removePlaylist(playlist);
+            },
+        });
+    }
+
+    private async removePlaylist(playlist: PlaylistMeta): Promise<void> {
+        const operationId = playlist.serverUrl
+            ? this.databaseService.createOperationId('playlist-delete')
+            : undefined;
+
+        const deleted = await this.databaseService.deletePlaylist(
+            playlist._id,
+            operationId ? { operationId } : undefined
+        );
+
+        if (!deleted) {
+            return;
+        }
+
+        this.store.dispatch(
+            PlaylistActions.removePlaylist({ playlistId: playlist._id })
+        );
+        this.snackBar.open(
+            this.translate.instant('HOME.PLAYLISTS.REMOVE_DIALOG.SUCCESS'),
+            undefined,
+            { duration: 2000 }
+        );
     }
 
     private t(key: string): string {

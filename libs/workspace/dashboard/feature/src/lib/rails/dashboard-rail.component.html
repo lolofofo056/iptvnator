@@ -12,9 +12,7 @@
             <a
                 class="rail__see-all"
                 [routerLink]="link"
-                [attr.data-test-id]="
-                    testId() ? testId() + '-manage-all' : null
-                "
+                [attr.data-test-id]="testId() ? testId() + '-manage-all' : null"
             >
                 <span class="rail__see-all-label">{{
                     'WORKSPACE.DASHBOARD.MANAGE_ALL' | translate
@@ -36,51 +34,93 @@
             <mat-icon>chevron_left</mat-icon>
         </button>
 
-        <div
-            #track
-            class="rail__track"
-            (scroll)="onScroll()"
-            role="list"
-        >
+        <div #track class="rail__track" (scroll)="onScroll()" role="list">
             @for (card of items(); track card.id) {
-                <a
+                <div
                     class="rail__card"
                     role="listitem"
-                    [routerLink]="card.link"
-                    [state]="card.state"
                     [attr.title]="card.title"
                     [attr.data-test-id]="testId() ? testId() + '-card' : null"
                 >
-                    <div
-                        class="rail__art"
-                        [style.aspect-ratio]="aspectRatio()"
+                    <a
+                        class="rail__card-link"
+                        [routerLink]="card.link"
+                        [state]="card.state"
                     >
-                        @if (card.imageUrl && !failedImages()[card.id]) {
-                            <img
-                                [src]="card.imageUrl"
-                                [alt]="card.title"
-                                loading="lazy"
-                                decoding="async"
-                                (error)="markFailed(card.id)"
-                            />
-                        } @else {
-                            <div class="rail__art-fallback">
-                                <mat-icon>{{ card.icon }}</mat-icon>
-                            </div>
-                        }
-                    </div>
+                        <div
+                            class="rail__art"
+                            [style.aspect-ratio]="aspectRatio()"
+                        >
+                            @if (card.imageUrl && !failedImages()[card.id]) {
+                                <img
+                                    [src]="card.imageUrl"
+                                    [alt]="card.title"
+                                    loading="lazy"
+                                    decoding="async"
+                                    (error)="markFailed(card.id)"
+                                />
+                            } @else {
+                                <div class="rail__art-fallback">
+                                    <mat-icon>{{ card.icon }}</mat-icon>
+                                </div>
+                            }
+                        </div>
 
-                    <div class="rail__meta">
-                        <span class="rail__card-title">{{ card.title }}</span>
-                        @if (card.subtitle) {
-                            <span class="rail__card-subtitle">{{
-                                card.subtitle
+                        <div class="rail__meta">
+                            <span class="rail__card-title">{{
+                                card.title
                             }}</span>
-                        }
-                    </div>
-                </a>
+                            @if (card.subtitle) {
+                                <span class="rail__card-subtitle">{{
+                                    card.subtitle
+                                }}</span>
+                            }
+                        </div>
+                    </a>
+
+                    @if (card.actions && card.actions.length > 0) {
+                        <button
+                            type="button"
+                            mat-icon-button
+                            class="rail__action-trigger"
+                            [matMenuTriggerFor]="cardActionMenu"
+                            [matMenuTriggerData]="{ card: card }"
+                            [attr.aria-label]="'SHOW_MORE' | translate"
+                            [attr.data-test-id]="
+                                testId() ? testId() + '-card-actions' : null
+                            "
+                            (click)="stopActionEvent($event)"
+                        >
+                            <mat-icon>more_vert</mat-icon>
+                        </button>
+                    }
+                </div>
             }
         </div>
+
+        <mat-menu
+            #cardActionMenu="matMenu"
+            panelClass="dashboard-rail-action-menu"
+            xPosition="before"
+        >
+            <ng-template matMenuContent let-card="card">
+                @for (action of card.actions ?? []; track action.id) {
+                    <button
+                        mat-menu-item
+                        type="button"
+                        [disabled]="action.disabled"
+                        [class.rail__menu-action--danger]="action.destructive"
+                        [class.rail__menu-action--separated]="
+                            action.separatorBefore
+                        "
+                        (click)="selectAction(card, action, $event)"
+                    >
+                        <mat-icon>{{ action.icon }}</mat-icon>
+                        <span>{{ action.labelKey | translate }}</span>
+                    </button>
+                }
+            </ng-template>
+        </mat-menu>
 
         <button
             type="button"

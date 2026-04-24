@@ -1,14 +1,16 @@
 import { InjectionToken } from '@angular/core';
+import type { XtreamAccountInfoDialogData } from 'shared-interfaces';
 
-export type WorkspacePlaylistType = 'xtream' | 'url' | 'text' | 'file' | 'stalker';
+export type WorkspacePlaylistType =
+    | 'xtream'
+    | 'url'
+    | 'text'
+    | 'file'
+    | 'stalker';
 export type PlaylistCategory = 'm3u' | 'xtream' | 'stalker';
 export type M3uSubType = 'url' | 'file' | 'text';
 
-export interface WorkspaceAccountInfoData {
-    vodStreamsCount: number;
-    liveStreamsCount: number;
-    seriesCount: number;
-}
+export type WorkspaceAccountInfoData = XtreamAccountInfoDialogData;
 
 export interface WorkspaceShellActions {
     openAddPlaylistDialog(type?: WorkspacePlaylistType): void;
