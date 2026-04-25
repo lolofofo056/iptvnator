@@ -2,17 +2,20 @@ import { Component, Directive, input, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
+import {
+    PORTAL_PLAYER,
+    ResizableDirective,
+} from '@iptvnator/portal/shared/util';
+import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
+import { EpgListComponent } from '@iptvnator/ui/epg';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { ChannelListItemComponent } from 'components';
 import { MockPipe } from 'ng-mocks';
 import { of } from 'rxjs';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { PORTAL_PLAYER, ResizableDirective } from '@iptvnator/portal/shared/util';
-import { EpgListComponent } from '@iptvnator/ui/epg';
-import { WebPlayerViewComponent } from 'shared-portals';
-import { ChannelListItemComponent } from 'components';
 import { PlaylistsService } from 'services';
 import { EpgProgram } from 'shared-interfaces';
-import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
-import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
+import { WebPlayerViewComponent } from 'shared-portals';
 import { StalkerLiveStreamLayoutComponent } from './stalker-live-stream-layout.component';
 
 @Component({

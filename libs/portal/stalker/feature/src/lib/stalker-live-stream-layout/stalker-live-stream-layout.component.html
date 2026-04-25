@@ -77,9 +77,9 @@
             [message]="'PORTALS.SELECT_CATEGORY' | translate"
         />
     } @else if (stalkerStore.selectedItem()) {
-        @if (streamUrl && isEmbeddedPlayer) {
+        @if (streamUrl() && isEmbeddedPlayer) {
             <div class="video-player">
-                <app-web-player-view [streamUrl]="streamUrl" />
+                <app-web-player-view [streamUrl]="streamUrl()" />
             </div>
         }
         <div class="epg">
