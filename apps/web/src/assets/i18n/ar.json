@@ -67,7 +67,37 @@
             "MY_PLAYLISTS": "قوائم التشغيل الخاصة بي",
             "MY_PLAYLISTS_SUBTITLE": "جميع القوائم المتاحة",
             "PLAYLIST_UPDATE_SUCCESS": "نجاح! تم تحديث القائمة.",
-            "PLAYLIST_UPDATE_ERROR": "خطأ في تحديث تفاصيل القائمة."
+            "PLAYLIST_UPDATE_ERROR": "خطأ في تحديث تفاصيل القائمة.",
+            "FEATURE_M3U_LABEL": "Add an M3U file or URL",
+            "FEATURE_XTREAM_LABEL": "Connect via Xtream Codes",
+            "FEATURE_STALKER_LABEL": "Connect to a Stalker portal",
+            "VALUE_PROPS_LABEL": "What you can do",
+            "VALUE_PROP_LIVE": "Live TV with EPG",
+            "VALUE_PROP_VOD": "Movies & Series",
+            "VALUE_PROP_MULTISOURCE": "Multi-source library",
+            "VALUE_PROP_OFFLINE": "Offline downloads",
+            "DASHBOARD_WELCOME_TAGLINE": "Your IPTV library, in one place.",
+            "FEATURE_LIVE_TITLE": "Live TV",
+            "FEATURE_LIVE_DESC": "Stream live channels with full schedule.",
+            "FEATURE_VOD_TITLE": "Movies & Series",
+            "FEATURE_VOD_DESC": "On-demand library with covers and details.",
+            "FEATURE_EPG_TITLE": "EPG & Catch-up",
+            "FEATURE_EPG_DESC": "Program guide and time-shifted playback.",
+            "FEATURE_OFFLINE_TITLE": "Offline downloads",
+            "FEATURE_OFFLINE_DESC": "Save movies and episodes for later.",
+            "SOURCES_WELCOME_TITLE": "Add your first playlist",
+            "SOURCES_WELCOME_BODY": "Pick a source type below to get started.",
+            "SOURCE_M3U_NEEDS": "Local file or URL pointing to an M3U/M3U8 playlist.",
+            "SOURCE_M3U_ADD": "Add M3U",
+            "SOURCE_XTREAM_NEEDS": "Username, password and server URL from your provider.",
+            "SOURCE_XTREAM_ADD": "Add Xtream",
+            "SOURCE_STALKER_NEEDS": "Portal URL and MAC address (Ministra-compatible).",
+            "SOURCE_STALKER_ADD": "Add Stalker",
+            "CONTENT_LIVE": "Live",
+            "CONTENT_VOD": "Movies",
+            "CONTENT_SERIES": "Series",
+            "CONTENT_EPG": "EPG",
+            "DASHBOARD_WELCOME_DESCRIPTION": "Connect M3U files, Xtream Codes, or Stalker portals — then enjoy live TV, movies and series on every screen."
         },
         "FILE_UPLOAD": {
             "DRAG_DROP": "اسحب وأفلت الملفات هنا",
@@ -345,5 +375,45 @@
         "DOWN_CHANNEL": "القناة التالية",
         "HEADER": "التحكم عن بعد في IPTVNator",
         "FOOTER": "التحكم عن بعد في IPTVNator"
+    },
+    "WORKSPACE": {
+        "SHELL": {
+            "GO_TO_DASHBOARD": "Back to dashboard",
+            "GO_TO_SOURCES": "Go to Sources",
+            "DROP_OVERLAY_TITLE": "Drop to add playlist",
+            "DROP_OVERLAY_BODY": "Release an .m3u or .m3u8 file anywhere in the workspace to import it.",
+            "DROP_OVERLAY_REJECTED_BODY": "Please drop an .m3u or .m3u8 file. Press Esc to dismiss.",
+            "DROP_OVERLAY_REJECTED_UNSUPPORTED": "Unsupported file type",
+            "DROP_OVERLAY_REJECTED_EMPTY": "That file is empty",
+            "DROP_OVERLAY_REJECTED_READ_ERROR": "Could not read that file",
+            "DROP_IMPORT_SUCCESS": "Importing \"{{title}}\"…",
+            "COMMANDS": {
+                "ADD_PLAYLIST_M3U_LABEL": "Add M3U playlist",
+                "ADD_PLAYLIST_M3U_DESCRIPTION": "Open add dialog on the M3U file or URL tab",
+                "ADD_PLAYLIST_XTREAM_LABEL": "Add Xtream Codes playlist",
+                "ADD_PLAYLIST_XTREAM_DESCRIPTION": "Open add dialog on the Xtream Codes tab",
+                "ADD_PLAYLIST_STALKER_LABEL": "Add Stalker portal",
+                "ADD_PLAYLIST_STALKER_DESCRIPTION": "Open add dialog on the Stalker Portal tab"
+            }
+        },
+        "GLOBAL_FAVORITES": {
+            "NO_PLAYLISTS_TITLE": "No favorites to show",
+            "NO_PLAYLISTS_BODY": "Add a playlist to start collecting favorites from live channels, movies, and series.",
+            "NO_ITEMS_TITLE": "No favorites yet",
+            "NO_ITEMS_BODY": "Tap the star icon on any channel, movie, or series to save it here."
+        },
+        "GLOBAL_RECENT": {
+            "NO_PLAYLISTS_TITLE": "Nothing watched yet",
+            "NO_PLAYLISTS_BODY": "Add a playlist and your watching history will appear here.",
+            "NO_ITEMS_TITLE": "Nothing watched yet",
+            "NO_ITEMS_BODY": "Start watching anything from your library and it will show up here."
+        }
+    },
+    "DOWNLOADS": {
+        "NO_PLAYLISTS_TITLE": "Add a playlist to start downloading",
+        "NO_PLAYLISTS_BODY": "Once you add a playlist, you can save movies and episodes here for offline playback.",
+        "NO_ITEMS_BODY": "Use the download button on any movie or episode to save it for offline playback.",
+        "NO_FILTER_MATCH": "No downloads match the current filter",
+        "NO_FILTER_MATCH_HINT": "Try a different search term"
     }
 }
