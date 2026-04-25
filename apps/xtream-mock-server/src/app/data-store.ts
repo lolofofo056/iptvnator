@@ -11,6 +11,11 @@ import {
 import { generateVodStreams, generateVodDetails, RawVodStream, RawVodDetails } from './generators/vod.generator.js';
 import { generateSeriesItems, generateSeriesInfo, RawSeriesItem, RawSeriesInfo } from './generators/series.generator.js';
 import { RawCategory } from './generators/categories.generator.js';
+import {
+    buildMarketingPortalFixture,
+    buildMarketingSeriesInfo,
+    buildMarketingVodDetails,
+} from './generators/marketing.generator.js';
 import { getScenario, ScenarioConfig } from './scenarios.js';
 
 export interface PortalData {
@@ -33,6 +38,27 @@ function generatePortalData(username: string, password: string): PortalData {
     faker.seed(scenario.seed);
 
     const { categoryCount, itemsPerCategory, seasonsPerSeries, episodesPerSeason } = scenario;
+
+    if (scenario.marketingFixture) {
+        const marketingFixture = buildMarketingPortalFixture();
+        for (const s of marketingFixture.seriesItems) {
+            if (!seriesInfoCache.has(s.series_id)) {
+                seriesInfoCache.set(
+                    s.series_id,
+                    buildMarketingSeriesInfo(
+                        s,
+                        seasonsPerSeries,
+                        episodesPerSeason
+                    )
+                );
+            }
+        }
+
+        return {
+            scenario,
+            ...marketingFixture,
+        };
+    }
 
     let liveCategories = generateCategories('live', categoryCount.live);
     const vodCategories = generateCategories('vod', categoryCount.vod);
@@ -88,7 +114,12 @@ export function getVodDetails(username: string, password: string, vodId: number)
             vodDetailsCache.set(vodId, { info: [] });
             return vodDetailsCache.get(vodId) ?? null;
         }
-        vodDetailsCache.set(vodId, generateVodDetails(stream));
+        vodDetailsCache.set(
+            vodId,
+            data.scenario.marketingFixture
+                ? buildMarketingVodDetails(stream)
+                : generateVodDetails(stream)
+        );
     }
     return vodDetailsCache.get(vodId) ?? null;
 }
@@ -99,7 +130,20 @@ export function getSeriesInfo(username: string, password: string, seriesId: numb
         const series = data.seriesItems.find(s => s.series_id === seriesId);
         if (!series) return null;
         const scenario = getScenario(username, password);
-        seriesInfoCache.set(seriesId, generateSeriesInfo(series, scenario.seasonsPerSeries, scenario.episodesPerSeason));
+        seriesInfoCache.set(
+            seriesId,
+            scenario.marketingFixture
+                ? buildMarketingSeriesInfo(
+                      series,
+                      scenario.seasonsPerSeries,
+                      scenario.episodesPerSeason
+                  )
+                : generateSeriesInfo(
+                      series,
+                      scenario.seasonsPerSeries,
+                      scenario.episodesPerSeason
+                  )
+        );
     }
     return seriesInfoCache.get(seriesId) ?? null;
 }

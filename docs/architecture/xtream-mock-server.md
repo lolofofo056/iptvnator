@@ -44,6 +44,8 @@ Re-requesting with the same credentials returns the exact same data until
 ```
 apps/xtream-mock-server/
 ├── project.json                  ← Nx targets: serve (port 3211), serve-with-watch
+├── public/
+│   └── marketing/                ← committed fictional release artwork PNGs
 ├── tsconfig.json
 └── src/
     ├── main.ts                   ← Express app bootstrap, all routes wired up
@@ -53,6 +55,7 @@ apps/xtream-mock-server/
         ├── generators/
         │   ├── categories.generator.ts
         │   ├── live.generator.ts   ← Live streams + EPG listings
+        │   ├── marketing.generator.ts ← Fictional release screenshot fixture
         │   ├── vod.generator.ts    ← VOD streams + VodDetails
         │   └── series.generator.ts ← Series items + SeriesInfo
         ├── handlers/
@@ -82,9 +85,11 @@ Response: raw JSON (no envelope). Matches the real Xtream Codes API format.
 ### PWA proxy endpoint
 
 IPTVnator's PWA routes Xtream calls through:
+
 ```
 GET /xtream?url=<serverUrl>&action=<action>&username=<u>&password=<p>
 ```
+
 Response: `{ payload: <data>, action: <action> }`
 
 This mirrors the backend proxy in `apps/electron-backend` so the same
@@ -109,16 +114,22 @@ All redirect to a publicly available HLS test stream
 
 ```json
 {
-  "user_info": {
-    "username": "user1", "password": "pass1",
-    "status": "active", "exp_date": "4102444799",
-    "is_trial": "0", "active_cons": "1", "max_connections": "2",
-    "allowed_output_formats": ["m3u8", "ts", "rtmp"]
-  },
-  "server_info": {
-    "url": "http://localhost:3211", "port": "3211",
-    "timezone": "UTC", "timestamp_now": 1234567890
-  }
+    "user_info": {
+        "username": "user1",
+        "password": "pass1",
+        "status": "active",
+        "exp_date": "4102444799",
+        "is_trial": "0",
+        "active_cons": "1",
+        "max_connections": "2",
+        "allowed_output_formats": ["m3u8", "ts", "rtmp"]
+    },
+    "server_info": {
+        "url": "http://localhost:3211",
+        "port": "3211",
+        "timezone": "UTC",
+        "timestamp_now": 1234567890
+    }
 }
 ```
 
@@ -135,11 +146,15 @@ All redirect to a publicly available HLS test stream
 
 ```json
 {
-  "num": 1, "name": "Acme Corp TV",
-  "stream_type": "live", "stream_id": 10000,
-  "stream_icon": "https://picsum.photos/seed/live-10000/100/100",
-  "epg_channel_id": "channel-10000.mock",
-  "category_id": "101", "tv_archive": 0, "tv_archive_duration": 0
+    "num": 1,
+    "name": "Acme Corp TV",
+    "stream_type": "live",
+    "stream_id": 10000,
+    "stream_icon": "https://picsum.photos/seed/live-10000/100/100",
+    "epg_channel_id": "channel-10000.mock",
+    "category_id": "101",
+    "tv_archive": 0,
+    "tv_archive_duration": 0
 }
 ```
 
@@ -147,15 +162,18 @@ All redirect to a publicly available HLS test stream
 
 ```json
 {
-  "epg_listings": [
-    {
-      "id": "1000000", "epg_id": "channel-10000.mock",
-      "title": "base64encodedTitle",
-      "description": "base64encodedDescription",
-      "start": "2024-01-01 12:00:00", "end": "2024-01-01 12:30:00",
-      "start_timestamp": "1704110400", "stop_timestamp": "1704112200"
-    }
-  ]
+    "epg_listings": [
+        {
+            "id": "1000000",
+            "epg_id": "channel-10000.mock",
+            "title": "base64encodedTitle",
+            "description": "base64encodedDescription",
+            "start": "2024-01-01 12:00:00",
+            "end": "2024-01-01 12:30:00",
+            "start_timestamp": "1704110400",
+            "stop_timestamp": "1704112200"
+        }
+    ]
 }
 ```
 
@@ -167,19 +185,19 @@ Both actions return the same full per-channel schedule shape:
 
 ```json
 {
-  "epg_listings": [
-    {
-      "id": "10000-current",
-      "epg_id": "channel-10000.mock",
-      "title": "base64encodedTitle",
-      "description": "base64encodedDescription",
-      "start": "2026-04-05 04:30:00",
-      "end": "2026-04-05 05:00:00",
-      "start_timestamp": "1775363400",
-      "stop_timestamp": "1775365200",
-      "channel_id": "channel-10000.mock"
-    }
-  ]
+    "epg_listings": [
+        {
+            "id": "10000-current",
+            "epg_id": "channel-10000.mock",
+            "title": "base64encodedTitle",
+            "description": "base64encodedDescription",
+            "start": "2026-04-05 04:30:00",
+            "end": "2026-04-05 05:00:00",
+            "start_timestamp": "1775363400",
+            "stop_timestamp": "1775365200",
+            "channel_id": "channel-10000.mock"
+        }
+    ]
 }
 ```
 
@@ -214,16 +232,19 @@ sometimes only respond to that misspelled action.
 
 ## Scenarios
 
-| Key (`username:password`) | Seed | Categories | Items/cat | Account status |
-|---------------------------|------|------------|-----------|----------------|
-| `user1:pass1` | 1001 | 8 each | 40 | active |
-| `large:large` | 9999 | 20 each | 200 | active |
-| `series:series` | 2002 | live:3, vod:4, series:15 | 30 | active |
-| `minimal:minimal` | 3003 | 2 each | 5 | active |
-| `epg:epg` | 6006 | live:2, vod:1, series:1 | 3 | active |
-| `expired:expired` | 4004 | 4 each | 10 | Expired |
-| `inactive:inactive` | 5005 | 4 each | 10 | Disabled |
-| `<any other>` | hash | 6 each | 30 | active |
+| Key (`username:password`) | Seed | Categories               | Items/cat | Account status |
+| ------------------------- | ---- | ------------------------ | --------- | -------------- |
+| `user1:pass1`             | 1001 | 8 each                   | 40        | active         |
+| `large:large`             | 9999 | 20 each                  | 200       | active         |
+| `stress:stress`           | 7777 | 16 each                  | 120       | active         |
+| `series:series`           | 2002 | live:3, vod:4, series:15 | 30        | active         |
+| `minimal:minimal`         | 3003 | 2 each                   | 5         | active         |
+| `epg:epg`                 | 6006 | live:2, vod:1, series:1  | 3         | active         |
+| `emptyvod:emptyvod`       | 7007 | 2 each                   | 5         | active         |
+| `marketing:marketing`     | 8020 | live:4, vod:4, series:4  | curated   | active         |
+| `expired:expired`         | 4004 | 4 each                   | 10        | Expired        |
+| `inactive:inactive`       | 5005 | 4 each                   | 10        | Disabled       |
+| `<any other>`             | hash | 6 each                   | 30        | active         |
 
 ### `epg:epg` fixture details
 
@@ -237,6 +258,26 @@ This scenario is reserved for Xtream EPG tests:
 That deliberate mismatch lets Electron tests verify the renderer uses timestamp
 fields for sorting, current-program selection, progress bars, and local clock
 labels instead of trusting provider-local strings.
+
+### `marketing:marketing` fixture details
+
+This scenario is reserved for release screenshots and marketing materials:
+
+- VOD and series data use 30 curated fictional titles instead of faker-generated
+  titles or real media metadata
+- posters and backdrops are served from committed PNG files in
+  `apps/xtream-mock-server/public/marketing/{poster,backdrop}/`
+- `tools/release/generate-marketing-artwork.ts` generates the PNGs with
+  `gpt-image-2` only when `OPENAI_API_KEY` is present; it also writes the
+  prompt/asset manifest at `apps/xtream-mock-server/public/marketing/manifest.json`
+- the manifest assigns distinct genre and visual-medium profiles per title,
+  including documentary, noir, animated family, retro rescue drama, cyberpunk,
+  anime-inspired space school, and workplace dramedy styles
+- screenshot capture remains deterministic and offline because
+  `tools/release/capture-v020-screenshots.ts` consumes the local mock server
+  assets and never calls OpenAI
+- the SVG renderer in `marketing.generator.ts` remains the fallback for missing
+  assets, live logos, season covers, and episode thumbnails
 
 ---
 
@@ -275,5 +316,8 @@ await page.route('**/localhost:3000/xtream**', async (route) => {
 - **Add new actions**: Implement a handler function and add a `case` in `routes/dispatch.ts`
 - **Add new scenarios**: Add an entry to `SCENARIOS` in `scenarios.ts`
 - **Add deterministic EPG fixtures**: Extend `ScenarioConfig.epgFixture` and populate `epgListingsByStreamId` in `data-store.ts`
+- **Refresh release artwork**: Run `pnpm release:artwork:dry-run`, then
+  `OPENAI_API_KEY=... pnpm release:artwork:generate`, inspect the generated PNGs,
+  and finish with `pnpm release:artwork:validate`
 - **Adjust data volume**: Change `itemsPerCategory`, `seasonsPerSeries`, or `episodesPerSeason` per scenario
 - **Custom stream URLs**: Edit the HLS stub redirect in `main.ts`

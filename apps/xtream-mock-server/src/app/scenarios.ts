@@ -15,6 +15,8 @@ export interface ScenarioConfig {
     epgFixture?: 'timezone-focus';
     /** Optional deterministic VOD detail profile for metadata fallback tests. */
     vodDetailsFixture?: 'empty-metadata';
+    /** Optional fictional release-marketing dataset with local demo artwork. */
+    marketingFixture?: true;
 }
 
 /**
@@ -104,6 +106,19 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
         accountStatus: 'Active',
         expiryDate: '2099-12-31',
         vodDetailsFixture: 'empty-metadata',
+    },
+    'marketing:marketing': {
+        name: 'marketing-demo',
+        description:
+            'Fictional catalog for release screenshots — local generated artwork, no real media covers',
+        seed: 8020,
+        categoryCount: { live: 4, vod: 4, series: 4 },
+        itemsPerCategory: 6,
+        seasonsPerSeries: 3,
+        episodesPerSeason: 6,
+        accountStatus: 'Active',
+        expiryDate: '2099-12-31',
+        marketingFixture: true,
     },
     'expired:expired': {
         name: 'expired',

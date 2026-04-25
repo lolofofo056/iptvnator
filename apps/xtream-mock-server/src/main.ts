@@ -1,11 +1,18 @@
 import http from 'http';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import express from 'express';
 import cors from 'cors';
 import { dispatchAction } from './app/routes/dispatch.js';
 import { resetAll } from './app/data-store.js';
+import { renderMarketingAssetSvg } from './app/generators/marketing.generator.js';
 
 const app = express();
 const PORT = parseInt(process.env['PORT'] ?? '3211', 10);
+const marketingRasterAssetRoot = join(
+    process.cwd(),
+    'apps/xtream-mock-server/public/marketing'
+);
 
 app.use(cors());
 app.use(express.json());
@@ -19,6 +26,40 @@ app.get('/health', (_req, res) => {
 app.post('/reset', (_req, res) => {
     resetAll();
     res.json({ status: 'reset' });
+});
+
+// ─── Local fictional artwork for release screenshots ──────────────────────────
+app.get('/assets/marketing/:kind/:slug', (req, res) => {
+    const kind = req.params['kind'] as
+        | 'backdrop'
+        | 'episode'
+        | 'logo'
+        | 'poster'
+        | 'season';
+    const slug = req.params['slug'] ?? '';
+    const size =
+        typeof req.query['size'] === 'string' ? req.query['size'] : undefined;
+
+    if (!['backdrop', 'episode', 'logo', 'poster', 'season'].includes(kind)) {
+        res.status(404).send('Unknown marketing asset kind');
+        return;
+    }
+
+    const rasterSlug = slug.replace(/\.(svg|png)$/i, '');
+    const rasterPath = join(marketingRasterAssetRoot, kind, `${rasterSlug}.png`);
+
+    if (existsSync(rasterPath)) {
+        res
+            .type('image/png')
+            .set('Cache-Control', 'public, max-age=3600')
+            .send(readFileSync(rasterPath));
+        return;
+    }
+
+    res
+        .type('image/svg+xml')
+        .set('Cache-Control', 'public, max-age=3600')
+        .send(renderMarketingAssetSvg(kind, slug, size));
 });
 
 // ─── Direct Xtream player_api.php endpoint ─────────────────────────────────────
