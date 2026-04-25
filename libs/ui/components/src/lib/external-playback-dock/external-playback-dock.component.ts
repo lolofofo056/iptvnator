@@ -10,11 +10,17 @@ import {
 import { MatButtonModule } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { TranslatePipe } from '@ngx-translate/core';
 import { ExternalPlayerSession } from 'shared-interfaces';
 
 @Component({
     selector: 'app-external-playback-dock',
-    imports: [MatButtonModule, MatIcon, MatProgressSpinnerModule],
+    imports: [
+        MatButtonModule,
+        MatIcon,
+        MatProgressSpinnerModule,
+        TranslatePipe,
+    ],
     templateUrl: './external-playback-dock.component.html',
     styleUrl: './external-playback-dock.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -27,7 +33,9 @@ export class ExternalPlaybackDockComponent {
     private readonly artworkFailed = signal(false);
 
     readonly playerLabel = computed(() => this.session().player.toUpperCase());
-    readonly artworkUrl = computed(() => this.session().thumbnail?.trim() ?? '');
+    readonly artworkUrl = computed(
+        () => this.session().thumbnail?.trim() ?? ''
+    );
     readonly statusLabel = computed(() => {
         const session = this.session();
         const player = this.playerLabel();

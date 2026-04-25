@@ -443,7 +443,8 @@
                 "ADD_PLAYLIST_XTREAM_DESCRIPTION": "Open add dialog on the Xtream Codes tab",
                 "ADD_PLAYLIST_STALKER_LABEL": "Add Stalker portal",
                 "ADD_PLAYLIST_STALKER_DESCRIPTION": "Open add dialog on the Stalker Portal tab"
-            }
+            },
+            "EXTERNAL_PLAYBACK_CLOSE": "Close player"
         },
         "GLOBAL_FAVORITES": {
             "NO_PLAYLISTS_TITLE": "No favorites to show",

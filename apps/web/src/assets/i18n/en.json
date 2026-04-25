@@ -770,6 +770,7 @@
             "RAIL_RECENT": "Recently viewed",
             "RAIL_FAVORITES": "Favorites",
             "RAIL_DOWNLOADS": "Downloads",
+            "EXTERNAL_PLAYBACK_CLOSE": "Close player",
             "RAIL_ALL_CHANNELS": "All channels",
             "RAIL_GROUPS": "Groups",
             "RAIL_CONTEXT_ACTIONS": "Section actions",

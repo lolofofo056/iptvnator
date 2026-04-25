@@ -20,7 +20,9 @@
 
     <div class="external-playback-dock__meta">
         <div class="external-playback-dock__topline">
-            <span class="external-playback-dock__chip">{{ playerLabel() }}</span>
+            <span class="external-playback-dock__chip">{{
+                playerLabel()
+            }}</span>
             @if (!compact()) {
                 <span class="external-playback-dock__caption">
                     External player
@@ -44,13 +46,15 @@
         @if (showCloseButton()) {
             <button
                 type="button"
-                mat-stroked-button
+                mat-button
                 class="external-playback-dock__button"
                 (click)="closeClicked.emit()"
             >
                 <mat-icon>stop_circle</mat-icon>
                 @if (!compact()) {
-                    <span>Close player</span>
+                    <span>{{
+                        'WORKSPACE.SHELL.EXTERNAL_PLAYBACK_CLOSE' | translate
+                    }}</span>
                 }
             </button>
         }

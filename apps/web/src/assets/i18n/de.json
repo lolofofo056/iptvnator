@@ -750,7 +750,8 @@
             "DROP_OVERLAY_REJECTED_UNSUPPORTED": "Unsupported file type",
             "DROP_OVERLAY_REJECTED_EMPTY": "That file is empty",
             "DROP_OVERLAY_REJECTED_READ_ERROR": "Could not read that file",
-            "DROP_IMPORT_SUCCESS": "Importing \"{{title}}\"…"
+            "DROP_IMPORT_SUCCESS": "Importing \"{{title}}\"…",
+            "EXTERNAL_PLAYBACK_CLOSE": "Close player"
         },
         "SOURCES": {
             "TITLE": "Quellen",
