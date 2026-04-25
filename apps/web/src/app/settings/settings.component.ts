@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import {
     Component,
     computed,
-    ElementRef,
     effect,
+    ElementRef,
     inject,
     Injector,
     Input,
@@ -34,10 +34,11 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
-import { Store } from '@ngrx/store';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { EpgService } from '@iptvnator/epg/data-access';
 import { EpgSourceStatusComponent } from '@iptvnator/ui/epg';
+import { SettingsContextService } from '@iptvnator/workspace/shell/util';
+import { Store } from '@ngrx/store';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { QRCodeComponent } from 'angularx-qrcode';
 import { DialogService } from 'components';
 import {
@@ -48,27 +49,26 @@ import {
 import { firstValueFrom, take } from 'rxjs';
 import {
     DatabaseService,
-    DbOperationEvent,
     DataService,
+    DbOperationEvent,
     PlaylistBackupImportSummary,
     PlaylistBackupService,
     PlaylistsService,
 } from 'services';
 import {
-    EmbeddedMpvSupport,
+    /* EmbeddedMpvSupport, */
     Language,
     StartupBehavior,
     StreamFormat,
     Theme,
     VideoPlayer,
 } from 'shared-interfaces';
-import { SettingsContextService } from '@iptvnator/workspace/shell/util';
 import { SettingsStore } from '../services/settings-store.service';
+import { SettingsService } from './../services/settings.service';
 import {
     SettingsDeleteAllPlaylistsDialogComponent,
     SettingsDeleteAllPlaylistsDialogData,
 } from './settings-delete-all-playlists-dialog.component';
-import { SettingsService } from './../services/settings.service';
 
 interface SettingsSection {
     id: string;
@@ -151,10 +151,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     /** Flag that indicates whether the app runs in electron environment */
     readonly isDesktop = !!window.electron;
-    readonly embeddedMpvSupport = signal<EmbeddedMpvSupport | null>(null);
+    /* readonly embeddedMpvSupport = signal<EmbeddedMpvSupport | null>(null);
     readonly supportsEmbeddedMpv = computed(
         () => this.isDesktop && !!this.embeddedMpvSupport()?.supported
-    );
+    ); */
 
     isPwa = this.dataService.getAppEnvironment() === 'pwa';
 
@@ -162,14 +162,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
     readonly activeSection = this.settingsCtx.activeSection;
 
     readonly osPlayers = computed(() => [
-        ...(this.supportsEmbeddedMpv()
+        /* ...(this.supportsEmbeddedMpv()
             ? [
                   {
                       id: VideoPlayer.EmbeddedMpv,
                       labelKey: 'SETTINGS.PLAYER_EMBEDDED_MPV',
                   },
               ]
-            : []),
+            : []), */
         {
             id: VideoPlayer.MPV,
             labelKey: 'SETTINGS.PLAYER_MPV',
@@ -437,7 +437,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         // Wait for settings to load before setting the form
         await this.settingsStore.loadSettings();
         this.setSettings();
-        void this.loadEmbeddedMpvSupport();
+        /* void this.loadEmbeddedMpvSupport(); */
         this.checkAppVersion();
         void this.fetchLocalIpAddresses();
 
@@ -448,7 +448,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         requestAnimationFrame(() => this.setupSectionObserver());
     }
 
-    private async loadEmbeddedMpvSupport(): Promise<void> {
+    /* private async loadEmbeddedMpvSupport(): Promise<void> {
         if (!this.isDesktop) {
             this.embeddedMpvSupport.set({
                 supported: false,
@@ -481,7 +481,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
                         : String(error),
             });
         }
-    }
+    } */
 
     ngOnDestroy(): void {
         this.cancelPendingScrollTargetClear();
