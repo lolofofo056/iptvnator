@@ -111,21 +111,11 @@ export class AddPlaylistDialogComponent {
     }
 
     /**
-     * Parse and store uploaded playlist
-     * @param payload
+     * Closes the dialog after a successful file import. The actual parse and
+     * dispatch happens inside `PlaylistFileImportService` (called from the
+     * `FileUploadComponent`).
      */
-    handlePlaylist(payload: { uploadEvent: Event; file: File }): void {
-        const playlist = (payload.uploadEvent.target as FileReader)
-            .result as string;
-
-        this.store.dispatch(
-            PlaylistActions.parsePlaylist({
-                uploadType: 'FILE',
-                playlist,
-                title: this.normalizeImportedFileTitle(payload.file.name),
-                path: (payload.file as File & { path?: string }).path,
-            })
-        );
+    onFileImported(): void {
         this.closeDialog();
     }
 
@@ -180,17 +170,5 @@ export class AddPlaylistDialogComponent {
     private normalizeOptionalValue(value?: string | null): string | undefined {
         const normalizedValue = value?.trim();
         return normalizedValue ? normalizedValue : undefined;
-    }
-
-    private normalizeImportedFileTitle(filename: string): string {
-        const normalizedFilename = filename.trim();
-        if (!normalizedFilename) {
-            return filename;
-        }
-
-        return (
-            normalizedFilename.replace(/\.(m3u8?|pls|txt)$/i, '') ||
-            normalizedFilename
-        );
     }
 }

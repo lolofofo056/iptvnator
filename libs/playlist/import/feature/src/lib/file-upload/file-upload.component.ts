@@ -1,9 +1,9 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, inject, signal } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { TranslatePipe } from '@ngx-translate/core';
+import { PlaylistFileImportService } from '@iptvnator/playlist/shared/util';
 import { DragDropFileUploadDirective } from './drag-drop-file-upload.directive';
 
-const M3U_EXTENSIONS = ['.m3u', '.m3u8'];
 const MB = 1024 * 1024;
 const KB = 1024;
 
@@ -14,15 +14,15 @@ const KB = 1024;
     styleUrls: ['./file-upload.component.scss'],
 })
 export class FileUploadComponent {
-    @Output() fileSelected = new EventEmitter<{
-        uploadEvent: Event;
-        file: File;
-    }>();
+    private readonly importService = inject(PlaylistFileImportService);
+
+    @Output() imported = new EventEmitter<{ title: string }>();
     @Output() fileRejected = new EventEmitter<string>();
     @Output() closeDialog = new EventEmitter<void>();
 
     readonly selectedFile = signal<File | null>(null);
     readonly isDragging = signal(false);
+    readonly isImporting = signal(false);
 
     openPicker(input: HTMLInputElement): void {
         input.value = '';
@@ -60,14 +60,21 @@ export class FileUploadComponent {
         this.selectedFile.set(null);
     }
 
-    confirm(): void {
+    async confirm(): Promise<void> {
         const file = this.selectedFile();
-        if (!file) return;
+        if (!file || this.isImporting()) return;
 
-        const reader = new FileReader();
-        reader.onload = (uploadEvent) =>
-            this.fileSelected.emit({ uploadEvent, file });
-        reader.readAsText(file);
+        this.isImporting.set(true);
+        const result = await this.importService.importFile(file);
+        this.isImporting.set(false);
+
+        if (result.ok === true) {
+            this.imported.emit({ title: result.title });
+            return;
+        }
+
+        this.selectedFile.set(null);
+        this.fileRejected.emit(file.name);
     }
 
     formatSize(bytes: number): string {
@@ -78,15 +85,10 @@ export class FileUploadComponent {
 
     private setFile(file: File | undefined): void {
         if (!file) return;
-        if (!this.hasAllowedExtension(file.name)) {
+        if (!this.importService.isSupportedFile(file)) {
             this.fileRejected.emit(file.name);
             return;
         }
         this.selectedFile.set(file);
-    }
-
-    private hasAllowedExtension(name: string): boolean {
-        const lower = name.toLowerCase();
-        return M3U_EXTENSIONS.some((ext) => lower.endsWith(ext));
     }
 }

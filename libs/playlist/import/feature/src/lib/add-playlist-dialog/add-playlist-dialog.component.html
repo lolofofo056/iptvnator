@@ -45,7 +45,7 @@
                 @case ('file') {
                     <app-file-upload
                         (fileRejected)="rejectFile($event)"
-                        (fileSelected)="handlePlaylist($event)"
+                        (imported)="onFileImported()"
                         (closeDialog)="closeDialog()"
                     />
                 }
