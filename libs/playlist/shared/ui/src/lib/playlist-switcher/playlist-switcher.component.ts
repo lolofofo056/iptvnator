@@ -20,6 +20,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltip } from '@angular/material/tooltip';
 import { Store } from '@ngrx/store';
 import { normalizeDateLocale } from '@iptvnator/pipes';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -61,6 +62,7 @@ const DEFAULT_PLAYLIST_TYPE_FILTERS: Record<PlaylistFilterType, boolean> = {
         MatInputModule,
         MatMenuModule,
         MatRippleModule,
+        MatTooltip,
         TranslatePipe,
     ],
 })
@@ -87,10 +89,19 @@ export class PlaylistSwitcherComponent {
     readonly showPlaylistInfo = input(false);
     readonly showAccountInfo = input(false);
     readonly showAddPlaylist = input(false);
+    readonly canRefreshActivePlaylist = input(false);
+    readonly isRefreshingActivePlaylist = input(false);
     readonly playlistSelected = output<string>();
     readonly playlistInfoRequested = output<void>();
     readonly accountInfoRequested = output<void>();
     readonly addPlaylistRequested = output<void>();
+    readonly refreshPlaylistRequested = output<void>();
+
+    onRefreshClick(event: Event): void {
+        event.stopPropagation();
+        event.preventDefault();
+        this.refreshPlaylistRequested.emit();
+    }
 
     readonly menuTrigger = viewChild.required<MatMenuTrigger>('menuTrigger');
     readonly playlistMenu = viewChild.required<MatMenu>('playlistMenu');

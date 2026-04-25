@@ -16,6 +16,26 @@
         <div class="name">{{ displayTitle() }}</div>
         <div class="channels-count">{{ subtitle() }}</div>
     </div>
+    @if (canRefreshActivePlaylist()) {
+        <button
+            type="button"
+            mat-icon-button
+            class="trigger-refresh-button"
+            [disabled]="isRefreshingActivePlaylist()"
+            (click)="onRefreshClick($event)"
+            (mousedown)="$event.stopPropagation()"
+            [matTooltip]="'WORKSPACE.SHELL.REFRESH_PLAYLIST' | translate"
+            [attr.aria-label]="
+                'WORKSPACE.SHELL.REFRESH_PLAYLIST' | translate
+            "
+        >
+            <mat-icon
+                class="trigger-refresh-icon"
+                [class.is-spinning]="isRefreshingActivePlaylist()"
+                >sync</mat-icon
+            >
+        </button>
+    }
     <mat-icon class="dropdown-icon" [class.rotated]="isMenuOpen()">
         expand_more
     </mat-icon>
