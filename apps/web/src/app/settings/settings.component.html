@@ -232,7 +232,7 @@
                                 formControlName="player"
                                 data-test-id="select-video-player"
                             >
-                                @for (player of players; track player) {
+                                @for (player of players(); track player.id) {
                                     <mat-option
                                         [value]="player.id"
                                         [attr.data-test-id]="player.id"
@@ -419,70 +419,96 @@
                     <div class="setting-item setting-item--full-control">
                         <div class="setting-item__control">
                             <ng-container formArrayName="epgUrl">
-                                <div class="epg-sources">
-                                    @for (
-                                        _ of epgUrl.controls;
-                                        track _;
-                                        let i = $index
-                                    ) {
-                                        <div class="epg-source-row">
-                                            <mat-form-field
-                                                appearance="outline"
-                                                subscriptSizing="dynamic"
-                                                class="w-full"
-                                            >
-                                                <mat-label>{{
-                                                    'SETTINGS.EPG_URL_PLACEHOLDER'
-                                                        | translate
-                                                }}</mat-label>
-                                                <input
-                                                    matInput
-                                                    type="url"
-                                                    [formControlName]="i"
-                                                    #epgField
-                                                />
-                                                <mat-error>{{
-                                                    'SETTINGS.EPG_URL_ERROR'
-                                                        | translate
-                                                }}</mat-error>
-                                            </mat-form-field>
-                                            @if (epgField.value) {
-                                                <app-epg-source-status
-                                                    [url]="epgField.value"
-                                                />
-                                            }
-                                            <button
-                                                mat-icon-button
-                                                color="accent"
-                                                [matTooltip]="
-                                                    'SETTINGS.REFRESH_EPG'
-                                                        | translate
-                                                "
-                                                type="button"
-                                                [disabled]="
-                                                    epgField.value === ''
-                                                "
-                                                (click)="
-                                                    refreshEpg(epgUrl.value[i])
-                                                "
-                                            >
-                                                <mat-icon>refresh</mat-icon>
-                                            </button>
-                                            <button
-                                                mat-icon-button
-                                                color="accent"
-                                                [matTooltip]="
-                                                    'SETTINGS.REMOVE_EPG_SOURCE'
-                                                        | translate
-                                                "
-                                                type="button"
-                                                (click)="removeEpgSource(i)"
-                                            >
-                                                <mat-icon>remove</mat-icon>
-                                            </button>
-                                        </div>
-                                    }
-                                </div>
+                                @if (epgUrl.length === 0) {
+                                    <div
+                                        class="epg-sources-empty"
+                                        data-test-id="epg-sources-empty"
+                                    >
+                                        <mat-icon
+                                            class="epg-sources-empty__icon"
+                                            >event_busy</mat-icon
+                                        >
+                                        <h4 class="epg-sources-empty__title">
+                                            {{
+                                                'SETTINGS.EPG_EMPTY_TITLE'
+                                                    | translate
+                                            }}
+                                        </h4>
+                                        <p class="epg-sources-empty__hint">
+                                            {{
+                                                'SETTINGS.EPG_EMPTY_HINT'
+                                                    | translate
+                                            }}
+                                        </p>
+                                    </div>
+                                } @else {
+                                    <div class="epg-sources">
+                                        @for (
+                                            _ of epgUrl.controls;
+                                            track _;
+                                            let i = $index
+                                        ) {
+                                            <div class="epg-source-row">
+                                                <mat-form-field
+                                                    appearance="outline"
+                                                    subscriptSizing="dynamic"
+                                                    class="w-full"
+                                                >
+                                                    <mat-label>{{
+                                                        'SETTINGS.EPG_URL_PLACEHOLDER'
+                                                            | translate
+                                                    }}</mat-label>
+                                                    <input
+                                                        matInput
+                                                        type="url"
+                                                        [formControlName]="i"
+                                                        #epgField
+                                                    />
+                                                    <mat-error>{{
+                                                        'SETTINGS.EPG_URL_ERROR'
+                                                            | translate
+                                                    }}</mat-error>
+                                                </mat-form-field>
+                                                @if (epgField.value) {
+                                                    <app-epg-source-status
+                                                        [url]="epgField.value"
+                                                    />
+                                                }
+                                                <button
+                                                    mat-icon-button
+                                                    color="accent"
+                                                    [matTooltip]="
+                                                        'SETTINGS.REFRESH_EPG'
+                                                            | translate
+                                                    "
+                                                    type="button"
+                                                    [disabled]="
+                                                        epgField.value === ''
+                                                    "
+                                                    (click)="
+                                                        refreshEpg(
+                                                            epgUrl.value[i]
+                                                        )
+                                                    "
+                                                >
+                                                    <mat-icon>refresh</mat-icon>
+                                                </button>
+                                                <button
+                                                    mat-icon-button
+                                                    color="accent"
+                                                    [matTooltip]="
+                                                        'SETTINGS.REMOVE_EPG_SOURCE'
+                                                            | translate
+                                                    "
+                                                    type="button"
+                                                    (click)="removeEpgSource(i)"
+                                                >
+                                                    <mat-icon>remove</mat-icon>
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                }
                             </ng-container>
                         </div>
                     </div>
@@ -908,6 +934,18 @@
                         <small>{{ updateMessage }}</small>
                     </div>
                 </div>
+
+                @if (isDesktop) {
+                    <div class="settings-note">
+                        <strong>{{
+                            'SETTINGS.EMBEDDED_MPV_NOTICE_TITLE' | translate
+                        }}</strong>
+                        <span>{{
+                            'SETTINGS.EMBEDDED_MPV_NOTICE_DESCRIPTION'
+                                | translate
+                        }}</span>
+                    </div>
+                }
 
                 <div class="setting-item setting-item--full-control">
                     <div class="setting-item__meta">

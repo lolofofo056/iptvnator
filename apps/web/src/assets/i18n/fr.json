@@ -222,7 +222,9 @@
         "REMOTE_CONTROL_PORT_DESCRIPTION": "Port utilisé pour la télécommande de l'application. Le port 8765 est utilisé par défaut.",
         "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
         "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
-        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again.",
+        "EPG_EMPTY_TITLE": "No EPG sources yet",
+        "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels."
     },
     "THEMES": {
         "DARK_THEME": "Thème foncé",

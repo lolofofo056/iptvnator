@@ -220,7 +220,9 @@
         "REMOTE_CONTROL_PORT_DESCRIPTION": "Porta usada para controle remoto do aplicativo. A porta 8765 é usada por padrão.",
         "REMOVE_ALL_IN_PROGRESS": "Deleting playlist data…",
         "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
-        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again."
+        "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again.",
+        "EPG_EMPTY_TITLE": "No EPG sources yet",
+        "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels."
     },
     "THEMES": {
         "DARK_THEME": "Tema escuro",

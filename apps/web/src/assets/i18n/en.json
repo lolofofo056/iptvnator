@@ -200,6 +200,8 @@
         "PLAYBACK": "Playback",
         "EPG_SOURCES": "EPG sources",
         "EPG_SOURCES_DESCRIPTION": "Add one or more URLs as EPG sources",
+        "EPG_EMPTY_TITLE": "No EPG sources yet",
+        "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
         "DATA": "Data",
         "ABOUT": "About",
         "NAV_GENERAL": "General",

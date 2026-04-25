@@ -30,6 +30,7 @@ import {
     PlaylistsService,
 } from 'services';
 import {
+    EmbeddedMpvSupport,
     Language,
     PlaylistMeta,
     StartupBehavior,
@@ -399,6 +400,80 @@ describe('SettingsComponent', () => {
                 ...DEFAULT_SETTINGS,
                 ...settings,
             });
+        });
+
+        it('hides the embedded mpv option when the desktop support probe reports unsupported', async () => {
+            window.electron = {
+                ...window.electron,
+                getEmbeddedMpvSupport: jest.fn().mockResolvedValue({
+                    supported: false,
+                    platform: 'darwin',
+                    reason: 'hidden harness',
+                }),
+            } as unknown as typeof window.electron;
+
+            await component.ngOnInit();
+            await fixture.whenStable();
+
+            expect(
+                component.players().some(
+                    (player) => player.id === VideoPlayer.EmbeddedMpv
+                )
+            ).toBe(false);
+        });
+
+        it('shows the embedded mpv option when the desktop support probe reports supported', async () => {
+            window.electron = {
+                ...window.electron,
+                getEmbeddedMpvSupport: jest.fn().mockResolvedValue({
+                    supported: true,
+                    platform: 'darwin',
+                }),
+            } as unknown as typeof window.electron;
+
+            await component.ngOnInit();
+            await fixture.whenStable();
+
+            expect(
+                component.players().some(
+                    (player) => player.id === VideoPlayer.EmbeddedMpv
+                )
+            ).toBe(true);
+        });
+
+        it('does not block settings initialization while embedded mpv support is pending', async () => {
+            let resolveSupport: (value: EmbeddedMpvSupport) => void;
+            window.electron = {
+                ...window.electron,
+                getEmbeddedMpvSupport: jest.fn(
+                    () =>
+                        new Promise((resolve) => {
+                            resolveSupport = resolve;
+                        })
+                ),
+            } as unknown as typeof window.electron;
+
+            await expect(component.ngOnInit()).resolves.toBeUndefined();
+
+            expect(component.settingsForm.value).toEqual(DEFAULT_SETTINGS);
+            expect(window.electron.getEmbeddedMpvSupport).toHaveBeenCalled();
+            expect(
+                component.players().some(
+                    (player) => player.id === VideoPlayer.EmbeddedMpv
+                )
+            ).toBe(false);
+
+            resolveSupport!({
+                supported: true,
+                platform: 'darwin',
+            });
+            await fixture.whenStable();
+
+            expect(
+                component.players().some(
+                    (player) => player.id === VideoPlayer.EmbeddedMpv
+                )
+            ).toBe(true);
         });
     });
 
