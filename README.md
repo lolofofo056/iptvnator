@@ -207,6 +207,18 @@ The equivalent Nx command is:
 $ nx serve electron-backend
 ```
 
+To start Electron with an empty, isolated data directory instead of your normal
+`~/.iptvnator` folder, set `IPTVNATOR_E2E_DATA_DIR` for that run:
+
+```
+$ rm -rf .tmp/iptvnator-empty && mkdir -p .tmp/iptvnator-empty
+$ IPTVNATOR_E2E_DATA_DIR="$PWD/.tmp/iptvnator-empty" pnpm run serve:backend
+```
+
+This redirects the SQLite database, Electron user data, and local config under
+the given directory. Delete that directory whenever you want a fresh empty
+state.
+
 If you need to debug renderer freezes or GPU/compositor issues in Electron, you
 can disable hardware acceleration for a run:
 
