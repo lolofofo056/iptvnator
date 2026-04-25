@@ -19,7 +19,12 @@ import {
     ResizableDirective,
 } from 'components';
 import { PlaylistsService } from 'services';
-import { Channel, EpgItem, EpgProgram } from 'shared-interfaces';
+import {
+    Channel,
+    EpgItem,
+    EpgProgram,
+    ResolvedPortalPlayback,
+} from 'shared-interfaces';
 import { EpgListComponent } from '@iptvnator/ui/epg';
 import { WebPlayerViewComponent } from 'shared-portals';
 import {
@@ -89,7 +94,10 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly usesEmbeddedPlayer = computed(() =>
         this.portalPlayer.isEmbeddedPlayer()
     );
-    streamUrl = '';
+    readonly activePlayback = signal<ResolvedPortalPlayback | null>(null);
+    readonly streamUrl = computed(
+        () => this.activePlayback()?.streamUrl ?? ''
+    );
 
     /** EPG */
     readonly fallbackEpgPrograms = signal<EpgProgram[]>([]);
@@ -116,7 +124,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         return {
             id: channelId,
             name: channelName,
-            url: this.streamUrl || String(selectedItem.cmd ?? ''),
+            url: this.streamUrl() || String(selectedItem.cmd ?? ''),
             group: { title: '' },
             tvg: {
                 id: channelId,
@@ -294,7 +302,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             void this.loadEpgForChannel(item);
 
             if (this.usesEmbeddedPlayer()) {
-                this.streamUrl = playback.streamUrl;
+                this.activePlayback.set(playback);
             } else {
                 void this.portalPlayer.openResolvedPlayback(playback, true);
             }

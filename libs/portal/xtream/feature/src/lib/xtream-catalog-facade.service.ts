@@ -11,12 +11,12 @@ import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
 const SORT_STORAGE_KEY = 'xtream-category-sort-mode';
 
 @Injectable()
-export class XtreamCatalogFacadeService
-    implements
-        PortalCatalogFacade<Record<string, unknown>, Record<string, unknown>, unknown>
-{
+export class XtreamCatalogFacadeService implements PortalCatalogFacade<
+    Record<string, unknown>,
+    Record<string, unknown>,
+    unknown
+> {
     private readonly xtreamStore = inject(XtreamStore);
-    private savedPageBeforeDetail: number | null = null;
     private loadedPositionsPlaylistId: string | null = null;
 
     readonly provider = 'xtream' as const;
@@ -34,8 +34,8 @@ export class XtreamCatalogFacadeService
         const category = this.selectedCategory();
         return String(category?.['name'] ?? category?.['title'] ?? '');
     });
-    readonly categoryItemCount = computed(() =>
-        this.xtreamStore.selectItemsFromSelectedCategory().length
+    readonly categoryItemCount = computed(
+        () => this.xtreamStore.selectItemsFromSelectedCategory().length
     );
     readonly contentSortMode = this.xtreamStore.contentSortMode;
     readonly playlist = computed<PortalCatalogPlaylistMeta | null>(() => {
@@ -74,11 +74,6 @@ export class XtreamCatalogFacadeService
         } else {
             this.xtreamStore.setSelectedCategory(null);
         }
-
-        if (this.savedPageBeforeDetail !== null) {
-            this.xtreamStore.setPage(this.savedPageBeforeDetail);
-            this.savedPageBeforeDetail = null;
-        }
     }
 
     clearSelectedItem(): void {
@@ -103,8 +98,6 @@ export class XtreamCatalogFacadeService
     }
 
     selectItem(item: Record<string, unknown>): string[] | null {
-        this.savedPageBeforeDetail = this.xtreamStore.page();
-
         const xtreamId = item['xtream_id'];
         if (xtreamId === undefined || xtreamId === null) {
             return null;
@@ -123,9 +116,7 @@ export class XtreamCatalogFacadeService
         return [String(categoryId), String(xtreamId)];
     }
 
-    getItemProgress(
-        item: Record<string, unknown>
-    ): PortalCatalogItemProgress {
+    getItemProgress(item: Record<string, unknown>): PortalCatalogItemProgress {
         const isSeries = this.contentType() === 'series';
         const itemId = Number(
             item['xtream_id'] ?? item['series_id'] ?? item['stream_id']

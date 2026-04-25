@@ -7,11 +7,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatPaginatorModule } from '@angular/material/paginator';
 import { MatTooltip } from '@angular/material/tooltip';
-import {
-    ActivatedRoute,
-    convertToParamMap,
-    Router,
-} from '@angular/router';
+import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ReplaySubject, of } from 'rxjs';
 import {
@@ -58,6 +54,7 @@ class MockDetailComponent {}
 
 describe('CategoryContentViewComponent', () => {
     let fixture: ComponentFixture<CategoryContentViewComponent>;
+    let router: { navigate: jest.Mock };
     const paramMap$ = new ReplaySubject(1);
     const queryParamMap$ = new ReplaySubject(1);
     const isPaginatedContentLoading = signal(true);
@@ -94,6 +91,13 @@ describe('CategoryContentViewComponent', () => {
         contentSortMode.set(null);
         catalog.initialize.mockClear();
         catalog.setSearchQuery.mockClear();
+        catalog.setPage.mockClear();
+        catalog.setLimit.mockClear();
+        catalog.selectItem.mockClear();
+        catalog.selectItem.mockReturnValue(null);
+        router = {
+            navigate: jest.fn(),
+        };
         paramMap$.next(convertToParamMap({}));
         queryParamMap$.next(convertToParamMap({}));
 
@@ -146,9 +150,7 @@ describe('CategoryContentViewComponent', () => {
                 },
                 {
                     provide: Router,
-                    useValue: {
-                        navigate: jest.fn(),
-                    },
+                    useValue: router,
                 },
             ],
         })
@@ -196,5 +198,110 @@ describe('CategoryContentViewComponent', () => {
         );
 
         expect(catalog.setSearchQuery).toHaveBeenCalledWith('matrix');
+    });
+
+    it('restores the zero-based catalog page from the one-based page query param', () => {
+        fixture.detectChanges();
+        catalog.setPage.mockClear();
+
+        queryParamMap$.next(
+            convertToParamMap({
+                page: '3',
+            })
+        );
+
+        expect(catalog.setPage).toHaveBeenCalledWith(2);
+    });
+
+    it('falls back to the first catalog page when the page query param is absent or invalid', () => {
+        fixture.detectChanges();
+        catalog.setPage.mockClear();
+
+        queryParamMap$.next(convertToParamMap({}));
+        queryParamMap$.next(
+            convertToParamMap({
+                page: 'not-a-page',
+            })
+        );
+
+        expect(catalog.setPage).toHaveBeenNthCalledWith(1, 0);
+        expect(catalog.setPage).toHaveBeenNthCalledWith(2, 0);
+    });
+
+    it('writes one-based page query params when the paginator changes', () => {
+        fixture.detectChanges();
+
+        fixture.componentInstance.onPageChange({
+            length: 100,
+            pageIndex: 1,
+            pageSize: 25,
+            previousPageIndex: 0,
+        });
+
+        expect(catalog.setPage).toHaveBeenCalledWith(1);
+        expect(catalog.setLimit).toHaveBeenCalledWith(25);
+        expect(router.navigate).toHaveBeenCalledWith([], {
+            relativeTo: expect.any(Object),
+            queryParams: {
+                page: 2,
+            },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+        });
+    });
+
+    it('removes the page query param when returning to the first page', () => {
+        fixture.detectChanges();
+
+        fixture.componentInstance.onPageChange({
+            length: 100,
+            pageIndex: 0,
+            pageSize: 25,
+            previousPageIndex: 1,
+        });
+
+        expect(router.navigate).toHaveBeenCalledWith([], {
+            relativeTo: expect.any(Object),
+            queryParams: {
+                page: null,
+            },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+        });
+    });
+
+    it('scrolls the grid list host to the top when the paginator changes', () => {
+        fixture.detectChanges();
+        const gridList = fixture.nativeElement.querySelector(
+            'app-grid-list'
+        ) as HTMLElement;
+        const scrollTo = jest.fn();
+        Object.defineProperty(gridList, 'scrollTo', {
+            configurable: true,
+            value: scrollTo,
+        });
+
+        fixture.componentInstance.onPageChange({
+            length: 100,
+            pageIndex: 1,
+            pageSize: 25,
+            previousPageIndex: 0,
+        });
+
+        expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+    });
+
+    it('preserves query params when navigating from an item to Xtream details', () => {
+        catalog.selectItem.mockReturnValue(['42']);
+        fixture.detectChanges();
+
+        fixture.componentInstance.onItemClick({
+            xtream_id: 42,
+        });
+
+        expect(router.navigate).toHaveBeenCalledWith(['42'], {
+            relativeTo: expect.any(Object),
+            queryParamsHandling: 'preserve',
+        });
     });
 });

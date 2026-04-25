@@ -245,8 +245,8 @@ export function withSelection() {
             const selectedTypeContentReady = computed(
                 () => selectedTypeContentState() === 'ready'
             );
-            const selectedTypeCountsReady = computed(
-                () => selectedTypeContentReady()
+            const selectedTypeCountsReady = computed(() =>
+                selectedTypeContentReady()
             );
 
             // ---------------------------------------------------------------------------
@@ -502,6 +502,10 @@ export function withSelection() {
              * Set selected category search term
              */
             setCategorySearchTerm(term: string): void {
+                if (store.categorySearchTerm() === term) {
+                    return;
+                }
+
                 patchState(store, {
                     categorySearchTerm: term,
                     page: 0,
