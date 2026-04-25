@@ -19,6 +19,7 @@ import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
+import type { WorkspacePlaylistType } from '@iptvnator/workspace/shell/util';
 import {
     PlaylistActions,
     selectActiveTypeFilters,
@@ -88,7 +89,9 @@ export class RecentPlaylistsComponent {
     readonly sidebarMode = input(false);
     readonly searchQueryInput = input<string>('');
     readonly playlistClicked = output<string>();
-    readonly addPlaylistClicked = output<void>();
+    readonly addPlaylistClicked = output<WorkspacePlaylistType | undefined>();
+
+    readonly isElectron = !!window.electron;
 
     readonly allPlaylistsLoaded = this.store.selectSignal(
         selectPlaylistsLoadingFlag
@@ -198,8 +201,8 @@ export class RecentPlaylistsComponent {
         );
     }
 
-    onAddPlaylist() {
-        this.addPlaylistClicked.emit();
+    onAddPlaylist(type?: WorkspacePlaylistType) {
+        this.addPlaylistClicked.emit(type);
     }
 
     getPlaylist(playlistMeta: PlaylistMeta): void {

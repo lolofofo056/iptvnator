@@ -3,8 +3,9 @@
         @if (data.totalCount === 0) {
             <!-- Welcome state: no playlists at all -->
             <app-empty-state
-                [type]="'welcome'"
-                (addPlaylistClicked)="onAddPlaylist()"
+                [type]="'welcome-sources'"
+                [showElectronOnlyValueProps]="isElectron"
+                (addPlaylistClicked)="onAddPlaylist($event)"
             />
         } @else {
             <!-- No results state: search/filter returned nothing -->

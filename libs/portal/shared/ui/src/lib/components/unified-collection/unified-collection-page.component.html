@@ -207,26 +207,22 @@
     }
 
     @if (!hasLive() && !hasMovies() && !hasSeries()) {
-        <div class="empty-state">
-            <mat-icon class="empty-icon">{{
-                workspaceSearchTerm()
-                    ? 'search_off'
-                    : mode() === 'favorites'
-                      ? 'favorite_border'
-                      : 'history'
-            }}</mat-icon>
-            <p class="empty-title">
-                @if (workspaceSearchTerm()) {
+        @if (workspaceSearchTerm()) {
+            <div class="empty-state">
+                <mat-icon class="empty-icon">search_off</mat-icon>
+                <p class="empty-title">
                     {{ 'WORKSPACE.GLOBAL_FAVORITES.NO_RESULTS' | translate }}
-                } @else {
-                    {{
-                        (mode() === 'favorites'
-                            ? 'PORTALS.NO_FAVORITES'
-                            : 'PORTALS.NO_RECENT_ITEMS'
-                        ) | translate
-                    }}
-                }
-            </p>
-        </div>
+                </p>
+            </div>
+        } @else {
+            <app-empty-state
+                type="no-data"
+                [icon]="emptyStateIcon()"
+                [titleKey]="emptyStateTitleKey()"
+                [descriptionKey]="emptyStateBodyKey()"
+                secondaryActionLabelKey="WORKSPACE.SHELL.GO_TO_DASHBOARD"
+                (secondaryActionClicked)="goToDashboard()"
+            />
+        }
     }
 }

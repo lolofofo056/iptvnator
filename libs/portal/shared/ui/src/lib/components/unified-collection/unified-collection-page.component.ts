@@ -52,6 +52,7 @@ import {
     WorkspaceViewCommandService,
 } from '@iptvnator/portal/shared/util';
 import { selectAllPlaylistsMeta, selectPlaylistsLoadingFlag } from 'm3u-state';
+import { EmptyStateComponent } from '@iptvnator/playlist/shared/ui';
 import { UnifiedLiveTabComponent } from './unified-live-tab.component';
 import { UnifiedGridTabComponent } from './unified-grid-tab.component';
 import {
@@ -65,6 +66,7 @@ import {
     styleUrl: './unified-collection-page.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
+        EmptyStateComponent,
         NgTemplateOutlet,
         MatButtonToggleModule,
         MatIconButton,
@@ -421,6 +423,26 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
 
     onContentTypeChange(value: CollectionContentType): void {
         this.selectedContentType.set(value);
+    }
+
+    readonly emptyStateIcon = computed(() =>
+        this.mode() === 'favorites' ? 'favorite_border' : 'history_toggle_off'
+    );
+
+    readonly emptyStateTitleKey = computed(() =>
+        this.mode() === 'favorites'
+            ? 'WORKSPACE.GLOBAL_FAVORITES.NO_ITEMS_TITLE'
+            : 'WORKSPACE.GLOBAL_RECENT.NO_ITEMS_TITLE'
+    );
+
+    readonly emptyStateBodyKey = computed(() =>
+        this.mode() === 'favorites'
+            ? 'WORKSPACE.GLOBAL_FAVORITES.NO_ITEMS_BODY'
+            : 'WORKSPACE.GLOBAL_RECENT.NO_ITEMS_BODY'
+    );
+
+    goToDashboard(): void {
+        void this.router.navigate(['/workspace', 'dashboard']);
     }
 
     setFavSortMode(mode: FavoritesChannelSortMode): void {

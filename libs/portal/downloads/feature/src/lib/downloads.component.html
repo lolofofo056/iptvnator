@@ -54,17 +54,31 @@
                 <p>{{ 'DOWNLOADS.NOT_AVAILABLE' | translate }}</p>
                 <span>{{ 'DOWNLOADS.DESKTOP_ONLY' | translate }}</span>
             </div>
+        } @else if (hasNoPlaylists()) {
+            <app-empty-state
+                type="no-data"
+                icon="download_for_offline"
+                titleKey="DOWNLOADS.NO_PLAYLISTS_TITLE"
+                descriptionKey="DOWNLOADS.NO_PLAYLISTS_BODY"
+                primaryActionLabelKey="HOME.PLAYLISTS.ADD_YOUR_FIRST"
+                secondaryActionLabelKey="WORKSPACE.SHELL.GO_TO_SOURCES"
+                (primaryActionClicked)="addPlaylist()"
+                (secondaryActionClicked)="goToSources()"
+            />
         } @else if (!hasDownloads()) {
-            <div class="downloads__empty">
-                <mat-icon>download</mat-icon>
-                <p>{{ 'DOWNLOADS.EMPTY' | translate }}</p>
-                <span>{{ 'DOWNLOADS.EMPTY_HINT' | translate }}</span>
-            </div>
+            <app-empty-state
+                type="no-data"
+                icon="download_for_offline"
+                titleKey="DOWNLOADS.EMPTY"
+                descriptionKey="DOWNLOADS.NO_ITEMS_BODY"
+                secondaryActionLabelKey="WORKSPACE.SHELL.GO_TO_DASHBOARD"
+                (secondaryActionClicked)="goToDashboard()"
+            />
         } @else if (filteredDownloads().length === 0) {
             <div class="downloads__empty">
                 <mat-icon>search_off</mat-icon>
-                <p>No downloads match the current filter</p>
-                <span>Try a different search term</span>
+                <p>{{ 'DOWNLOADS.NO_FILTER_MATCH' | translate }}</p>
+                <span>{{ 'DOWNLOADS.NO_FILTER_MATCH_HINT' | translate }}</span>
             </div>
         } @else {
             <div class="downloads__list-wrapper">

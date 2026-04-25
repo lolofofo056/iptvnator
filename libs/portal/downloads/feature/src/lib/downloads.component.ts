@@ -22,8 +22,10 @@ import {
     DownloadsService,
     PlaylistsService,
 } from 'services';
+import { EmptyStateComponent } from '@iptvnator/playlist/shared/ui';
 import { queryParamSignal } from '@iptvnator/portal/shared/util';
 import { createPortalCollectionContext } from '@iptvnator/portal/shared/util';
+import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
 import {
     buildStandardCollectionCategories,
     filterCollectionBucket,
@@ -48,6 +50,7 @@ const DOWNLOAD_COLLECTION_LABELS = {
     ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
+        EmptyStateComponent,
         MatButtonModule,
         MatIcon,
         MatProgressBarModule,
@@ -64,6 +67,7 @@ export class DownloadsComponent {
     private readonly dialogService = inject(DialogService);
     private readonly translate = inject(TranslateService);
     private readonly snackBar = inject(MatSnackBar);
+    private readonly shellActions = inject(WORKSPACE_SHELL_ACTIONS);
     readonly downloadsService = inject(DownloadsService);
 
     readonly downloads = this.downloadsService.downloads;
@@ -81,6 +85,19 @@ export class DownloadsComponent {
     readonly playlists = toSignal(this.playlistsService.getAllPlaylists(), {
         initialValue: [] as Playlist[],
     });
+    readonly hasNoPlaylists = computed(() => this.playlists().length === 0);
+
+    addPlaylist(): void {
+        this.shellActions.openAddPlaylistDialog();
+    }
+
+    goToSources(): void {
+        void this.router.navigate(['/workspace', 'sources']);
+    }
+
+    goToDashboard(): void {
+        void this.router.navigate(['/workspace', 'dashboard']);
+    }
 
     readonly scopedDownloads = computed(() => {
         const playlistId = this.playlistId();
