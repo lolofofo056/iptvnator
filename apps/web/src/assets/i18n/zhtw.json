@@ -208,7 +208,13 @@
         "REMOVE_ALL_PROGRESS": "Deleting playlist data… {{current}} / {{total}}",
         "PLAYLISTS_REMOVE_FAILED": "Could not delete playlists. Please try again.",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
-        "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels."
+        "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "BACKUP": "Backup",
+        "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",
+        "RESET": "Reset",
+        "RESET_DESCRIPTION": "Permanently delete content stored in this app.",
+        "NAV_BACKUP": "Backup",
+        "NAV_RESET": "Reset"
     },
     "THEMES": {
         "DARK_THEME": "深色主題",

@@ -55,6 +55,7 @@ import {
     PlaylistsService,
 } from 'services';
 import {
+    EmbeddedMpvSupport,
     Language,
     StartupBehavior,
     StreamFormat,
@@ -150,13 +151,25 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     /** Flag that indicates whether the app runs in electron environment */
     readonly isDesktop = !!window.electron;
+    readonly embeddedMpvSupport = signal<EmbeddedMpvSupport | null>(null);
+    readonly supportsEmbeddedMpv = computed(
+        () => this.isDesktop && !!this.embeddedMpvSupport()?.supported
+    );
 
     isPwa = this.dataService.getAppEnvironment() === 'pwa';
 
     private readonly settingsCtx = inject(SettingsContextService);
     readonly activeSection = this.settingsCtx.activeSection;
 
-    readonly osPlayers = [
+    readonly osPlayers = computed(() => [
+        ...(this.supportsEmbeddedMpv()
+            ? [
+                  {
+                      id: VideoPlayer.EmbeddedMpv,
+                      labelKey: 'SETTINGS.PLAYER_EMBEDDED_MPV',
+                  },
+              ]
+            : []),
         {
             id: VideoPlayer.MPV,
             labelKey: 'SETTINGS.PLAYER_MPV',
@@ -165,10 +178,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
             id: VideoPlayer.VLC,
             labelKey: 'SETTINGS.PLAYER_VLC',
         },
-    ];
+    ]);
 
     /** Player options */
-    readonly players = [
+    readonly players = computed(() => [
         {
             id: VideoPlayer.Html5Player,
             labelKey: 'SETTINGS.PLAYER_HTML5',
@@ -181,8 +194,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
             id: VideoPlayer.ArtPlayer,
             labelKey: 'SETTINGS.PLAYER_ARTPLAYER',
         },
-        ...(this.isDesktop ? this.osPlayers : []),
-    ];
+        ...(this.isDesktop ? this.osPlayers() : []),
+    ]);
 
     /** Current version of the app */
     version: string;
@@ -296,9 +309,15 @@ export class SettingsComponent implements OnInit, OnDestroy {
             visible: this.isDesktop,
         },
         {
-            id: 'data',
-            label: 'SETTINGS.NAV_DATA',
-            icon: 'swap_horiz',
+            id: 'backup',
+            label: 'SETTINGS.NAV_BACKUP',
+            icon: 'backup',
+            visible: true,
+        },
+        {
+            id: 'reset',
+            label: 'SETTINGS.NAV_RESET',
+            icon: 'delete_sweep',
             visible: true,
         },
         {
@@ -418,14 +437,50 @@ export class SettingsComponent implements OnInit, OnDestroy {
         // Wait for settings to load before setting the form
         await this.settingsStore.loadSettings();
         this.setSettings();
+        void this.loadEmbeddedMpvSupport();
         this.checkAppVersion();
-        this.fetchLocalIpAddresses();
+        void this.fetchLocalIpAddresses();
 
         if (!this.isDialog) {
             this.settingsCtx.setSections(this.sectionNav);
         }
 
         requestAnimationFrame(() => this.setupSectionObserver());
+    }
+
+    private async loadEmbeddedMpvSupport(): Promise<void> {
+        if (!this.isDesktop) {
+            this.embeddedMpvSupport.set({
+                supported: false,
+                platform: 'web',
+                reason: 'Embedded MPV requires the Electron desktop build.',
+            });
+            return;
+        }
+
+        if (!window.electron?.getEmbeddedMpvSupport) {
+            this.embeddedMpvSupport.set({
+                supported: false,
+                platform: window.electron.platform,
+                reason: 'Embedded MPV support is not available in this build.',
+            });
+            return;
+        }
+
+        try {
+            this.embeddedMpvSupport.set(
+                await window.electron.getEmbeddedMpvSupport()
+            );
+        } catch (error) {
+            this.embeddedMpvSupport.set({
+                supported: false,
+                platform: window.electron.platform,
+                reason:
+                    error instanceof Error
+                        ? error.message
+                        : String(error),
+            });
+        }
     }
 
     ngOnDestroy(): void {

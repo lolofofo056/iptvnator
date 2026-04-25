@@ -476,7 +476,6 @@
                                                 }
                                                 <button
                                                     mat-icon-button
-                                                    color="accent"
                                                     [matTooltip]="
                                                         'SETTINGS.REFRESH_EPG'
                                                             | translate
@@ -495,7 +494,6 @@
                                                 </button>
                                                 <button
                                                     mat-icon-button
-                                                    color="accent"
                                                     [matTooltip]="
                                                         'SETTINGS.REMOVE_EPG_SOURCE'
                                                             | translate
@@ -517,10 +515,10 @@
                         <div class="inline-actions">
                             <button
                                 mat-button
-                                color="accent"
                                 type="button"
                                 (click)="addEpgSource()"
                             >
+                                <mat-icon>add</mat-icon>
                                 {{ 'SETTINGS.ADD_EPG_SOURCE' | translate }}
                             </button>
                             <button
@@ -752,20 +750,17 @@
 
             <section
                 class="settings-group"
-                [class.settings-group--active]="activeSection() === 'data'"
-                id="data"
+                [class.settings-group--active]="activeSection() === 'backup'"
+                id="backup"
             >
                 <header class="settings-group__header">
                     <div class="settings-group__header-icon">
-                        <mat-icon>sync_alt</mat-icon>
+                        <mat-icon>backup</mat-icon>
                     </div>
                     <div class="settings-group__header-text">
-                        <h3>{{ 'SETTINGS.DATA' | translate }}</h3>
+                        <h3>{{ 'SETTINGS.BACKUP' | translate }}</h3>
                         <p>
-                            {{
-                                'SETTINGS.IMPORT_EXPORT_DATA_DESCRIPTION'
-                                    | translate
-                            }}
+                            {{ 'SETTINGS.BACKUP_DESCRIPTION' | translate }}
                         </p>
                     </div>
                 </header>
@@ -829,39 +824,45 @@
                     </div>
                 </div>
 
-                <div class="setting-item danger-zone">
-                    <div class="setting-item__meta">
-                        <h4>{{ 'SETTINGS.REMOVE_ALL' | translate }}</h4>
-                        <p>
-                            {{ 'SETTINGS.REMOVE_ALL_DESCRIPTION' | translate }}
-                        </p>
-                        <div class="danger-zone__summary" aria-live="polite">
-                            <span class="danger-zone__summary-pill">
-                                {{ 'HOME.PLAYLIST_TYPES.M3U' | translate }}
-                                <strong>{{
-                                    playlistDeleteSummary().m3u
-                                }}</strong>
-                            </span>
-                            <span class="danger-zone__summary-pill">
-                                {{ 'HOME.PLAYLIST_TYPES.XTREAM' | translate }}
-                                <strong>{{
-                                    playlistDeleteSummary().xtream
-                                }}</strong>
-                            </span>
-                            <span class="danger-zone__summary-pill">
-                                {{ 'HOME.PLAYLIST_TYPES.STALKER' | translate }}
-                                <strong>{{
-                                    playlistDeleteSummary().stalker
-                                }}</strong>
-                            </span>
-                        </div>
-                        @if (removeAllProgressLabel(); as progressLabel) {
-                            <p class="danger-zone__progress">
-                                {{ progressLabel }}
-                            </p>
-                        }
+                @if (isPwa) {
+                    <div class="settings-note">
+                        {{ 'SETTINGS.EPG_NOTE' | translate }}
+                        &nbsp;<a
+                            href="https://github.com/4gray/iptvnator/releases"
+                            target="_blank"
+                            rel="noreferrer"
+                            >{{ 'SETTINGS.EPG_NOTE_URL_TEXT' | translate }}</a
+                        >
                     </div>
-                    <div class="setting-item__control">
+                }
+            </section>
+
+            <section
+                class="settings-group"
+                [class.settings-group--active]="activeSection() === 'reset'"
+                id="reset"
+            >
+                <header class="settings-group__header">
+                    <div class="settings-group__header-icon">
+                        <mat-icon>delete_sweep</mat-icon>
+                    </div>
+                    <div class="settings-group__header-text">
+                        <h3>{{ 'SETTINGS.RESET' | translate }}</h3>
+                        <p>{{ 'SETTINGS.RESET_DESCRIPTION' | translate }}</p>
+                    </div>
+                </header>
+
+                <div class="setting-item danger-zone">
+                    <div class="danger-zone__header">
+                        <div class="setting-item__meta">
+                            <h4>{{ 'SETTINGS.REMOVE_ALL' | translate }}</h4>
+                            <p>
+                                {{
+                                    'SETTINGS.REMOVE_ALL_DESCRIPTION'
+                                        | translate
+                                }}
+                            </p>
+                        </div>
                         <button
                             mat-button
                             class="danger-zone__button"
@@ -894,19 +895,47 @@
                             }
                         </button>
                     </div>
-                </div>
-
-                @if (isPwa) {
-                    <div class="settings-note">
-                        {{ 'SETTINGS.EPG_NOTE' | translate }}
-                        &nbsp;<a
-                            href="https://github.com/4gray/iptvnator/releases"
-                            target="_blank"
-                            rel="noreferrer"
-                            >{{ 'SETTINGS.EPG_NOTE_URL_TEXT' | translate }}</a
-                        >
+                    <div class="danger-zone__summary" aria-live="polite">
+                        <span class="danger-zone__summary-pill">
+                            <mat-icon class="danger-zone__summary-icon"
+                                >folder_open</mat-icon
+                            >
+                            <span class="danger-zone__summary-label">{{
+                                'HOME.PLAYLIST_TYPES.M3U' | translate
+                            }}</span>
+                            <span class="danger-zone__summary-count">{{
+                                playlistDeleteSummary().m3u
+                            }}</span>
+                        </span>
+                        <span class="danger-zone__summary-pill">
+                            <mat-icon class="danger-zone__summary-icon"
+                                >cloud</mat-icon
+                            >
+                            <span class="danger-zone__summary-label">{{
+                                'HOME.PLAYLIST_TYPES.XTREAM' | translate
+                            }}</span>
+                            <span class="danger-zone__summary-count">{{
+                                playlistDeleteSummary().xtream
+                            }}</span>
+                        </span>
+                        <span class="danger-zone__summary-pill">
+                            <mat-icon class="danger-zone__summary-icon"
+                                >cast</mat-icon
+                            >
+                            <span class="danger-zone__summary-label">{{
+                                'HOME.PLAYLIST_TYPES.STALKER' | translate
+                            }}</span>
+                            <span class="danger-zone__summary-count">{{
+                                playlistDeleteSummary().stalker
+                            }}</span>
+                        </span>
                     </div>
-                }
+                    @if (removeAllProgressLabel(); as progressLabel) {
+                        <p class="danger-zone__progress">
+                            {{ progressLabel }}
+                        </p>
+                    }
+                </div>
             </section>
 
             <section
@@ -1116,7 +1145,6 @@
                     <button
                         mat-button
                         type="button"
-                        color="accent"
                         (click)="backToHome()"
                         data-test-id="back-to-home"
                     >
@@ -1126,8 +1154,8 @@
                 }
                 <button
                     mat-flat-button
-                    color="accent"
                     type="submit"
+                    class="settings-save-button"
                     [disabled]="settingsForm.pristine || !settingsForm.valid"
                     data-test-id="save-settings"
                 >
