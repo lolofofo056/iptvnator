@@ -4,6 +4,7 @@ import {
     computed,
     effect,
     inject,
+    signal,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
@@ -47,6 +48,9 @@ const SKELETON_RAILS = [1, 2, 3] as const;
 
 interface DashboardHeroModel {
     readonly backdropUrl?: string;
+    readonly backdropSource: DashboardHeroBackdropSource;
+    readonly fallbackBackdropBackground: string;
+    readonly fallbackPosterBackground: string;
     readonly hasBackdrop: boolean;
     readonly icon: string;
     readonly link: string[];
@@ -54,6 +58,88 @@ interface DashboardHeroModel {
     readonly state?: Record<string, unknown>;
     readonly subtitle: string;
     readonly title: string;
+}
+
+export type DashboardHeroBackdropSource = 'backdrop' | 'poster' | 'fallback';
+
+export interface DashboardHeroArtworkInput {
+    readonly backdropUrl?: string | null;
+    readonly posterUrl?: string | null;
+    readonly title: string;
+}
+
+export interface DashboardHeroArtwork {
+    readonly backdropUrl?: string;
+    readonly backdropSource: DashboardHeroBackdropSource;
+    readonly fallbackBackdropBackground: string;
+    readonly fallbackPosterBackground: string;
+    readonly hasBackdrop: boolean;
+    readonly posterUrl?: string;
+}
+
+export function resolveDashboardHeroArtwork(
+    item: DashboardHeroArtworkInput,
+    failedImages: Record<string, true>
+): DashboardHeroArtwork {
+    const posterUrl =
+        item.posterUrl && !failedImages[item.posterUrl]
+            ? item.posterUrl
+            : undefined;
+    const explicitBackdropUrl =
+        item.backdropUrl && !failedImages[item.backdropUrl]
+            ? item.backdropUrl
+            : undefined;
+    const backdropUrl = explicitBackdropUrl ?? posterUrl;
+    const backdropSource: DashboardHeroBackdropSource = explicitBackdropUrl
+        ? 'backdrop'
+        : posterUrl
+          ? 'poster'
+          : 'fallback';
+
+    return {
+        backdropUrl,
+        backdropSource,
+        fallbackBackdropBackground: buildFallbackBackground(
+            item.title,
+            50,
+            15,
+            80,
+            5,
+            60
+        ),
+        fallbackPosterBackground: buildFallbackBackground(
+            item.title,
+            40,
+            25,
+            50,
+            15,
+            40
+        ),
+        hasBackdrop: backdropSource === 'backdrop',
+        posterUrl,
+    };
+}
+
+function buildFallbackBackground(
+    title: string,
+    saturationA: number,
+    lightnessA: number,
+    saturationB: number,
+    lightnessB: number,
+    hueOffset: number
+): string {
+    const hue = calculateHue(title || 'placeholder');
+    const h2 = (hue + hueOffset) % 360;
+    return `linear-gradient(135deg, hsl(${hue}, ${saturationA}%, ${lightnessA}%) 0%, hsl(${h2}, ${saturationB}%, ${lightnessB}%) 100%)`;
+}
+
+function calculateHue(text: string): number {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+        hash = text.charCodeAt(i) + ((hash << 5) - hash);
+        hash = hash & hash;
+    }
+    return Math.abs(hash) % 360;
 }
 
 export type DashboardSourceActionId =
@@ -148,6 +234,7 @@ export class WorkspaceDashboardRailsComponent {
 
     readonly skeletonSlots = SKELETON_CARDS_PER_RAIL;
     readonly skeletonRails = SKELETON_RAILS;
+    readonly failedHeroImages = signal<Record<string, true>>({});
 
     readonly hero = computed<DashboardHeroModel | null>(() => {
         const item = this.data.globalRecentItems()[0] ?? null;
@@ -155,12 +242,19 @@ export class WorkspaceDashboardRailsComponent {
             return null;
         }
 
+        const artwork = resolveDashboardHeroArtwork(
+            {
+                backdropUrl: item.backdrop_url,
+                posterUrl: item.poster_url,
+                title: item.title,
+            },
+            this.failedHeroImages()
+        );
+
         return {
-            backdropUrl: item.backdrop_url || item.poster_url,
-            hasBackdrop: Boolean(item.backdrop_url),
+            ...artwork,
             icon: this.typeIcon(item.type),
             link: this.data.getRecentItemLink(item),
-            posterUrl: item.poster_url,
             state: this.data.getRecentItemNavigationState(item),
             subtitle: this.buildHeroSubtitle(item),
             title: item.title,
@@ -229,6 +323,12 @@ export class WorkspaceDashboardRailsComponent {
 
     onAddPlaylist(): void {
         this.shellActions.openAddPlaylistDialog();
+    }
+
+    markHeroImageFailed(url: string): void {
+        this.failedHeroImages.update((state) =>
+            state[url] ? state : { ...state, [url]: true }
+        );
     }
 
     onSourceActionSelected(selection: DashboardRailActionSelection): void {

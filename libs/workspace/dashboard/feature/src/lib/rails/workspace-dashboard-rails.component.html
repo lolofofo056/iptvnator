@@ -46,30 +46,50 @@
                     !!item.posterUrl || !!item.backdropUrl
                 "
                 [class.hero--has-backdrop]="item.hasBackdrop"
+                [class.hero--has-default-backdrop]="
+                    item.backdropSource === 'fallback'
+                "
                 [routerLink]="item.link"
                 [state]="item.state ?? {}"
             >
-                @if (item.backdropUrl) {
-                    <span
-                        class="hero__backdrop"
+                <span
+                    class="hero__backdrop"
+                    aria-hidden="true"
+                    [style.backgroundImage]="
+                        item.backdropUrl
+                            ? 'url(' + item.backdropUrl + ')'
+                            : item.fallbackBackdropBackground
+                    "
+                ></span>
+                @if (item.backdropUrl; as backdropUrl) {
+                    <img
+                        class="hero__image-probe"
+                        [src]="backdropUrl"
+                        alt=""
                         aria-hidden="true"
-                        [style.backgroundImage]="
-                            'url(' + item.backdropUrl + ')'
-                        "
-                    ></span>
+                        loading="eager"
+                        decoding="async"
+                        (error)="markHeroImageFailed(backdropUrl)"
+                    />
                 }
                 <span class="hero__vignette" aria-hidden="true"></span>
 
                 <span class="hero__poster">
-                    @if (item.posterUrl) {
+                    @if (item.posterUrl; as posterUrl) {
                         <img
-                            [src]="item.posterUrl"
+                            [src]="posterUrl"
                             [alt]="item.title"
                             loading="eager"
                             decoding="async"
+                            (error)="markHeroImageFailed(posterUrl)"
                         />
                     } @else {
-                        <span class="hero__poster-fallback">
+                        <span
+                            class="hero__poster-fallback"
+                            [style.backgroundImage]="
+                                item.fallbackPosterBackground
+                            "
+                        >
                             <mat-icon>{{ item.icon }}</mat-icon>
                         </span>
                     }
