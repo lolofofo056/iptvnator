@@ -52,6 +52,8 @@ app-workspace-shell-context-sidebar {
 .workspace-now-playing {
     grid-column: 2;
     grid-row: 3;
+    padding: 0;
+    background: var(--app-content-bg, var(--mat-sys-surface));
 }
 
 .workspace-content {

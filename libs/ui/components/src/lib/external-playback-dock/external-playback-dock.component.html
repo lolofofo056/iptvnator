@@ -3,7 +3,18 @@
     [class.external-playback-dock--compact]="compact()"
     [class.external-playback-dock--error]="session().status === 'error'"
 >
-    <div class="external-playback-dock__artwork">
+    <button
+        type="button"
+        class="external-playback-dock__artwork"
+        [class.external-playback-dock__artwork--interactive]="
+            artworkInteractive()
+        "
+        [disabled]="!artworkInteractive()"
+        [attr.aria-label]="
+            artworkInteractive() ? 'Open in playlist' : null
+        "
+        (click)="onArtworkClick()"
+    >
         @if (showArtwork()) {
             <img
                 [src]="artworkUrl()"
@@ -16,29 +27,27 @@
                 <mat-icon>{{ artworkPlaceholderIcon() }}</mat-icon>
             </div>
         }
-    </div>
+    </button>
 
     <div class="external-playback-dock__meta">
-        <div class="external-playback-dock__topline">
-            <span class="external-playback-dock__chip">{{
-                playerLabel()
-            }}</span>
-            @if (!compact()) {
-                <span class="external-playback-dock__caption">
-                    External player
-                </span>
-            }
-        </div>
         <div class="external-playback-dock__title">{{ session().title }}</div>
         <div class="external-playback-dock__status">
+            <span class="external-playback-dock__chip">{{ playerLabel() }}</span>
+            <span
+                class="external-playback-dock__status-separator"
+                aria-hidden="true"
+                >·</span
+            >
             @if (showSpinner()) {
-                <mat-spinner diameter="14" strokeWidth="3"></mat-spinner>
-            } @else {
-                <mat-icon>{{
-                    session().status === 'error' ? 'error' : 'play_arrow'
+                <mat-spinner diameter="12" strokeWidth="2"></mat-spinner>
+            } @else if (showStatusIcon()) {
+                <mat-icon class="external-playback-dock__status-icon">{{
+                    statusIcon()
                 }}</mat-icon>
             }
-            <span>{{ statusLabel() }}</span>
+            <span class="external-playback-dock__status-text">{{
+                statusLabel()
+            }}</span>
         </div>
     </div>
 

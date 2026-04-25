@@ -720,6 +720,23 @@ export class WorkspaceShellFacade {
         );
     }
 
+    openActiveExternalSessionTarget(): void {
+        const playlistId = this.externalPlaybackSession()?.contentInfo
+            ?.playlistId;
+        if (!playlistId) return;
+
+        const playlist = this.playlists().find((p) => p._id === playlistId);
+        if (!playlist) return;
+
+        if (playlist.serverUrl) {
+            void this.router.navigate(['/workspace', 'xtreams', playlistId]);
+        } else if (playlist.macAddress) {
+            void this.router.navigate(['/workspace', 'stalker', playlistId]);
+        } else {
+            void this.router.navigate(['/workspace', 'playlists', playlistId]);
+        }
+    }
+
     onSearchInput(value: string): void {
         this.searchQuery.set(value);
         this.scheduleSearchApply(value);

@@ -135,6 +135,9 @@
                 <app-external-playback-dock
                     [session]="session"
                     (closeClicked)="facade.closeActiveExternalSession()"
+                    (artworkClicked)="
+                        facade.openActiveExternalSessionTarget()
+                    "
                 />
             </footer>
         }
