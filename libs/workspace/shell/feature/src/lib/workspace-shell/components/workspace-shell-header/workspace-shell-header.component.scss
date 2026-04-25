@@ -165,7 +165,7 @@
 .header-actions {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     app-region: no-drag;
 
     button,
@@ -193,6 +193,17 @@
                 0 10px 20px -16px var(--app-selection-glow);
         }
     }
+}
+
+.header-actions--leading {
+    margin-left: -4px;
+}
+
+.header-actions--trailing {
+    margin-left: auto;
+    padding-left: 8px;
+    border-left: 1px solid var(--mat-sys-outline-variant);
+    app-region: no-drag;
 }
 
 // ─── Download Activity Indicator ─────────────────────────────────────────────
@@ -241,15 +252,6 @@
     100% {
         left: -50%;
     }
-}
-
-.header-actions-divider {
-    width: 1px;
-    height: 20px;
-    background: var(--mat-sys-outline-variant);
-    margin: 0 4px;
-    flex-shrink: 0;
-    opacity: 0.6;
 }
 
 @media (max-width: 960px) {

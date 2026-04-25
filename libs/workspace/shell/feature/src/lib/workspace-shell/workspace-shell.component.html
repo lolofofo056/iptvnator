@@ -1,4 +1,9 @@
-<div class="workspace-shell">
+<div
+    class="workspace-shell"
+    appPlaylistDropZone
+    #dropZone="playlistDropZone"
+>
+    <app-playlist-drop-overlay [state]="dropZone.overlayState()" />
     @if (facade.showXtreamImportOverlay()) {
         <div class="workspace-loading-overlay">
             <div class="workspace-loading-overlay__card">
@@ -95,6 +100,7 @@
         [canRefreshPlaylist]="facade.canRefreshPlaylist()"
         [isRefreshingPlaylist]="facade.isRefreshingPlaylist()"
         [isElectron]="facade.isElectron"
+        [hasNoPlaylists]="facade.hasNoPlaylists()"
         [isDownloadsView]="facade.isDownloadsView()"
         [hasActiveDownloads]="facade.hasActiveDownloads()"
         (refreshPlaylistRequested)="facade.refreshCurrentPlaylist()"
@@ -114,6 +120,7 @@
                 [variant]="facade.contextPanel()"
                 [context]="facade.currentContext()"
                 [section]="facade.currentSection()"
+                [hasPlaylists]="!facade.hasNoPlaylists()"
             />
         }
 

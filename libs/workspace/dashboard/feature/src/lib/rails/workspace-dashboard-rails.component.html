@@ -1,4 +1,8 @@
-<section class="rails-page" data-test-id="dashboard-page">
+<section
+    class="rails-page"
+    [class.rails-page--empty]="ready() && !hasPlaylists()"
+    data-test-id="dashboard-page"
+>
     @if (!ready()) {
         <!-- Precise ghosts that mirror the real hero + rails so the layout
              doesn't reflow when data arrives. -->
@@ -34,8 +38,9 @@
         }
     } @else if (!hasPlaylists()) {
         <app-empty-state
-            [type]="'welcome'"
-            (addPlaylistClicked)="onAddPlaylist()"
+            [type]="'welcome-dashboard'"
+            [showElectronOnlyValueProps]="isElectron"
+            (addPlaylistClicked)="onAddPlaylist($event)"
         />
     } @else {
         @if (hero(); as item) {

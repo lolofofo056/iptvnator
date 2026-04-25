@@ -142,6 +142,7 @@ export class WorkspaceShellFacade {
     private readonly playlists = this.store.selectSignal(
         selectAllPlaylistsMeta
     );
+    readonly hasNoPlaylists = computed(() => this.playlists().length === 0);
 
     readonly searchQuery = signal('');
     readonly appliedSearchQuery = signal('');
@@ -1090,6 +1091,41 @@ export class WorkspaceShellFacade {
                     'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_DESCRIPTION',
                 priority: 80,
                 run: () => this.openAddPlaylistDialog(),
+            },
+            {
+                id: 'add-playlist-m3u',
+                group: 'global',
+                icon: 'folder_open',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_M3U_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_M3U_DESCRIPTION',
+                keywords: ['m3u', 'm3u8', 'file', 'url', 'add', 'import'],
+                priority: 79,
+                run: () => this.workspaceActions.openAddPlaylistDialog('url'),
+            },
+            {
+                id: 'add-playlist-xtream',
+                group: 'global',
+                icon: 'cloud',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_XTREAM_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_XTREAM_DESCRIPTION',
+                keywords: ['xtream', 'codes', 'iptv', 'add', 'import'],
+                priority: 78,
+                run: () =>
+                    this.workspaceActions.openAddPlaylistDialog('xtream'),
+            },
+            {
+                id: 'add-playlist-stalker',
+                group: 'global',
+                icon: 'cast',
+                labelKey: 'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_STALKER_LABEL',
+                descriptionKey:
+                    'WORKSPACE.SHELL.COMMANDS.ADD_PLAYLIST_STALKER_DESCRIPTION',
+                keywords: ['stalker', 'portal', 'mac', 'ministra', 'add'],
+                priority: 77,
+                run: () =>
+                    this.workspaceActions.openAddPlaylistDialog('stalker'),
             },
         ];
     }

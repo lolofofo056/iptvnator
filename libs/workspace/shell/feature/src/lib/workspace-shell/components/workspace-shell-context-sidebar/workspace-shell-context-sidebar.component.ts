@@ -31,4 +31,5 @@ export class WorkspaceShellContextSidebarComponent {
     readonly variant = input.required<WorkspaceShellContextPanel>();
     readonly context = input<WorkspacePortalContext | null>(null);
     readonly section = input<PortalRailSection | null>(null);
+    readonly hasPlaylists = input(true);
 }

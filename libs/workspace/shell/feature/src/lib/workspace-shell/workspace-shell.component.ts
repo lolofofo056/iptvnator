@@ -7,6 +7,10 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterOutlet } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { ExternalPlaybackDockComponent } from 'components';
+import {
+    PlaylistDropOverlayComponent,
+    PlaylistDropZoneDirective,
+} from '../playlist-drop-overlay';
 import { WorkspaceShellContextSidebarComponent } from './components/workspace-shell-context-sidebar/workspace-shell-context-sidebar.component';
 import { WorkspaceShellHeaderComponent } from './components/workspace-shell-header/workspace-shell-header.component';
 import { WorkspaceShellRailComponent } from './components/workspace-shell-rail/workspace-shell-rail.component';
@@ -18,6 +22,8 @@ import { WorkspaceShellFacade } from './services/workspace-shell.facade';
         ExternalPlaybackDockComponent,
         MatButtonModule,
         MatProgressBarModule,
+        PlaylistDropOverlayComponent,
+        PlaylistDropZoneDirective,
         RouterOutlet,
         TranslatePipe,
         WorkspaceShellContextSidebarComponent,

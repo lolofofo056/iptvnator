@@ -6,49 +6,54 @@
         [showPlaylistInfo]="canOpenPlaylistInfo()"
         [showAccountInfo]="canOpenAccountInfo()"
         [showAddPlaylist]="true"
+        [canRefreshActivePlaylist]="canRefreshPlaylist()"
+        [isRefreshingActivePlaylist]="isRefreshingPlaylist()"
         (playlistInfoRequested)="onPlaylistInfoRequested()"
         (accountInfoRequested)="onAccountInfoRequested()"
         (addPlaylistRequested)="onAddPlaylistRequested()"
+        (refreshPlaylistRequested)="onRefreshPlaylistRequested()"
     />
 
-    <label class="search-field">
-        <mat-icon>search</mat-icon>
-        @if (searchScopeLabel()) {
-            <span class="search-chip search-chip--scope">
-                {{ searchScopeLabel() }}
-            </span>
-        }
-        <input
-            type="search"
-            spellcheck="false"
-            [value]="searchQuery()"
-            (input)="onSearchInput($event)"
-            (keydown.enter)="onSearchEnter($event)"
-            [disabled]="!canUseSearch()"
-            [placeholder]="searchPlaceholder() | translate"
-            [attr.aria-label]="'WORKSPACE.SHELL.SEARCH_LABEL' | translate"
-        />
-        @if (searchStatusLabel()) {
-            <span class="search-chip search-chip--status">
-                {{ searchStatusLabel() }}
-            </span>
-        }
-        <button
-            type="button"
-            class="command-trigger"
-            (click)="onCommandPaletteRequested()"
-            [matTooltip]="
-                'WORKSPACE.SHELL.COMMAND_PALETTE_SHORTCUT' | translate
-            "
-            [attr.aria-label]="
-                'WORKSPACE.SHELL.OPEN_COMMAND_PALETTE' | translate
-            "
-        >
-            {{ commandShortcutLabel }}
-        </button>
-    </label>
+    @if (!hasNoPlaylists()) {
+        <label class="search-field">
+            <mat-icon>search</mat-icon>
+            @if (searchScopeLabel()) {
+                <span class="search-chip search-chip--scope">
+                    {{ searchScopeLabel() }}
+                </span>
+            }
+            <input
+                type="search"
+                spellcheck="false"
+                [value]="searchQuery()"
+                (input)="onSearchInput($event)"
+                (keydown.enter)="onSearchEnter($event)"
+                [disabled]="!canUseSearch()"
+                [placeholder]="searchPlaceholder() | translate"
+                [attr.aria-label]="'WORKSPACE.SHELL.SEARCH_LABEL' | translate"
+            />
+            @if (searchStatusLabel()) {
+                <span class="search-chip search-chip--status">
+                    {{ searchStatusLabel() }}
+                </span>
+            }
+            <button
+                type="button"
+                class="command-trigger"
+                (click)="onCommandPaletteRequested()"
+                [matTooltip]="
+                    'WORKSPACE.SHELL.COMMAND_PALETTE_SHORTCUT' | translate
+                "
+                [attr.aria-label]="
+                    'WORKSPACE.SHELL.OPEN_COMMAND_PALETTE' | translate
+                "
+            >
+                {{ commandShortcutLabel }}
+            </button>
+        </label>
+    }
 
-    <div class="header-actions">
+    <div class="header-actions header-actions--leading">
         <button
             type="button"
             mat-icon-button
@@ -58,26 +63,6 @@
         >
             <mat-icon>add</mat-icon>
         </button>
-        @if (canRefreshPlaylist()) {
-            <button
-                type="button"
-                class="header-shortcut"
-                mat-icon-button
-                [disabled]="isRefreshingPlaylist()"
-                (click)="onRefreshPlaylistRequested()"
-                [matTooltip]="
-                    'WORKSPACE.SHELL.REFRESH_PLAYLIST' | translate
-                "
-                [attr.aria-label]="
-                    'WORKSPACE.SHELL.REFRESH_PLAYLIST' | translate
-                "
-            >
-                <mat-icon>sync</mat-icon>
-            </button>
-        }
-        @if (headerShortcut() || isElectron()) {
-            <span class="header-actions-divider" aria-hidden="true"></span>
-        }
         @if (headerShortcut(); as action) {
             <button
                 type="button"
@@ -90,7 +75,10 @@
                 <mat-icon>{{ action.icon }}</mat-icon>
             </button>
         }
-        @if (isElectron()) {
+    </div>
+
+    @if (isElectron()) {
+        <div class="header-actions header-actions--trailing">
             <span class="download-btn-wrap">
                 @if (hasActiveDownloads()) {
                     <span class="download-activity-bar" aria-hidden="true">
@@ -114,6 +102,6 @@
                     <mat-icon>download</mat-icon>
                 </button>
             </span>
-        }
-    </div>
+        </div>
+    }
 </header>

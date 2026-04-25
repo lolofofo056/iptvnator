@@ -10,7 +10,10 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { selectActiveTypeFilters, selectAllPlaylistsMeta } from 'm3u-state';
 import { map, startWith } from 'rxjs';
 import { SortBy, SortOrder, SortService } from 'services';
-import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
+import {
+    WORKSPACE_SHELL_ACTIONS,
+    WorkspacePlaylistType,
+} from '@iptvnator/workspace/shell/util';
 
 interface SortOption {
     by: SortBy;
@@ -165,8 +168,8 @@ export class WorkspaceSourcesComponent {
         );
     });
 
-    onAddPlaylist(): void {
-        this.workspaceActions.openAddPlaylistDialog();
+    onAddPlaylist(type?: WorkspacePlaylistType): void {
+        this.workspaceActions.openAddPlaylistDialog(type);
     }
 
     isSortActive(option: SortOption): boolean {

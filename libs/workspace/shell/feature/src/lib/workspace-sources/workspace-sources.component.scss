@@ -72,3 +72,18 @@
     display: block;
     height: 100%;
 }
+
+.sources-page--empty {
+    .sources-content {
+        padding: 0;
+        overflow: hidden;
+        display: flex;
+    }
+
+    .sources-content app-recent-playlists {
+        flex: 1;
+        height: 100%;
+        min-height: 0;
+        display: flex;
+    }
+}

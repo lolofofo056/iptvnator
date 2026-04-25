@@ -18,7 +18,10 @@ import {
     PlaylistInfoComponent,
 } from '@iptvnator/playlist/shared/ui';
 import { PlaylistRefreshActionService } from '@iptvnator/playlist/shared/util';
-import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
+import {
+    WORKSPACE_SHELL_ACTIONS,
+    WorkspacePlaylistType,
+} from '@iptvnator/workspace/shell/util';
 import { DialogService } from 'components';
 import { PlaylistActions } from 'm3u-state';
 import { DatabaseService } from 'services';
@@ -214,6 +217,9 @@ function isXtreamAccountPlaylist(
     templateUrl: './workspace-dashboard-rails.component.html',
     styleUrl: './workspace-dashboard-rails.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
+    host: {
+        '[class.rails-page-host--empty]': 'ready() && !hasPlaylists()',
+    },
 })
 export class WorkspaceDashboardRailsComponent {
     readonly data = inject(DashboardDataService);
@@ -231,6 +237,7 @@ export class WorkspaceDashboardRailsComponent {
     readonly hasPlaylists = computed(() => this.data.playlists().length > 0);
     readonly ready = this.data.dashboardReady;
     readonly xtreamPlaylistCount = this.data.xtreamPlaylistCount;
+    readonly isElectron = !!window.electron;
 
     readonly skeletonSlots = SKELETON_CARDS_PER_RAIL;
     readonly skeletonRails = SKELETON_RAILS;
@@ -321,8 +328,8 @@ export class WorkspaceDashboardRailsComponent {
         });
     }
 
-    onAddPlaylist(): void {
-        this.shellActions.openAddPlaylistDialog();
+    onAddPlaylist(type?: WorkspacePlaylistType): void {
+        this.shellActions.openAddPlaylistDialog(type);
     }
 
     markHeroImageFailed(url: string): void {
