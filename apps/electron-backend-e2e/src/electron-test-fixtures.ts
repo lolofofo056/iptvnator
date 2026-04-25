@@ -1536,7 +1536,9 @@ export async function resetMockServers(
 }
 
 async function openCommandPalette(page: Page): Promise<Locator> {
-    await page.locator('app-workspace-shell-header .command-trigger').click();
+    const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
+    await page.locator('body').focus();
+    await page.keyboard.press(`${modifier}+K`);
     const dialog = page.locator(
         'mat-dialog-container app-workspace-command-palette'
     );

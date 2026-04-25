@@ -62,12 +62,17 @@ test.describe('Electron App Smoke Test', () => {
 
         try {
             await expect(
-                app.mainWindow.getByRole('button', {
-                    name: 'Open command palette',
-                })
-            ).toBeVisible();
-            await expect(
                 app.mainWindow.getByRole('button', { name: 'Add playlist' })
+            ).toBeVisible();
+
+            const modifier =
+                process.platform === 'darwin' ? 'Meta' : 'Control';
+            await app.mainWindow.locator('body').focus();
+            await app.mainWindow.keyboard.press(`${modifier}+K`);
+            await expect(
+                app.mainWindow.locator(
+                    'mat-dialog-container app-workspace-command-palette'
+                )
             ).toBeVisible();
         } finally {
             await closeElectronApp(app);
