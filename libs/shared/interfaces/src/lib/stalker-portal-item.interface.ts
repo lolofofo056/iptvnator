@@ -21,6 +21,8 @@ export interface StalkerPortalItem {
     category_id?: string | number;
     stream_type?: string;
     is_series?: boolean | number | string;
+    /** Embedded VOD-series episode numbers preserved for VOD favorites. */
+    series?: unknown[];
     added_at?: string | number;
     cmd?: string;
 }

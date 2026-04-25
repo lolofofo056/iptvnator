@@ -59,6 +59,37 @@ describe('stalker-vod.utils regressions', () => {
         expect(state.vodDetailsItem).toBeNull();
     });
 
+    it('builds a playable VOD details item for regular movies', () => {
+        const state = createStalkerDetailViewState(
+            {
+                id: '42',
+                cmd: '/media/file_42.mpg',
+                info: {
+                    name: 'Regular Movie',
+                    movie_image: 'poster.jpg',
+                    description: '',
+                    actors: '',
+                    director: '',
+                    releasedate: '',
+                    genre: '',
+                    rating_imdb: '',
+                    rating_kinopoisk: '',
+                },
+            },
+            'playlist-1'
+        );
+
+        expect(state.itemDetails?.id).toBe('42');
+        expect(state.vodDetailsItem).toEqual(
+            expect.objectContaining({
+                type: 'stalker',
+                playlistId: 'playlist-1',
+                cmd: '/media/file_42.mpg',
+            })
+        );
+        expect(state.vodDetailsItem?.data.id).toBe('42');
+    });
+
     it('favorite toggle uses completion callback path without delayed state update', () => {
         const addToFavorites = jest.fn(
             (_item: Record<string, unknown>, onDone?: () => void) => {

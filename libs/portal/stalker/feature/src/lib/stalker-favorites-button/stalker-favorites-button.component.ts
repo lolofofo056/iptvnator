@@ -7,6 +7,7 @@ import { PlaylistsService } from 'services';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import {
     matchesFavoriteById,
+    normalizeStalkerSeriesFlag,
     StalkerSelectedVodItem,
 } from '@iptvnator/portal/stalker/data-access';
 
@@ -52,13 +53,33 @@ export class FavoritesButtonComponent {
 
     addToFavorites() {
         const item = this.item();
+        const favoriteBase = {
+            ...item,
+            title: item.info?.name ?? item.name ?? item.o_name,
+            cover: item.info?.movie_image ?? item.cover,
+            added_at: new Date().toISOString(),
+        };
+
+        if (this.stalkerStore.selectedContentType() === 'vod') {
+            this.stalkerStore.addToFavorites(
+                {
+                    ...favoriteBase,
+                    id: item.id,
+                    category_id: item.category_id ?? 'vod',
+                    series: item.series,
+                    is_series: normalizeStalkerSeriesFlag(item.is_series),
+                },
+                () => {
+                    this.favoritesChanged$.next();
+                }
+            );
+            return;
+        }
+
         this.stalkerStore.addToFavorites(
             {
-                ...item,
-                title: item.info?.name ?? item.name ?? item.o_name,
-                cover: item.info?.movie_image ?? item.cover,
+                ...favoriteBase,
                 series_id: item.id,
-                added_at: new Date().toISOString(),
                 category_id: 'series',
             },
             () => {

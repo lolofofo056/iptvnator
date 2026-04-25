@@ -40,6 +40,15 @@ interface StalkerCollectionStateSnapshot {
     selectedItem: unknown;
 }
 
+type StalkerDetailCategory = 'vod' | 'series';
+
+interface StalkerCollectionDetailMode {
+    category: StalkerDetailCategory;
+    selectedContentType: StalkerDetailCategory;
+    hasEmbeddedSeries: boolean;
+    needsSeriesFetch: boolean;
+}
+
 @Component({
     selector: 'app-stalker-collection-detail',
     imports: [ContentHeroComponent, StalkerInlineDetailComponent],
@@ -83,11 +92,14 @@ export class StalkerCollectionDetailComponent {
     readonly itemDetails = signal<StalkerSelectedVodItem | null>(null);
     readonly vodDetailsItem = signal<VodDetailsItem | null>(null);
     readonly isSelectedVodFavorite = signal(false);
+    readonly detailCategoryOverride = signal<StalkerDetailCategory | null>(
+        null
+    );
     readonly inlineDetail = computed(() =>
         createStalkerInlineDetailState(
             this.itemDetails(),
             this.vodDetailsItem(),
-            this.item()?.contentType === 'series' ? 'series' : 'vod'
+            this.detailCategoryOverride()
         )
     );
 
@@ -183,35 +195,24 @@ export class StalkerCollectionDetailComponent {
         }
 
         const stalkerItem = this.resolveStalkerItem(item);
-        const hasEmbeddedSeries = Array.isArray(
-            (stalkerItem as { series?: unknown[] }).series
-        )
-            ? (stalkerItem as { series?: unknown[] }).series!.length > 0
-            : false;
-        const needsSeriesFetch =
-            item.contentType === 'movie' &&
-            !hasEmbeddedSeries &&
-            isStalkerSeriesFlag(
-                (stalkerItem as { is_series?: unknown }).is_series
-            );
+        const detailMode = this.resolveDetailMode(item, stalkerItem);
         const itemDetails = buildStalkerSelectedVodItem(
             stalkerItem as never,
-            needsSeriesFetch
+            detailMode.needsSeriesFetch
         );
 
-        this.stalkerStore.setSelectedContentType(
-            item.contentType === 'series' ? 'series' : 'vod'
-        );
+        this.detailCategoryOverride.set(detailMode.category);
+        this.stalkerStore.setSelectedContentType(detailMode.selectedContentType);
         this.stalkerStore.setSelectedCategory(
-            item.categoryId ?? toStalkerCategoryId(item.contentType)
+            this.resolveSelectedCategory(item, stalkerItem, detailMode)
         );
         this.stalkerStore.setSelectedItem(itemDetails);
         this.itemDetails.set(itemDetails);
 
         if (
-            item.contentType === 'movie' &&
-            !hasEmbeddedSeries &&
-            !needsSeriesFetch
+            detailMode.selectedContentType === 'vod' &&
+            !detailMode.hasEmbeddedSeries &&
+            !detailMode.needsSeriesFetch
         ) {
             const detailViewState = createStalkerDetailViewState(
                 itemDetails,
@@ -267,6 +268,54 @@ export class StalkerCollectionDetailComponent {
         ) as StalkerPortalItem;
     }
 
+    private resolveDetailMode(
+        item: UnifiedCollectionItem,
+        stalkerItem: StalkerPortalItem
+    ): StalkerCollectionDetailMode {
+        const hasEmbeddedSeries = Array.isArray(
+            (stalkerItem as { series?: unknown[] }).series
+        )
+            ? (stalkerItem as { series?: unknown[] }).series!.length > 0
+            : false;
+        const isVodSeries = isStalkerSeriesFlag(
+            (stalkerItem as { is_series?: unknown }).is_series
+        );
+        const isRegularSeries =
+            item.contentType === 'series' && !hasEmbeddedSeries && !isVodSeries;
+        const selectedContentType: StalkerDetailCategory = isRegularSeries
+            ? 'series'
+            : 'vod';
+
+        return {
+            category: selectedContentType,
+            selectedContentType,
+            hasEmbeddedSeries,
+            needsSeriesFetch:
+                selectedContentType === 'vod' &&
+                !hasEmbeddedSeries &&
+                isVodSeries,
+        };
+    }
+
+    private resolveSelectedCategory(
+        item: UnifiedCollectionItem,
+        stalkerItem: StalkerPortalItem,
+        detailMode: StalkerCollectionDetailMode
+    ): string | number {
+        const categoryId =
+            item.categoryId ??
+            (stalkerItem as { category_id?: string | number }).category_id;
+
+        if (
+            detailMode.selectedContentType === 'vod' &&
+            String(categoryId ?? '').toLowerCase() === 'series'
+        ) {
+            return 'vod';
+        }
+
+        return categoryId ?? toStalkerCategoryId(detailMode.selectedContentType);
+    }
+
     private syncSelectedVodFavorite(): void {
         this.isSelectedVodFavorite.set(
             isSelectedStalkerVodFavorite(
@@ -280,6 +329,7 @@ export class StalkerCollectionDetailComponent {
         const cleared = clearStalkerDetailViewState();
         this.itemDetails.set(cleared.itemDetails);
         this.vodDetailsItem.set(cleared.vodDetailsItem);
+        this.detailCategoryOverride.set(null);
         this.isSelectedVodFavorite.set(false);
     }
 }
