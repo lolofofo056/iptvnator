@@ -1,7 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
+import {
+    TranslateLoader,
+    TranslateModule,
+    TranslateService,
+} from '@ngx-translate/core';
+import { Observable, of } from 'rxjs';
 import { ExternalPlayerSession } from 'shared-interfaces';
 import { ExternalPlaybackDockComponent } from './external-playback-dock.component';
+
+class FakeTranslateLoader implements TranslateLoader {
+    getTranslation(): Observable<Record<string, unknown>> {
+        return of({
+            WORKSPACE: {
+                SHELL: {
+                    EXTERNAL_PLAYBACK_CLOSE: 'Close player',
+                },
+            },
+        });
+    }
+}
 
 describe('ExternalPlaybackDockComponent', () => {
     let fixture: ComponentFixture<ExternalPlaybackDockComponent>;
@@ -20,8 +38,20 @@ describe('ExternalPlaybackDockComponent', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [ExternalPlaybackDockComponent],
+            imports: [
+                ExternalPlaybackDockComponent,
+                TranslateModule.forRoot({
+                    loader: {
+                        provide: TranslateLoader,
+                        useClass: FakeTranslateLoader,
+                    },
+                }),
+            ],
         }).compileComponents();
+
+        const translate = TestBed.inject(TranslateService);
+        translate.setDefaultLang('en');
+        translate.use('en');
 
         fixture = TestBed.createComponent(ExternalPlaybackDockComponent);
         component = fixture.componentInstance;
@@ -32,19 +62,65 @@ describe('ExternalPlaybackDockComponent', () => {
     it('renders launch state copy for the active session', () => {
         const text = fixture.nativeElement.textContent;
         expect(text).toContain('Example Video');
-        expect(text).toContain('Opening in MPV...');
+        expect(text).toContain('MPV');
+        expect(text).toContain('Launching');
         expect(text).toContain('Close player');
     });
 
-    it('emits a single close action', () => {
+    it('emits a single close action when the close button is clicked', () => {
         const closeSpy = jest.fn();
         component.closeClicked.subscribe(closeSpy);
 
-        const buttons = fixture.debugElement.queryAll(By.css('button'));
-        buttons[0].nativeElement.click();
+        const closeButton = fixture.debugElement.query(
+            By.css('.external-playback-dock__button')
+        );
+        closeButton.nativeElement.click();
 
-        expect(closeSpy).toHaveBeenCalled();
-        expect(buttons).toHaveLength(1);
+        expect(closeSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders both artwork and close as buttons', () => {
+        const buttons = fixture.debugElement.queryAll(By.css('button'));
+        expect(buttons).toHaveLength(2);
+        expect(
+            buttons[0].nativeElement.classList.contains(
+                'external-playback-dock__artwork'
+            )
+        ).toBe(true);
+        expect(
+            buttons[1].nativeElement.classList.contains(
+                'external-playback-dock__button'
+            )
+        ).toBe(true);
+    });
+
+    it('disables the artwork button when the session has no playlist target', () => {
+        const artwork = fixture.debugElement.query(
+            By.css('.external-playback-dock__artwork')
+        );
+        expect(artwork.nativeElement.disabled).toBe(true);
+    });
+
+    it('enables the artwork and emits when the session has a playlist target', () => {
+        fixture.componentRef.setInput('session', {
+            ...session,
+            contentInfo: {
+                playlistId: 'playlist-1',
+                contentXtreamId: 42,
+                contentType: 'vod',
+            },
+        });
+        fixture.detectChanges();
+
+        const artworkSpy = jest.fn();
+        component.artworkClicked.subscribe(artworkSpy);
+
+        const artwork = fixture.debugElement.query(
+            By.css('.external-playback-dock__artwork')
+        );
+        expect(artwork.nativeElement.disabled).toBe(false);
+        artwork.nativeElement.click();
+        expect(artworkSpy).toHaveBeenCalledTimes(1);
     });
 
     it('falls back to a placeholder icon when artwork fails to load', () => {
