@@ -107,6 +107,9 @@ Behavior to preserve:
   or `/workspace/global-recent` with detail pre-opened so the Stalker inline
   detail host still renders on a compatible screen.
 - ITV/live items can still trigger playback immediately.
+- Stalker VOD items that are displayed as series because of `is_series=1`
+  remain VOD-backed when opened from favorites/recent/global collections; the
+  collection host must not convert them into regular `/series` detail mode.
 - Dashboard `Global Favorites` and `Recently Watched` widgets should route
   Stalker movie/series items into `/workspace/global-favorites` or
   `/workspace/global-recent` with detail pre-opened inline, again without

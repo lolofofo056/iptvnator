@@ -146,6 +146,11 @@ Navigation rule to preserve:
 
 - Stalker favorites, recently viewed, and search stay in their current screen and open inline detail state.
 - They should not redirect into a canonical content/category/item route because Stalker detail rendering is currently store-state/inline driven, not route driven.
+- VOD-backed series favorites can be displayed in series collections, but detail
+  opening must preserve their VOD origin: `is_series=1` favorites set the
+  selected content type to `vod` so the lazy Ministra season/episode resources
+  run, and embedded `series[]` favorites render through the embedded VOD-series
+  branch.
 - See [Portal Detail Navigation](./portal-detail-navigation.md).
 
 ## Backup and Restore
@@ -223,4 +228,6 @@ Covered scenarios include:
 
 - Embedded `series[]` opens series view state
 - `is_series=1` opens lazy series state
+- VOD-backed series favorites keep VOD-series loading semantics when opened from
+  favorites/global favorites
 - Favorite toggle helper path invokes the expected add/remove flow
