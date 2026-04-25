@@ -7,7 +7,7 @@ import {
     signal,
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
 import { NavigationEnd, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
@@ -116,6 +116,10 @@ export class WorkspaceShellFacade {
 
     private searchDebounceTimeoutId: ReturnType<typeof setTimeout> | null =
         null;
+    private commandPaletteRef: MatDialogRef<
+        WorkspaceCommandPaletteComponent,
+        WorkspaceCommandSelection | undefined
+    > | null = null;
     private readonly onDocumentKeydown = (event: KeyboardEvent): void => {
         if (!(event.ctrlKey || event.metaKey)) {
             return;
@@ -770,6 +774,11 @@ export class WorkspaceShellFacade {
     }
 
     openCommandPalette(): void {
+        if (this.commandPaletteRef) {
+            this.commandPaletteRef.close();
+            return;
+        }
+
         const commands = this.commandPaletteCommands();
         const dialogRef = this.dialog.open<
             WorkspaceCommandPaletteComponent,
@@ -785,11 +794,13 @@ export class WorkspaceShellFacade {
                 query: this.searchQuery(),
             },
         });
+        this.commandPaletteRef = dialogRef;
 
         dialogRef
             .afterClosed()
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((selection) => {
+                this.commandPaletteRef = null;
                 if (!selection) {
                     return;
                 }
