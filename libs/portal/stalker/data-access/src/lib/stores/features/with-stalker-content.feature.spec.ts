@@ -45,9 +45,38 @@ const TestContentStore = signalStore(
         setSelectedCategory(id: string | null | undefined) {
             patchState(store, { selectedCategoryId: id });
         },
+        setPage(page: number) {
+            patchState(store, { page });
+        },
     })),
     withStalkerContent()
 );
+
+function createDeferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+
+    return { promise, resolve, reject };
+}
+
+function createContentResponse(title: string) {
+    return {
+        js: {
+            data: [
+                {
+                    id: title,
+                    name: title,
+                    category_id: '5',
+                },
+            ],
+            total_items: 28,
+        },
+    };
+}
 
 async function flushResources(): Promise<void> {
     TestBed.flushEffects();
@@ -193,5 +222,62 @@ describe('withStalkerContent failure states', () => {
         expect((store.isPaginatedContentFailed() as Error).message).toBe(
             'get_ordered_list failed'
         );
+    });
+
+    it('ignores stale content responses after the selected page changes', async () => {
+        const pendingByPage = new Map<
+            number,
+            ReturnType<typeof createDeferred<unknown>>[]
+        >();
+
+        dataService.sendIpcEvent.mockImplementation(
+            (_event: unknown, payload: { params?: { p?: number } }) => {
+                const page = Number(payload.params?.p);
+                const deferred = createDeferred<unknown>();
+                const pending = pendingByPage.get(page) ?? [];
+                pending.push(deferred);
+                pendingByPage.set(page, pending);
+                return deferred.promise;
+            }
+        );
+
+        store.setSelectedContentType('vod');
+        store.setCategories('vod', [
+            {
+                category_id: '5',
+                category_name: 'Movies',
+            },
+        ]);
+        store.setSelectedCategory('5');
+        store.setCurrentPlaylist(PLAYLIST);
+        void store.isPaginatedContentLoading();
+
+        await waitForCondition(() => pendingByPage.get(1)?.length === 1);
+        pendingByPage
+            .get(1)?.[0]
+            .resolve(createContentResponse('Page 1 initial'));
+        await waitForCondition(
+            () => store.getPaginatedContent()[0]?.name === 'Page 1 initial'
+        );
+
+        store.setPage(1);
+        await waitForCondition(() => pendingByPage.get(2)?.length === 1);
+
+        store.setPage(0);
+        await waitForCondition(() => pendingByPage.get(1)?.length === 2);
+        pendingByPage
+            .get(1)?.[1]
+            .resolve(createContentResponse('Page 1 restored'));
+        await waitForCondition(
+            () => store.getPaginatedContent()[0]?.name === 'Page 1 restored'
+        );
+
+        pendingByPage
+            .get(2)?.[0]
+            .resolve(createContentResponse('Page 2 stale'));
+        await flushResources();
+
+        expect(store.page()).toBe(0);
+        expect(store.getPaginatedContent()[0]?.name).toBe('Page 1 restored');
     });
 });

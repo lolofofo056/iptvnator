@@ -62,12 +62,24 @@ export function withStalkerSelection() {
                 patchState(store, { selectedItvId: id });
             },
             setLimit(limit: number) {
+                if (store.limit() === limit) {
+                    return;
+                }
+
                 patchState(store, { limit });
             },
             setPage(page: number) {
+                if (store.page() === page) {
+                    return;
+                }
+
                 patchState(store, { page });
             },
             setSearchPhrase(phrase: string) {
+                if (store.searchPhrase() === phrase) {
+                    return;
+                }
+
                 patchState(store, { searchPhrase: phrase, page: 0 });
             },
             setSelectedItem(selectedItem: StalkerVodSource | null | undefined) {

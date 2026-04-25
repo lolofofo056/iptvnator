@@ -23,6 +23,25 @@ describe('withStalkerSelection', () => {
         expect(store.page()).toBe(0);
     });
 
+    it('keeps paging when the search phrase is unchanged', () => {
+        store.setSearchPhrase('matrix');
+        store.setPage(2);
+
+        store.setSearchPhrase('matrix');
+
+        expect(store.searchPhrase()).toBe('matrix');
+        expect(store.page()).toBe(2);
+    });
+
+    it('resets paging when the search phrase changes', () => {
+        store.setPage(2);
+
+        store.setSearchPhrase('matrix');
+
+        expect(store.searchPhrase()).toBe('matrix');
+        expect(store.page()).toBe(0);
+    });
+
     it('synchronizes entity ids when the selected item changes', () => {
         store.setSelectedItem({
             id: '55',

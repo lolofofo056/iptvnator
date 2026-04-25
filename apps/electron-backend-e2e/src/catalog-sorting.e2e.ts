@@ -3,10 +3,12 @@ import {
     addStalkerPortal,
     addXtreamPortal,
     clickCategoryByNameExact,
+    clickFirstGridListCard,
     closeElectronApp,
     defaultXtreamPassword,
     defaultXtreamUsername,
     expect,
+    expectPathname,
     launchElectronApp,
     openWorkspaceSection,
     resetMockServers,
@@ -15,6 +17,7 @@ import {
     waitForXtreamWorkspaceReady,
 } from './electron-test-fixtures';
 import {
+    fetchStalkerCategoryFixture,
     fetchXtreamLiveFixture,
     fetchXtreamSeriesFixture,
     fetchXtreamVodFixture,
@@ -28,7 +31,10 @@ test.describe('Electron Catalog Sorting', () => {
         request,
     }) => {
         await resetMockServers(request, ['xtream']);
-        const fixture = await fetchXtreamLiveFixture(request, xtreamCredentials);
+        const fixture = await fetchXtreamLiveFixture(
+            request,
+            xtreamCredentials
+        );
         const expectedServerOrder = fixture.items
             .map((item) => getXtreamTitle(item))
             .filter((title, index, titles) => titles.indexOf(title) === index)
@@ -50,20 +56,32 @@ test.describe('Electron Catalog Sorting', () => {
             await addXtreamPortal(app.mainWindow);
             await waitForXtreamWorkspaceReady(app.mainWindow);
             await openWorkspaceSection(app.mainWindow, 'Live TV');
-            await clickCategoryByNameExact(app.mainWindow, fixture.categoryName);
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                fixture.categoryName
+            );
 
-            await expectVisibleChannelTitles(app.mainWindow, expectedServerOrder);
+            await expectVisibleChannelTitles(
+                app.mainWindow,
+                expectedServerOrder
+            );
 
             await setLiveSortMode(app.mainWindow, 'Name A-Z');
             await expectVisibleChannelTitles(app.mainWindow, expectedAscending);
 
             await setLiveSortMode(app.mainWindow, 'Name Z-A');
-            await expectVisibleChannelTitles(app.mainWindow, expectedDescending);
+            await expectVisibleChannelTitles(
+                app.mainWindow,
+                expectedDescending
+            );
 
             await setLiveSortMode(app.mainWindow, 'Name A-Z');
             await openWorkspaceSection(app.mainWindow, 'Movies');
             await openWorkspaceSection(app.mainWindow, 'Live TV');
-            await clickCategoryByNameExact(app.mainWindow, fixture.categoryName);
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                fixture.categoryName
+            );
             await expectVisibleChannelTitles(app.mainWindow, expectedAscending);
         } finally {
             await closeElectronApp(app);
@@ -75,17 +93,26 @@ test.describe('Electron Catalog Sorting', () => {
         request,
     }) => {
         await resetMockServers(request, ['xtream']);
-        const vodFixture = await fetchXtreamVodFixture(request, xtreamCredentials);
+        const vodFixture = await fetchXtreamVodFixture(
+            request,
+            xtreamCredentials
+        );
         const seriesFixture = await fetchXtreamSeriesFixture(
             request,
             xtreamCredentials
         );
         const expectedVodDateDesc = [...vodFixture.items]
-            .sort((left, right) => getXtreamDateValue(right) - getXtreamDateValue(left))
+            .sort(
+                (left, right) =>
+                    getXtreamDateValue(right) - getXtreamDateValue(left)
+            )
             .map((item) => getXtreamTitle(item))
             .slice(0, visibleComparisonSize);
         const expectedVodDateAsc = [...vodFixture.items]
-            .sort((left, right) => getXtreamDateValue(left) - getXtreamDateValue(right))
+            .sort(
+                (left, right) =>
+                    getXtreamDateValue(left) - getXtreamDateValue(right)
+            )
             .map((item) => getXtreamTitle(item))
             .slice(0, visibleComparisonSize);
         const expectedVodNameAsc = [...vodFixture.items]
@@ -108,10 +135,16 @@ test.describe('Electron Catalog Sorting', () => {
             await waitForXtreamWorkspaceReady(app.mainWindow);
 
             await openWorkspaceSection(app.mainWindow, 'Movies');
-            await clickCategoryByNameExact(app.mainWindow, vodFixture.categoryName);
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                vodFixture.categoryName
+            );
             await expectVisibleGridTitles(app.mainWindow, expectedVodDateDesc);
 
-            await setContentSortMode(app.mainWindow, 'Date Added (Oldest First)');
+            await setContentSortMode(
+                app.mainWindow,
+                'Date Added (Oldest First)'
+            );
             await expectVisibleGridTitles(app.mainWindow, expectedVodDateAsc);
 
             await setContentSortMode(app.mainWindow, 'Name A-Z');
@@ -121,14 +154,26 @@ test.describe('Electron Catalog Sorting', () => {
             await expectVisibleGridTitles(app.mainWindow, expectedVodNameDesc);
 
             await openWorkspaceSection(app.mainWindow, 'Series');
-            await clickCategoryByNameExact(app.mainWindow, seriesFixture.categoryName);
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                seriesFixture.categoryName
+            );
             await setContentSortMode(app.mainWindow, 'Name A-Z');
-            await expectVisibleGridTitles(app.mainWindow, expectedSeriesNameAsc);
+            await expectVisibleGridTitles(
+                app.mainWindow,
+                expectedSeriesNameAsc
+            );
 
             await openWorkspaceSection(app.mainWindow, 'Live TV');
             await openWorkspaceSection(app.mainWindow, 'Series');
-            await clickCategoryByNameExact(app.mainWindow, seriesFixture.categoryName);
-            await expectVisibleGridTitles(app.mainWindow, expectedSeriesNameAsc);
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                seriesFixture.categoryName
+            );
+            await expectVisibleGridTitles(
+                app.mainWindow,
+                expectedSeriesNameAsc
+            );
         } finally {
             await closeElectronApp(app);
         }
@@ -161,6 +206,103 @@ test.describe('Electron Catalog Sorting', () => {
             await expect(
                 app.mainWindow.getByRole('button', { name: 'Sort content' })
             ).toHaveCount(0);
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
+
+    test('keeps Xtream catalog page after opening VOD and series details, and resets grid scroll on page changes', async ({
+        dataDir,
+        request,
+    }) => {
+        await resetMockServers(request, ['xtream']);
+        const vodFixture = await fetchXtreamVodFixture(
+            request,
+            xtreamCredentials
+        );
+        const seriesFixture = await fetchXtreamSeriesFixture(
+            request,
+            xtreamCredentials
+        );
+        const app = await launchElectronApp(dataDir);
+
+        try {
+            await addXtreamPortal(app.mainWindow);
+            await waitForXtreamWorkspaceReady(app.mainWindow);
+
+            await openWorkspaceSection(app.mainWindow, 'Movies');
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                vodFixture.categoryName
+            );
+            await expectCatalogGridReady(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow);
+            await clickFirstGridListCard(app.mainWindow);
+            await expectPathname(
+                app.mainWindow,
+                /\/workspace\/xtreams\/[^/]+\/vod\/[^/]+\/[^/]+$/
+            );
+            await goBackFromDetail(app.mainWindow);
+            await expectCatalogPageQuery(app.mainWindow, '2');
+            await expectCatalogGridReady(app.mainWindow);
+
+            await openWorkspaceSection(app.mainWindow, 'Series');
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                seriesFixture.categoryName
+            );
+            await expectCatalogGridReady(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow);
+            await clickFirstGridListCard(app.mainWindow);
+            await expectPathname(
+                app.mainWindow,
+                /\/workspace\/xtreams\/[^/]+\/series\/[^/]+\/[^/]+$/
+            );
+            await goBackFromDetail(app.mainWindow);
+            await expectCatalogPageQuery(app.mainWindow, '2');
+            await expectCatalogGridReady(app.mainWindow);
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
+
+    test('resets Stalker VOD and series grid scroll when changing pages', async ({
+        dataDir,
+        request,
+    }) => {
+        await resetMockServers(request, ['stalker']);
+        const vodFixture = await fetchStalkerCategoryFixture(request, 'vod');
+        const seriesFixture = await fetchStalkerCategoryFixture(
+            request,
+            'series'
+        );
+        const app = await launchElectronApp(dataDir);
+
+        try {
+            await addStalkerPortal(app.mainWindow);
+            await waitForStalkerCatalog(app.mainWindow);
+
+            await openWorkspaceSection(app.mainWindow, 'Movies');
+            await clickCategoryByVisibleName(
+                app.mainWindow,
+                vodFixture.categoryName
+            );
+            await expectCatalogGridReady(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow, {
+                expectContentChange: false,
+            });
+            await expectStalkerDetailBackPreservesCatalogPage(app.mainWindow);
+
+            await openWorkspaceSection(app.mainWindow, 'Series');
+            await clickCategoryByVisibleName(
+                app.mainWindow,
+                seriesFixture.categoryName
+            );
+            await expectCatalogGridReady(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow, {
+                expectContentChange: false,
+            });
+            await expectStalkerDetailBackPreservesCatalogPage(app.mainWindow);
         } finally {
             await closeElectronApp(app);
         }
@@ -219,6 +361,138 @@ async function expectVisibleGridTitles(
             return titles.slice(0, expectedTitles.length);
         })
         .toEqual(expectedTitles);
+}
+
+async function expectCatalogGridReady(page: Page): Promise<void> {
+    await expect(
+        page.locator('.category-content-layout mat-card').first()
+    ).toBeVisible({
+        timeout: 20000,
+    });
+}
+
+async function expectCatalogScrollResetAfterNextPage(
+    page: Page,
+    options: { expectContentChange?: boolean } = {}
+): Promise<string[]> {
+    const grid = catalogGrid(page);
+
+    await expect(grid).toBeVisible({ timeout: 20000 });
+    await ensureCatalogCanGoNext(page);
+    const rangeBefore = await catalogRangeText(page);
+    const titlesBefore = await visibleGridTitles(page);
+    await grid.evaluate((element: HTMLElement) => {
+        element.scrollTo({ top: element.scrollHeight });
+    });
+    await expect.poll(() => getCatalogGridScrollTop(page)).toBeGreaterThan(0);
+
+    await page
+        .locator('.category-content-header')
+        .getByRole('button', { name: 'Next page' })
+        .click();
+    await expectCatalogPageQuery(page, '2');
+    await expect.poll(() => catalogRangeText(page)).not.toBe(rangeBefore);
+    if (options.expectContentChange !== false) {
+        await expect
+            .poll(() => visibleGridTitles(page))
+            .not.toEqual(titlesBefore);
+    }
+    await expect.poll(() => getCatalogGridScrollTop(page)).toBeLessThan(2);
+    return visibleGridTitles(page);
+}
+
+async function expectStalkerDetailBackPreservesCatalogPage(
+    page: Page
+): Promise<void> {
+    const titlesOnPage = await visibleGridTitles(page);
+
+    await clickFirstGridListCard(page);
+    await goBackFromDetail(page);
+
+    await expectCatalogPageQuery(page, '2');
+    await expectCatalogGridReady(page);
+    await expect.poll(() => visibleGridTitles(page)).toEqual(titlesOnPage);
+}
+
+async function expectCatalogPageQuery(
+    page: Page,
+    expectedPage: string
+): Promise<void> {
+    await expect
+        .poll(() => new URL(page.url()).searchParams.get('page'))
+        .toBe(expectedPage);
+}
+
+async function goBackFromDetail(page: Page): Promise<void> {
+    const backButton = page
+        .locator('app-content-hero .hero__back-button')
+        .first();
+
+    await expect(backButton).toBeVisible({ timeout: 20000 });
+    try {
+        await backButton.click({ timeout: 5000 });
+    } catch {
+        await backButton.evaluate((button: HTMLButtonElement) =>
+            button.click()
+        );
+    }
+}
+
+async function clickCategoryByVisibleName(
+    page: Page,
+    categoryName: string
+): Promise<void> {
+    const category = page
+        .locator('app-workspace-context-panel .category-item:visible')
+        .filter({
+            has: page.locator('.nav-item-label', {
+                hasText: new RegExp(`^\\s*${escapeRegex(categoryName)}\\s*$`),
+            }),
+        })
+        .first();
+
+    await expect(category).toBeVisible({ timeout: 20000 });
+    await category.click();
+    await expect.poll(() => category.getAttribute('aria-current')).toBe('true');
+}
+
+function catalogGrid(page: Page) {
+    return page.locator('app-category-content-view app-grid-list').first();
+}
+
+async function ensureCatalogCanGoNext(page: Page): Promise<void> {
+    const header = page.locator('.category-content-header');
+    const nextButton = header.getByRole('button', { name: 'Next page' });
+
+    await expect(nextButton).toBeVisible({ timeout: 20000 });
+
+    if (await nextButton.isDisabled()) {
+        await header.getByRole('button', { name: 'Previous page' }).click();
+        await expect
+            .poll(() => new URL(page.url()).searchParams.get('page'))
+            .toBe(null);
+    }
+
+    await expect(nextButton).toBeEnabled({ timeout: 20000 });
+}
+
+async function catalogRangeText(page: Page): Promise<string> {
+    return (
+        (await page
+            .locator('.category-content-header .mat-mdc-paginator-range-label')
+            .first()
+            .textContent()) ?? ''
+    ).trim();
+}
+
+async function getCatalogGridScrollTop(page: Page): Promise<number> {
+    return catalogGrid(page).evaluate((element: HTMLElement) =>
+        Math.round(element.scrollTop)
+    );
+}
+
+function escapeRegex(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 async function visibleChannelTitles(page: Page): Promise<string[]> {

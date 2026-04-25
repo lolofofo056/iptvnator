@@ -323,6 +323,30 @@ export function withStalkerContent() {
                             }
 
                             const categoryParam = params.category || '*';
+                            const paramsPlaylistKey =
+                                params.currentPlaylist?._id ??
+                                params.currentPlaylist?.portalUrl ??
+                                null;
+                            const isCurrentRequest = (): boolean => {
+                                const currentPlaylist =
+                                    storeContext.currentPlaylist();
+                                const currentPlaylistKey =
+                                    currentPlaylist?._id ??
+                                    currentPlaylist?.portalUrl ??
+                                    null;
+
+                                return (
+                                    params.contentType ===
+                                        storeContext.selectedContentType() &&
+                                    params.category ===
+                                        storeContext.selectedCategoryId() &&
+                                    params.search ===
+                                        storeContext.searchPhrase() &&
+                                    params.pageIndex ===
+                                        storeContext.page() + 1 &&
+                                    paramsPlaylistKey === currentPlaylistKey
+                                );
+                            };
                             const queryParams: Record<string, string | number> =
                                 {
                                     action: StalkerContentTypes[
@@ -347,12 +371,21 @@ export function withStalkerContent() {
                             }
 
                             try {
+                                patchState(store, {
+                                    paginatedContent: [],
+                                    contentError: null,
+                                });
+
                                 const response =
                                     await executeStalkerRequest<StalkerOrderedListResponse>(
                                         requestDeps,
                                         playlist,
                                         queryParams
                                     );
+
+                                if (!isCurrentRequest()) {
+                                    return [];
+                                }
 
                                 if (!Array.isArray(response?.js?.data)) {
                                     const invalidResponseError = new Error(
@@ -411,6 +444,10 @@ export function withStalkerContent() {
 
                                 return newItems;
                             } catch (error) {
+                                if (!isCurrentRequest()) {
+                                    return [];
+                                }
+
                                 logger.warn('Error loading content', {
                                     contentType: params.contentType,
                                     category: params.category,
