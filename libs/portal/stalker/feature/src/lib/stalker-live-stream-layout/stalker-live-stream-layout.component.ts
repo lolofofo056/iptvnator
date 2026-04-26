@@ -8,6 +8,7 @@ import {
     inject,
     OnDestroy,
     signal,
+    untracked,
     viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -183,12 +184,14 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         // Reset channels/page on category change
         effect(() => {
             this.stalkerStore.selectedCategoryId();
-            this.stalkerStore.setItvChannels([]);
-            this.stalkerStore.setPage(0);
-            this.clearEpgPreviewMaps();
-            this.epgLoadRequestId += 1;
-            this.fallbackEpgPrograms.set([]);
-            this.isLoadingFallbackEpg.set(false);
+            untracked(() => {
+                this.stalkerStore.setItvChannels([]);
+                this.stalkerStore.setPage(0);
+                this.clearEpgPreviewMaps();
+                this.epgLoadRequestId += 1;
+                this.fallbackEpgPrograms.set([]);
+                this.isLoadingFallbackEpg.set(false);
+            });
         });
 
         // Reset loading state when channels load and keep preview data in sync with bulk EPG.

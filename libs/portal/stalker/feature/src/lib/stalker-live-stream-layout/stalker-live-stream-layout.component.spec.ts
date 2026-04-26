@@ -116,12 +116,14 @@ describe('StalkerLiveStreamLayoutComponent', () => {
     const bulkItvEpgPlaylistId = signal<string | null>(null);
     const bulkItvEpgPeriodHours = signal<number | null>(null);
     const isLoadingBulkItvEpg = signal(false);
+    const hasMoreChannels = signal(false);
+    const page = signal(0);
 
     const stalkerStore = {
         getSelectedCategoryName: signal('News'),
         itvChannels,
         searchPhrase,
-        hasMoreChannels: signal(false),
+        hasMoreChannels,
         selectedItvId,
         currentPlaylist: playlist,
         selectedItvEpgPrograms,
@@ -133,7 +135,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         selectedCategoryId,
         selectedItem,
         selectedContentType: signal<'itv' | 'vod' | 'series'>('itv'),
-        page: signal(0),
+        page,
         setItvChannels: jest.fn(),
         setPage: jest.fn(),
         setSelectedItem: jest.fn((item) => {
@@ -180,6 +182,8 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         bulkItvEpgPlaylistId.set(null);
         bulkItvEpgPeriodHours.set(null);
         isLoadingBulkItvEpg.set(false);
+        hasMoreChannels.set(false);
+        page.set(0);
 
         resolveItvPlayback.mockReset();
         resolveItvPlayback.mockResolvedValue({
@@ -202,7 +206,14 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             );
         });
         stalkerStore.setItvChannels.mockClear();
-        stalkerStore.setPage.mockClear();
+        stalkerStore.setPage.mockReset();
+        stalkerStore.setPage.mockImplementation((nextPage: number) => {
+            if (page() === nextPage) {
+                return;
+            }
+
+            page.set(nextPage);
+        });
         stalkerStore.setSelectedItem.mockClear();
         stalkerStore.clearBulkItvEpgCache.mockClear();
 
@@ -270,6 +281,21 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         expect(
             fixture.nativeElement.querySelector('.load-more-epg')
         ).toBeNull();
+    });
+
+    it('does not reset live channels when loading the next lazy page', async () => {
+        hasMoreChannels.set(true);
+        fixture.detectChanges();
+        await fixture.whenStable();
+        stalkerStore.setItvChannels.mockClear();
+        stalkerStore.setPage.mockClear();
+
+        component.loadMore();
+        await fixture.whenStable();
+
+        expect(page()).toBe(1);
+        expect(stalkerStore.setPage).toHaveBeenCalledWith(1);
+        expect(stalkerStore.setItvChannels).not.toHaveBeenCalled();
     });
 
     it('keeps row previews empty before bulk epg is loaded', async () => {

@@ -224,6 +224,79 @@ describe('withStalkerContent failure states', () => {
         );
     });
 
+    it('loads live TV channels page by page and appends later pages', async () => {
+        dataService.sendIpcEvent.mockImplementation(
+            (_event: unknown, payload: { params?: { p?: number } }) => {
+                const page = Number(payload.params?.p ?? 1);
+
+                return Promise.resolve({
+                    js: {
+                        data: [
+                            {
+                                id: `channel-${page}`,
+                                name: `Channel page ${page}`,
+                                category_id: '5',
+                            },
+                        ],
+                        total_items: 2,
+                    },
+                });
+            }
+        );
+
+        store.setSelectedContentType('itv');
+        store.setCategories('itv', [
+            {
+                category_id: '5',
+                category_name: 'News',
+            },
+        ]);
+        store.setSelectedCategory('5');
+        store.setCurrentPlaylist(PLAYLIST);
+        void store.isPaginatedContentLoading();
+
+        await waitForCondition(() => store.itvChannels().length === 1);
+
+        expect(dataService.sendIpcEvent).toHaveBeenLastCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetOrderedList,
+                    type: 'itv',
+                    category: '5',
+                    genre: '5',
+                    p: 1,
+                }),
+            })
+        );
+        expect(store.itvChannels().map((channel) => channel.name)).toEqual([
+            'Channel page 1',
+        ]);
+        expect(store.hasMoreChannels()).toBe(true);
+
+        store.setPage(1);
+
+        await waitForCondition(() => store.itvChannels().length === 2);
+
+        expect(dataService.sendIpcEvent).toHaveBeenLastCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetOrderedList,
+                    type: 'itv',
+                    category: '5',
+                    genre: '5',
+                    p: 2,
+                }),
+            })
+        );
+        expect(store.itvChannels().map((channel) => channel.name)).toEqual([
+            'Channel page 1',
+            'Channel page 2',
+        ]);
+        expect(store.hasMoreChannels()).toBe(false);
+    });
+
     it('ignores stale content responses after the selected page changes', async () => {
         const pendingByPage = new Map<
             number,
