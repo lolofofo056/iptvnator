@@ -1,0 +1,231 @@
+---
+title: v0.20 - Release Notes
+description: IPTVnator v0.20 brings a major UI refresh, a content-first dashboard, unified M3U/Xtream/Stalker navigation, smarter search, Stalker EPG support, signed macOS builds, and Flatpak fixes.
+featured: true
+pubDate: 2026-04-26
+author: 4gray
+heroImage: /iptvnator/blog/v0-20/wide-changelog.jpg
+tags:
+    - release
+    - release-notes
+    - v0.20
+draft: false
+---
+
+import Alert from '../../components/blog/Alert.astro';
+import BlogImageSlider from '../../components/blog/BlogImageSlider.astro';
+import ChangeTable from '../../components/blog/ChangeTable.astro';
+import LinkCards from '../../components/blog/LinkCards.astro';
+import ReleaseMeta from '../../components/blog/ReleaseMeta.astro';
+import StatusPill from '../../components/blog/StatusPill.astro';
+
+IPTVnator **v0.20** is out.
+
+This release brings one of the largest UI updates so far. M3U, Xtream, and Stalker now share a more consistent application shell, the app opens around content instead of playlists, and everyday navigation is faster through the new dashboard, command palette, and scope-aware search.
+
+It also includes important platform work: macOS builds are now signed, the Linux Flatpak package is fixed, Stalker Live TV gets EPG support, and several playback and playlist-management issues were cleaned up.
+
+<ReleaseMeta
+    version="v0.20.0"
+    releaseDate="April 26, 2026"
+    channels={['Desktop', 'PWA']}
+/>
+
+## Support the project
+
+- **GitHub Sponsors**: [https://github.com/sponsors/4gray](https://github.com/sponsors/4gray)
+- **Ko-fi**: [https://ko-fi.com/4gray](https://ko-fi.com/4gray)
+
+<LinkCards
+    links={[
+        {
+            label: 'GitHub Sponsors',
+            href: 'https://github.com/sponsors/4gray',
+            hint: 'Support continued development.',
+            icon: 'sponsor',
+        },
+        {
+            label: 'Ko-fi',
+            href: 'https://ko-fi.com/4gray',
+            hint: 'One-time support for the project.',
+            icon: 'kofi',
+        },
+        {
+            label: 'Telegram',
+            href: 'https://t.me/iptvnator',
+            hint: 'Follow announcements and updates.',
+            icon: 'telegram',
+        },
+    ]}
+/>
+
+## Highlights summary
+
+<ChangeTable
+    rows={[
+        {
+            area: 'Dashboard',
+            change: 'New content-first start screen with recently watched content, global favorites, and configurable startup behavior.',
+            impact: 'Less playlist switching, faster resume flow',
+        },
+        {
+            area: 'Unified UI',
+            change: 'M3U, Xtream, and Stalker now share one visual language, navigation model, and common playlist controls.',
+            impact: 'More predictable app behavior',
+        },
+        {
+            area: 'Search',
+            change: 'Scope-aware search follows the active view and category, with consistent category search across modules.',
+            impact: 'Fewer context switches while browsing',
+        },
+        {
+            area: 'Playback',
+            change: 'External player bar can control MPV/VLC sessions directly from the app and can be hidden in settings.',
+            impact: 'Better external-player workflow',
+        },
+        {
+            area: 'Platform',
+            change: 'macOS builds are signed and the Linux Flatpak package is fixed.',
+            impact: 'Smoother installation and updates',
+        },
+    ]}
+/>
+
+## Dashboard and navigation
+
+<StatusPill type="new" />
+
+- Added a new dashboard screen with basic widgets.
+- Switched the default experience toward a content-first start instead of a playlist-first approach.
+- Added settings to disable the dashboard when you prefer the classic flow.
+- Added startup-view controls so IPTVnator can open the first available view or restore the last opened section-level view.
+- Added a new command palette with `Cmd/Ctrl + K` for context-aware quick commands.
+- Added scope-aware search that follows the current section.
+
+## UI and settings
+
+<StatusPill type="improved" />
+
+- Reworked the settings page.
+- The app now follows the system theme by default.
+- Added UI customization options for dashboard visibility and the external player bar.
+- Improved visual consistency across M3U, Xtream, and Stalker.
+- Added a dedicated external player bar that can control an opened MPV/VLC player from inside IPTVnator.
+
+## Favorites and history
+
+<StatusPill type="improved" />
+
+- Reworked Favorites and Recently Viewed across the app.
+- Added channel sorting.
+- Added drag-and-drop support.
+- Integrated EPG context into favorites and history views.
+- Improved consistency across all modules.
+
+## Playlist management
+
+<StatusPill type="improved" />
+
+- Reworked the Add Playlist dialog into one unified flow with M3U, Xtream, and Stalker tabs.
+- Added an Xtream action to clear the form.
+- Fixed drag-and-drop import for M3U files from the file system.
+
+## Search and discovery
+
+<StatusPill type="improved" />
+
+- Added consistent category search across modules.
+- Added Xtream category search.
+- Preserved hidden Xtream categories after refresh.
+- Improved search behavior so it reflects the active playlist section.
+
+## Module updates
+
+<StatusPill type="new" />
+
+### M3U
+
+- Fully redesigned layout with a two-column categories and channels view.
+- Replaced group accordions with a groups view.
+- Improved sorting and category management.
+- Added channel info dialog access from the channel context menu.
+
+### Xtream
+
+- Improved the account information dialog.
+
+### Stalker
+
+- Added EPG support for Live TV.
+- Added channel sorting.
+
+## Screenshot gallery
+
+<BlogImageSlider
+    images={[
+        {
+            src: '/iptvnator/screenshots/dashboard-with-content.webp',
+            alt: 'Dashboard with recently watched content and favorites',
+            caption: 'The new dashboard moves recent content and favorites to the front.',
+        },
+        {
+            src: '/iptvnator/screenshots/add-playlist.webp',
+            alt: 'Unified add playlist dialog with M3U, Xtream, and Stalker tabs',
+            caption: 'The add playlist flow now uses one dialog for M3U, Xtream, and Stalker.',
+        },
+        {
+            src: '/iptvnator/screenshots/global-search.webp',
+            alt: 'Global search across live TV, movies, and series',
+            caption: 'Search is context-aware and follows the active section.',
+        },
+        {
+            src: '/iptvnator/screenshots/multi-epg-view.webp',
+            alt: 'Multi-channel EPG grid',
+            caption: 'Multi-channel EPG makes the schedule easier to scan.',
+        },
+        {
+            src: '/iptvnator/screenshots/external-player-support-mpv.webp',
+            alt: 'External MPV player bar inside IPTVnator',
+            caption: 'External player sessions can now be controlled from the app.',
+        },
+        {
+            src: '/iptvnator/screenshots/radio-feature.webp',
+            alt: 'Radio playback with dedicated audio player',
+            caption: 'Radio playback uses a dedicated inline audio experience.',
+        },
+        {
+            src: '/iptvnator/screenshots/light-theme.webp',
+            alt: 'Light theme settings screen',
+            caption: 'The app follows the system theme by default and still supports explicit light or dark mode.',
+        },
+    ]}
+/>
+
+<Alert type="warning" title="Before updating">
+    Please back up your playlists, credentials, URLs, and other important data before installing a new release.
+</Alert>
+
+## Download
+
+<LinkCards
+    links={[
+        {
+            label: 'Download v0.20.0',
+            href: 'https://github.com/4gray/iptvnator/releases/tag/v0.20.0',
+            hint: 'Official binaries and release assets on GitHub.',
+            icon: 'download',
+        },
+        {
+            label: 'Full Changelog',
+            href: 'https://github.com/4gray/iptvnator/compare/v0.19.0...v0.20.0',
+            hint: 'Review every change between v0.19.0 and v0.20.0.',
+            icon: 'github',
+        },
+        {
+            label: 'All Releases',
+            href: 'https://github.com/4gray/iptvnator/releases',
+            hint: 'Browse every IPTVnator release on GitHub.',
+            icon: 'github',
+        },
+    ]}
+/>
