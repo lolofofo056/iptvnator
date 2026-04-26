@@ -47,7 +47,8 @@ const sourcePackages = [
     {
         id: 'libplacebo',
         version: '7.360.1',
-        url: 'https://github.com/haasn/libplacebo/archive/refs/tags/v7.360.1.tar.gz',
+        tag: 'v7.360.1',
+        gitUrl: 'https://github.com/haasn/libplacebo.git',
         license: 'LGPL-2.1-or-later',
     },
     {
@@ -196,6 +197,7 @@ function ensureTools() {
         'meson',
         'ninja',
         'pkg-config',
+        'git',
     ];
     const missing = requiredCommands.filter((command) => !commandExists(command));
 
@@ -224,11 +226,86 @@ function sha256File(filePath) {
     return hash.digest('hex');
 }
 
+function runCapture(command, commandArgs, options = {}) {
+    const result = spawnSync(command, commandArgs, {
+        cwd: options.cwd ?? workspaceRoot,
+        env: options.env ?? buildEnv(),
+        encoding: 'utf8',
+        stdio: 'pipe',
+        ...options,
+    });
+
+    if (result.status !== 0) {
+        const stderr = result.stderr ? `\n${result.stderr}` : '';
+        throw new Error(
+            `${command} ${commandArgs.join(' ')} failed with status ${
+                result.status ?? 1
+            }.${stderr}`
+        );
+    }
+
+    return result.stdout.trim();
+}
+
+function cloneGitSource(sourcePackage) {
+    const packageSourcePath = sourcePathFor(sourcePackage.id);
+    fs.rmSync(packageSourcePath, { recursive: true, force: true });
+
+    run('git', [
+        'clone',
+        '--depth',
+        '1',
+        '--branch',
+        sourcePackage.tag,
+        sourcePackage.gitUrl,
+        packageSourcePath,
+    ]);
+    run(
+        'git',
+        [
+            'submodule',
+            'update',
+            '--init',
+            '--depth',
+            '1',
+            '3rdparty/glad',
+            '3rdparty/jinja',
+            '3rdparty/markupsafe',
+            '3rdparty/fast_float',
+        ],
+        { cwd: packageSourcePath }
+    );
+
+    sourcePackage.gitCommit = runCapture('git', ['rev-parse', 'HEAD'], {
+        cwd: packageSourcePath,
+    });
+    sourcePackage.submodules = runCapture(
+        'git',
+        [
+            'submodule',
+            'status',
+            '3rdparty/glad',
+            '3rdparty/jinja',
+            '3rdparty/markupsafe',
+            '3rdparty/fast_float',
+        ],
+        { cwd: packageSourcePath }
+    )
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+}
+
 function downloadSources() {
     fs.mkdirSync(archiveRoot, { recursive: true });
     fs.mkdirSync(sourceRoot, { recursive: true });
 
     for (const sourcePackage of sourcePackages) {
+        if (sourcePackage.gitUrl) {
+            cloneGitSource(sourcePackage);
+            continue;
+        }
+
         const archivePath = archivePathFor(sourcePackage);
         if (!fs.existsSync(archivePath)) {
             run('curl', [
@@ -414,8 +491,17 @@ function sourceMetadata(packageId) {
     const sourcePackage = packageById.get(packageId);
     return {
         version: sourcePackage.version,
-        sourceUrl: sourcePackage.url,
-        sourceSha256: sourcePackage.sha256,
+        sourceUrl: sourcePackage.url ?? sourcePackage.gitUrl,
+        ...(sourcePackage.tag ? { sourceTag: sourcePackage.tag } : {}),
+        ...(sourcePackage.sha256
+            ? { sourceSha256: sourcePackage.sha256 }
+            : {}),
+        ...(sourcePackage.gitCommit
+            ? { sourceGitCommit: sourcePackage.gitCommit }
+            : {}),
+        ...(sourcePackage.submodules
+            ? { sourceSubmodules: sourcePackage.submodules }
+            : {}),
         license: sourcePackage.license,
     };
 }
@@ -435,8 +521,19 @@ function writeManifest() {
                 sourcePackage.id,
                 {
                     version: sourcePackage.version,
-                    sourceUrl: sourcePackage.url,
-                    sourceSha256: sourcePackage.sha256,
+                    sourceUrl: sourcePackage.url ?? sourcePackage.gitUrl,
+                    ...(sourcePackage.tag
+                        ? { sourceTag: sourcePackage.tag }
+                        : {}),
+                    ...(sourcePackage.sha256
+                        ? { sourceSha256: sourcePackage.sha256 }
+                        : {}),
+                    ...(sourcePackage.gitCommit
+                        ? { sourceGitCommit: sourcePackage.gitCommit }
+                        : {}),
+                    ...(sourcePackage.submodules
+                        ? { sourceSubmodules: sourcePackage.submodules }
+                        : {}),
                     license: sourcePackage.license,
                 },
             ])
@@ -453,7 +550,7 @@ function writeManifest() {
             mesonFlags: mpvMesonFlags,
         },
         sourceDistribution:
-            'Attach the downloaded source archives, this manifest, and any local patches with the macOS binary release.',
+            'Attach the downloaded source archives, the libplacebo git checkout metadata, this manifest, and any local patches with the macOS binary release.',
     };
 
     fs.writeFileSync(
