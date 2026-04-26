@@ -17,7 +17,7 @@ The application is a cross-platform, open-source project built with Electron and
 
 ⚠️ Note: IPTVnator does not provide any playlists or other digital content. The channels and pictures in the screenshots are for demonstration purposes only.
 
-![IPTVnator: Channels list, player and epg list](./iptv-dark-theme.png)
+![IPTVnator: Channels list, player and epg list](./apps/website/public/screenshots/screenshot-player.webp)
 
 ## Features
 
@@ -58,15 +58,23 @@ The application is a cross-platform, open-source project built with Electron and
 
 ## Screenshots:
 
-|                 Welcome screen: Playlists overview                 | Main player interface with channels sidebar and video player  |
-| :----------------------------------------------------------------: | :-----------------------------------------------------------: |
-|       ![Welcome screen: Playlists overview](./playlists.png)       |   ![Sidebar with channel and video player](./iptv-main.png)   |
-|            Welcome screen: Add playlist via file upload            |             Welcome screen: Add playlist via URL              |
-| ![Welcome screen: Add playlist via file upload](./iptv-upload.png) | ![Welcome screen: Add playlist via URL](./upload-via-url.png) |
-|              EPG Sidebar: TV guide on the right side               |                 General application settings                  |
-|         ![EPG: TV guide on the right side](./iptv-epg.png)         |         ![General app settings](./iptv-settings.png)          |
-|                         Playlist settings                          |
-|         ![Playlist settings](./iptv-playlist-settings.png)         |                                                               |
+| Dashboard with recently watched content | Live channels with inline player and EPG |
+| :-------------------------------------: | :--------------------------------------: |
+| ![Dashboard with recently watched content](./apps/website/public/screenshots/dashboard-with-content.webp) | ![Live channels with inline player and EPG](./apps/website/public/screenshots/screenshot-player.webp) |
+| Add playlist dialog for M3U, Xtream, and Stalker | Live category channel list |
+| ![Add playlist dialog for M3U, Xtream, and Stalker](./apps/website/public/screenshots/add-playlist.webp) | ![Live category channel list](./apps/website/public/screenshots/channels-view.webp) |
+| Global search across live TV, movies, and series | Manage visible live categories |
+| ![Global search across live TV, movies, and series](./apps/website/public/screenshots/global-search.webp) | ![Manage visible live categories](./apps/website/public/screenshots/manage-categories.webp) |
+| Movie category grid with sorting and pagination | Recently added movies and series |
+| ![Movie category grid with sorting and pagination](./apps/website/public/screenshots/xtream-category-view.webp) | ![Recently added movies and series](./apps/website/public/screenshots/xtream-recently-added.webp) |
+| VOD details with playback and download actions | Download manager |
+| ![VOD details with playback and download actions](./apps/website/public/screenshots/vod-details.webp) | ![Download manager](./apps/website/public/screenshots/download-manager.webp) |
+| Multi-channel EPG grid | External MPV player support |
+| ![Multi-channel EPG grid](./apps/website/public/screenshots/multi-epg-view.webp) | ![External MPV player support](./apps/website/public/screenshots/external-player-support-mpv.webp) |
+| Radio playback with dedicated audio player | Light theme |
+| ![Radio playback with dedicated audio player](./apps/website/public/screenshots/radio-feature.webp) | ![Light theme](./apps/website/public/screenshots/light-theme.webp) |
+| Application settings | |
+| ![Application settings](./apps/website/public/screenshots/settings.webp) | |
 
 _Note: First version of the application which was developed as a PWA is available in an extra git branch._
 
