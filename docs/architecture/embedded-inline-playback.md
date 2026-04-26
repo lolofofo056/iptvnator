@@ -5,6 +5,7 @@ This document records the current contract for embedded playback in portal detai
 ## Summary
 
 - Embedded web players are `videojs`, `html5`, and `artplayer`.
+- `embedded-mpv` exists as a hidden macOS-only feasibility harness backed by a native `libmpv` addon.
 - External players are `mpv` and `vlc`.
 - Flatpak launches external players on the host via `flatpak-spawn --host`.
 - Live playback stays inline in dedicated live layouts.
@@ -24,6 +25,43 @@ Not migrated in this pass:
 
 - Generic non-detail playback entry points that still call `PlayerService.openPlayer(...)`
 - Any collection/search surface that does not host a canonical detail surface of its own
+
+## Embedded MPV Harness
+
+The repository now contains a first-pass native embedded MPV harness for Electron:
+
+- shared setting id: `embedded-mpv`
+- native addon owner: `/Users/4gray/Code/iptvnator/apps/electron-backend/src/app/services/embedded-mpv-native.service.ts`
+- IPC bridge: `/Users/4gray/Code/iptvnator/apps/electron-backend/src/app/events/embedded-mpv.events.ts`
+- renderer host: `/Users/4gray/Code/iptvnator/libs/ui/playback/src/lib/embedded-mpv-player/embedded-mpv-player.component.ts`
+- native architecture and release-readiness details: `/Users/4gray/Code/iptvnator/docs/architecture/embedded-mpv-native.md`
+
+Current contract:
+
+- macOS only
+- experimental opt-in
+- enabled in local development only when `IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT=1`
+- enabled in packaged macOS builds only when the bundled native addon and `vendored-lgpl` libmpv runtime load successfully
+- uses IPTVnator-owned controls and `ResolvedPortalPlayback` payloads
+- uses the libmpv render API on macOS and renders through an IPTVnator-owned native `NSView`
+- defaults to libmpv's OpenGL render backend with `hwdec=auto-safe`
+- keeps the previous software renderer as a debug fallback via `IPTVNATOR_EMBEDDED_MPV_RENDERER=sw`
+- emits lightweight render diagnostics when `IPTVNATOR_TRACE_EMBEDDED_MPV=1` is set
+- exposes an IPTVnator-owned fullscreen button that uses the renderer fullscreen API and resyncs the native MPV view bounds after fullscreen transitions
+- auto-hides IPTVnator-owned controls while playback is active and restores them on pointer/focus interaction
+- exposes audio-track metadata from MPV and switches tracks through the `aid` property without reloading the stream
+- passes VOD/episode resume offsets to MPV through the `loadfile` options map; live catchup URLs are treated as already-positioned streams
+- applies the initial volume during session creation and uses async libmpv control calls after startup
+- VLC remains external-only
+
+Current limitation:
+
+- the current feasibility harness is still experimental and macOS-specific
+- the original macOS `wid` embedding path produced audio with a black video surface inside Electron, so the harness now avoids foreign-window embedding on macOS
+- the OpenGL render path avoids the old per-frame `CGImage` copy path, but it still needs broader interaction, resize, and packaging coverage
+- startup deadlocks seen during early macOS playback bring-up are mitigated, but the feature is still kept behind the explicit experiment flag until more interaction and packaging coverage is proven
+- because of that, the setting is auto-sanitized back to the default inline player unless support detection reports that the experimental runtime is available
+- this follows the rollout gate: keep the native work in-tree, but do not leave it user-facing until playback, resize, focus, and packaging are stable
 
 ## Components
 

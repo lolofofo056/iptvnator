@@ -19,7 +19,9 @@
     "asarUnpack": [
         "**/better-sqlite3/**",
         "**/bindings/**",
-        "**/file-uri-to-path/**"
+        "**/file-uri-to-path/**",
+        "**/*.node",
+        "**/*.dylib"
     ],
     "extraMetadata": {
         "main": "electron-backend/main.js"
@@ -95,7 +97,7 @@
             ]
         ]
     },
-    "afterPack": "./tools/packaging/linux-after-pack.cjs",
+    "afterPack": "./tools/packaging/electron-after-pack.cjs",
     "snap": {
         "base": "core22",
         "confinement": "strict",

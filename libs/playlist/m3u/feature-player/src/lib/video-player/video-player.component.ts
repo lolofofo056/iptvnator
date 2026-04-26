@@ -61,6 +61,7 @@ import {
     HtmlVideoPlayerComponent,
     SidebarComponent,
     VjsPlayerComponent,
+    WebPlayerViewComponent,
 } from '@iptvnator/ui/playback';
 import { ChannelListLoadingStateComponent } from 'components';
 import { DataService, PlaylistsService, SettingsStore } from 'services';
@@ -71,6 +72,7 @@ import {
     PLAYLIST_PARSE_BY_URL,
     M3uRecentlyViewedItem,
     PlaylistMeta,
+    ResolvedPortalPlayback,
     STORE_KEY,
     Settings,
     VideoPlayer,
@@ -98,6 +100,7 @@ const M3U_SIDEBAR_DEFAULT_WIDTH = 460;
         SidebarComponent,
         TranslatePipe,
         VjsPlayerComponent,
+        WebPlayerViewComponent,
     ],
     templateUrl: './video-player.component.html',
     styleUrl: './video-player.component.scss',
@@ -144,6 +147,38 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
             url: playbackUrl,
             epgParams: '',
         } as Channel;
+    });
+    readonly embeddedPlayback = computed<ResolvedPortalPlayback | null>(() => {
+        const activeChannel = this.activeChannel();
+        const playbackTarget = this.playbackChannel();
+
+        if (!activeChannel || !playbackTarget) {
+            return null;
+        }
+
+        const headers: Record<string, string> = {};
+        if (playbackTarget.http['user-agent']) {
+            headers['User-Agent'] = playbackTarget.http['user-agent'];
+        }
+        if (playbackTarget.http.referrer) {
+            headers['Referer'] = playbackTarget.http.referrer;
+        }
+        if (playbackTarget.http.origin) {
+            headers['Origin'] = playbackTarget.http.origin;
+        }
+
+        return {
+            streamUrl: `${playbackTarget.url}${playbackTarget.epgParams ?? ''}`,
+            title:
+                activeChannel.name?.trim() ||
+                activeChannel.tvg?.name ||
+                playbackTarget.url,
+            thumbnail: activeChannel.tvg?.logo ?? null,
+            headers: Object.keys(headers).length > 0 ? headers : undefined,
+            userAgent: playbackTarget.http['user-agent'] || undefined,
+            referer: playbackTarget.http.referrer || undefined,
+            origin: playbackTarget.http.origin || undefined,
+        };
     });
     readonly sidebarStorageKey = computed(() =>
         this.activeView() === 'groups'

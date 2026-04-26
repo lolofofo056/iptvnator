@@ -35,7 +35,11 @@ import {
 import { EpgListComponent, EpgProgramActivationEvent } from '@iptvnator/ui/epg';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
-import { EpgItem, EpgProgram } from 'shared-interfaces';
+import {
+    EpgItem,
+    EpgProgram,
+    ResolvedPortalPlayback,
+} from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { ActivatedRoute } from '@angular/router';
 
@@ -168,7 +172,10 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     readonly usesEmbeddedPlayer = computed(() =>
         this.portalPlayer.isEmbeddedPlayer()
     );
-    readonly activeStreamUrl = signal('');
+    readonly activePlayback = signal<ResolvedPortalPlayback | null>(null);
+    readonly activeStreamUrl = computed(
+        () => this.activePlayback()?.streamUrl ?? ''
+    );
     favorites = new Map<number, boolean>();
 
     constructor() {
@@ -291,7 +298,11 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
 
     playLive(item: XtreamLiveChannelItem) {
         const streamUrl = this.xtreamStore.constructStreamUrl(item);
-        this.activeStreamUrl.set(streamUrl);
+        this.activePlayback.set({
+            streamUrl,
+            title: item.title ?? item.name ?? '',
+            thumbnail: item.poster_url ?? item.stream_icon ?? null,
+        });
         if (this.usesEmbeddedPlayer()) {
             return;
         }
@@ -406,7 +417,11 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             stopTimestamp
         );
 
-        this.activeStreamUrl.set(catchupUrl);
+        this.activePlayback.set({
+            streamUrl: catchupUrl,
+            title: this.getCatchupPlaybackTitle(item, program),
+            thumbnail: item.poster_url ?? item.stream_icon ?? null,
+        });
         if (this.usesEmbeddedPlayer()) {
             return;
         }

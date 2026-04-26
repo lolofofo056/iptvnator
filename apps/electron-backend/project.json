@@ -11,9 +11,20 @@
                 "command": "node apps/electron-backend/build-worker.js"
             }
         },
+        "build-embedded-mpv": {
+            "executor": "nx:run-commands",
+            "cache": false,
+            "outputs": [
+                "{workspaceRoot}/apps/electron-backend/native/build/Release"
+            ],
+            "options": {
+                "command": "node apps/electron-backend/build-embedded-mpv.js"
+            }
+        },
         "build": {
             "dependsOn": [
                 "electron-backend:build-worker",
+                "electron-backend:build-embedded-mpv",
                 {
                     "projects": ["web", "remote-control-web"],
                     "target": "build"
@@ -21,11 +32,23 @@
             ],
             "executor": "nx-electron:build",
             "outputs": ["{options.outputPath}"],
+            "inputs": [
+                "production",
+                "^production",
+                "{workspaceRoot}/apps/electron-backend/native/build/Release/**"
+            ],
             "options": {
                 "outputPath": "dist/apps/electron-backend",
                 "main": "apps/electron-backend/src/main.ts",
                 "tsConfig": "apps/electron-backend/tsconfig.app.json",
-                "assets": ["apps/electron-backend/src/assets"]
+                "assets": [
+                    "apps/electron-backend/src/assets",
+                    {
+                        "glob": "{embedded_mpv.node,embedded-mpv-runtime.json,embedded-mpv-unavailable.txt,lib/*}",
+                        "input": "apps/electron-backend/native/build/Release",
+                        "output": "native"
+                    }
+                ]
             },
             "configurations": {
                 "production": {
@@ -44,6 +67,7 @@
         "build-e2e": {
             "dependsOn": [
                 "electron-backend:build-worker",
+                "electron-backend:build-embedded-mpv",
                 {
                     "projects": ["web"],
                     "target": "build-e2e"
@@ -55,11 +79,23 @@
             ],
             "executor": "nx-electron:build",
             "outputs": ["{options.outputPath}"],
+            "inputs": [
+                "production",
+                "^production",
+                "{workspaceRoot}/apps/electron-backend/native/build/Release/**"
+            ],
             "options": {
                 "outputPath": "dist/apps/electron-backend",
                 "main": "apps/electron-backend/src/main.ts",
                 "tsConfig": "apps/electron-backend/tsconfig.app.json",
-                "assets": ["apps/electron-backend/src/assets"]
+                "assets": [
+                    "apps/electron-backend/src/assets",
+                    {
+                        "glob": "{embedded_mpv.node,embedded-mpv-runtime.json,embedded-mpv-unavailable.txt,lib/*}",
+                        "input": "apps/electron-backend/native/build/Release",
+                        "output": "native"
+                    }
+                ]
             }
         },
         "serve": {

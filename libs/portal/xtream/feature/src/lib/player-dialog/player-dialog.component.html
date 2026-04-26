@@ -2,6 +2,8 @@
 <mat-dialog-content class="content">
     <app-web-player-view
         [streamUrl]="streamUrl"
+        [title]="title"
+        [playback]="data.playback ?? null"
         [startTime]="data.startTime || 0"
         (timeUpdate)="handleTimeUpdate($event)"
     />

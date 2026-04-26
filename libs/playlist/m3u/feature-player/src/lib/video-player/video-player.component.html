@@ -68,6 +68,13 @@
                             [showCaptions]="playerSettings.showCaptions!"
                         />
                     }
+                    @if (playerSettings.player === 'embedded-mpv') {
+                        <app-web-player-view
+                            [streamUrl]="embeddedPlayback()?.streamUrl ?? ''"
+                            [title]="embeddedPlayback()?.title ?? ''"
+                            [playback]="embeddedPlayback()"
+                        />
+                    }
                 }
             </div>
         }

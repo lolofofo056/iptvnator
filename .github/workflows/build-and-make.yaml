@@ -15,7 +15,7 @@ jobs:
     build:
         name: Build on ${{ matrix.os }} ${{ matrix.arch }}
         runs-on: ${{ matrix.runner }}
-        timeout-minutes: 60
+        timeout-minutes: 120
         strategy:
             matrix:
                 include:
@@ -88,7 +88,21 @@ jobs:
             - name: Build frontend
               run: pnpm nx build web --skip-nx-cache
 
+            - name: Build embedded MPV runtime (macOS release)
+              if: matrix.os == 'macos' && startsWith(github.ref, 'refs/tags/v')
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  brew install meson ninja pkg-config nasm autoconf automake libtool xz
+
+                  RUNTIME_PREFIX="${RUNNER_TEMP}/embedded-mpv-runtime/${{ matrix.arch }}/prefix"
+                  pnpm embedded-mpv:build-runtime -- "${{ matrix.arch }}" "${RUNTIME_PREFIX}"
+                  pnpm embedded-mpv:stage-runtime -- "${{ matrix.arch }}" "${RUNTIME_PREFIX}"
+
             - name: Build backend
+              env:
+                  IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch || '' }}
               run: pnpm run build:backend
 
             - name: Validate AppStream metadata
@@ -210,6 +224,8 @@ jobs:
                   CSC_LINK: ${{ secrets.CSC_LINK }}
                   CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
                   DEBUG: electron-builder,electron-notarize*
+                  IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch }}
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ startsWith(github.ref, 'refs/tags/v') && '1' || '0' }}
               run: pnpm run make:app
 
             - name: Verify signed macOS app
@@ -263,6 +279,9 @@ jobs:
 
             - name: Make Electron app
               if: matrix.os != 'macos' || github.event_name == 'pull_request'
+              env:
+                  IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch || '' }}
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: '0'
               run: pnpm run make:app
 
             - name: Verify packaged worker layout
@@ -270,6 +289,7 @@ jobs:
               env:
                   PACKAGE_OS: ${{ matrix.os }}
                   PACKAGE_ARCH: ${{ matrix.arch || '' }}
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && startsWith(github.ref, 'refs/tags/v') && '1' || '0' }}
               run: pnpm run verify:package-layout -- "$PACKAGE_OS" "$PACKAGE_ARCH"
 
             - name: Smoke test packaged Flatpak launcher

@@ -38,7 +38,7 @@ import {
 import { ResizableDirective } from 'components';
 import { SettingsStore } from 'services';
 import { Channel, EpgProgram } from 'shared-interfaces';
-import { EpgViewComponent } from 'shared-portals';
+import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
 
 @Component({
     selector: 'app-unified-live-tab',
@@ -59,6 +59,7 @@ import { EpgViewComponent } from 'shared-portals';
         ResizableDirective,
         TranslatePipe,
         VjsPlayerComponent,
+        WebPlayerViewComponent,
     ],
 })
 export class UnifiedLiveTabComponent {

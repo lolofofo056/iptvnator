@@ -47,6 +47,7 @@ describe('PlayerService', () => {
         expect(service.isEmbeddedPlayer(VideoPlayer.VideoJs)).toBe(true);
         expect(service.isEmbeddedPlayer(VideoPlayer.Html5Player)).toBe(true);
         expect(service.isEmbeddedPlayer(VideoPlayer.ArtPlayer)).toBe(true);
+        expect(service.isEmbeddedPlayer(VideoPlayer.EmbeddedMpv)).toBe(true);
         expect(service.isEmbeddedPlayer(VideoPlayer.MPV)).toBe(false);
         expect(service.isEmbeddedPlayer(VideoPlayer.VLC)).toBe(false);
     });
@@ -57,7 +58,19 @@ describe('PlayerService', () => {
             title: 'Example Video',
         });
 
-        expect(dialog.open).toHaveBeenCalled();
+        expect(dialog.open).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    streamUrl: 'https://example.com/video.mp4',
+                    title: 'Example Video',
+                    playback: expect.objectContaining({
+                        streamUrl: 'https://example.com/video.mp4',
+                        title: 'Example Video',
+                    }),
+                }),
+            })
+        );
         expect(dataService.sendIpcEvent).not.toHaveBeenCalled();
     });
 

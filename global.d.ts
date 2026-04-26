@@ -1,4 +1,7 @@
 import 'jest-extended';
+import { EmbeddedMpvBounds } from './libs/shared/interfaces/src/lib/embedded-mpv-session.interface';
+import { EmbeddedMpvSession } from './libs/shared/interfaces/src/lib/embedded-mpv-session.interface';
+import { EmbeddedMpvSupport } from './libs/shared/interfaces/src/lib/embedded-mpv-session.interface';
 import { ExternalPlayerSession } from './libs/shared/interfaces/src/lib/external-player-session.interface';
 import { PlaybackPositionData } from './libs/shared/interfaces/src/lib/playback-position.interface';
 import {
@@ -11,6 +14,7 @@ import {
     PlaylistRefreshPayload,
 } from './libs/shared/interfaces/src/lib/playlist-refresh.interface';
 import { Playlist } from './libs/shared/interfaces/src/lib/playlist.interface';
+import { ResolvedPortalPlayback } from './libs/shared/interfaces/src/lib/portal-playback.interface';
 
 declare module 'video.js' {
     export interface VideoJsPlayer {
@@ -111,9 +115,46 @@ declare global {
             onExternalPlayerSessionUpdate?: (
                 callback: (data: ExternalPlayerSession) => void
             ) => () => void;
+            onEmbeddedMpvSessionUpdate?: (
+                callback: (data: EmbeddedMpvSession) => void
+            ) => () => void;
             closeExternalPlayerSession: (
                 sessionId: string
             ) => Promise<ExternalPlayerSession | null>;
+            getEmbeddedMpvSupport: () => Promise<EmbeddedMpvSupport>;
+            prepareEmbeddedMpv?: () => Promise<EmbeddedMpvSupport>;
+            createEmbeddedMpvSession: (
+                bounds: EmbeddedMpvBounds,
+                title?: string,
+                initialVolume?: number
+            ) => Promise<EmbeddedMpvSession>;
+            loadEmbeddedMpvPlayback: (
+                sessionId: string,
+                playback: ResolvedPortalPlayback
+            ) => Promise<void>;
+            setEmbeddedMpvBounds: (
+                sessionId: string,
+                bounds: EmbeddedMpvBounds
+            ) => Promise<void>;
+            setEmbeddedMpvPaused: (
+                sessionId: string,
+                paused: boolean
+            ) => Promise<EmbeddedMpvSession | null>;
+            seekEmbeddedMpv: (
+                sessionId: string,
+                seconds: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvVolume: (
+                sessionId: string,
+                volume: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvAudioTrack: (
+                sessionId: string,
+                trackId: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            disposeEmbeddedMpvSession: (
+                sessionId: string
+            ) => Promise<EmbeddedMpvSession | null>;
             stalkerRequest: (payload: {
                 url: string;
                 macAddress: string;

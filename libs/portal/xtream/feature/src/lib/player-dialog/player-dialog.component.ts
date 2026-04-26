@@ -7,7 +7,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { MatTooltip } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { PORTAL_PLAYBACK_POSITIONS } from '@iptvnator/portal/shared/util';
-import { PlayerContentInfo } from 'shared-interfaces';
+import { PlayerContentInfo, ResolvedPortalPlayback } from 'shared-interfaces';
 import { WebPlayerViewComponent } from 'shared-portals';
 
 export interface PlayerDialogData {
@@ -15,6 +15,7 @@ export interface PlayerDialogData {
     title: string;
     contentInfo?: PlayerContentInfo;
     startTime?: number;
+    playback?: ResolvedPortalPlayback;
 }
 
 @Component({
@@ -43,8 +44,8 @@ export class PlayerDialogComponent {
     private lastSaveTime = 0;
 
     constructor() {
-        this.streamUrl = this.data.streamUrl;
-        this.title = this.data.title;
+        this.streamUrl = this.data.playback?.streamUrl ?? this.data.streamUrl;
+        this.title = this.data.playback?.title ?? this.data.title;
     }
 
     handleTimeUpdate(event: { currentTime: number; duration: number }) {
