@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const args = rawArgs[0] === '--' ? rawArgs.slice(1) : rawArgs;
 const [arch, sourcePrefix] = args;
 const validArchitectures = new Set(['arm64', 'x64']);
 const workspaceRoot = process.cwd();

@@ -5,7 +5,8 @@ import os from 'os';
 import path from 'path';
 import { spawnSync } from 'child_process';
 
-const args = process.argv.slice(2);
+const rawArgs = process.argv.slice(2);
+const args = rawArgs[0] === '--' ? rawArgs.slice(1) : rawArgs;
 const [arch, rawPrefix] = args;
 const validArchitectures = new Set(['arm64', 'x64']);
 const macosDeploymentTarget =
