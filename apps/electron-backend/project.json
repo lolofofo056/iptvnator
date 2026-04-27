@@ -132,22 +132,6 @@
                 "frontendProject": "web",
                 "sourcePath": "dist/apps",
                 "outputPath": "dist/packages",
-                "files": [
-                    {
-                        "from": "electron-backend/native",
-                        "to": "electron-backend/native",
-                        "filter": ["**/*"]
-                    }
-                ],
-                "asarUnpack": [
-                    "**/better-sqlite3/**",
-                    "**/bindings/**",
-                    "**/file-uri-to-path/**",
-                    "electron-backend/native/**",
-                    "**/electron-backend/native/**",
-                    "**/*.node",
-                    "**/*.dylib"
-                ],
                 "prepackageOnly": true
             }
         },
@@ -158,23 +142,7 @@
                 "name": "electron-backend",
                 "frontendProject": "web",
                 "sourcePath": "dist/apps",
-                "outputPath": "dist/executables",
-                "files": [
-                    {
-                        "from": "electron-backend/native",
-                        "to": "electron-backend/native",
-                        "filter": ["**/*"]
-                    }
-                ],
-                "asarUnpack": [
-                    "**/better-sqlite3/**",
-                    "**/bindings/**",
-                    "**/file-uri-to-path/**",
-                    "electron-backend/native/**",
-                    "**/electron-backend/native/**",
-                    "**/*.node",
-                    "**/*.dylib"
-                ]
+                "outputPath": "dist/executables"
             }
         },
         "lint": {

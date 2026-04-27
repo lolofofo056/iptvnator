@@ -70,7 +70,7 @@ The build manifest records source URLs, downloaded archive SHA-256 values where 
 
 `apps/electron-backend/build-embedded-mpv.js` links the native addon against the staged runtime, copies dylibs into `apps/electron-backend/native/build/Release/lib/`, rewrites Mach-O paths to `@loader_path`, and writes `embedded-mpv-runtime.json`.
 
-The Electron builder and Nx package/make targets package `dist/apps/electron-backend/native/` into `electron-backend/native/` and unpack that whole native directory from ASAR so the addon, runtime manifest, dylibs, and non-`.dylib` Mach-O runtime files are available as real files.
+The macOS `afterPack` hook copies `dist/apps/electron-backend/native/` into `app.asar.unpacked/electron-backend/native/` so the addon, runtime manifest, dylibs, and non-`.dylib` Mach-O runtime files are available as real files. Linux and Windows artifacts do not include that native directory.
 
 During release packaging, `tools/packaging/electron-after-pack.cjs` verifies that the packaged app uses a `vendored-lgpl` runtime and has no `/opt/homebrew` or `/usr/local` dynamic links for embedded MPV.
 

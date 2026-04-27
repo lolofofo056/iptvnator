@@ -12,11 +12,6 @@
             "to": "remote-control-web",
             "filter": ["**/*"]
         },
-        {
-            "from": "dist/apps/electron-backend/native",
-            "to": "electron-backend/native",
-            "filter": ["**/*"]
-        },
         "electron-backend/**/*",
         "web/**/*",
         "!**/*.map"
@@ -25,8 +20,6 @@
         "**/better-sqlite3/**",
         "**/bindings/**",
         "**/file-uri-to-path/**",
-        "electron-backend/native/**",
-        "**/electron-backend/native/**",
         "**/*.node",
         "**/*.dylib"
     ],

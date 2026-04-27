@@ -17,6 +17,30 @@ function isTruthy(value) {
     );
 }
 
+function copyEmbeddedMpvNativeOutput(resourceDir, projectDir) {
+    const sourceDir = path.join(
+        projectDir,
+        'dist',
+        'apps',
+        'electron-backend',
+        'native'
+    );
+
+    if (!fs.existsSync(sourceDir)) {
+        return;
+    }
+
+    const destinationDir = path.join(
+        resourceDir,
+        'app.asar.unpacked',
+        'electron-backend',
+        'native'
+    );
+
+    fs.rmSync(destinationDir, { recursive: true, force: true });
+    fs.cpSync(sourceDir, destinationDir, { recursive: true });
+}
+
 async function afterPackHook(params) {
     await linuxAfterPack(params);
 
@@ -46,6 +70,12 @@ async function afterPackHook(params) {
               'Resources'
           )
         : params.appOutDir;
+
+    copyEmbeddedMpvNativeOutput(
+        resourceDir,
+        params.packager.projectDir ?? process.cwd()
+    );
+
     const errors = validatePackagedEmbeddedMpv(resourceDir, {
         required: requireEmbeddedMpv,
     });

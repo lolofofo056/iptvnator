@@ -76,7 +76,8 @@ Current development behavior:
 - The staged runtime must contain `include/mpv/client.h`, `lib/*.dylib`, and `runtime-manifest.json`.
 - The compiled `.node` addon is copied into `dist/apps/electron-backend/native/embedded_mpv.node`.
 - Bundled runtime files are copied into `dist/apps/electron-backend/native/lib/`. Most are `.dylib` files, but some Homebrew-linked runtimes expose non-`.dylib` Mach-O files such as a framework `Python` binary.
-- `electron-builder` includes `dist/apps/electron-backend/native/` in the app package and unpacks `electron-backend/native/**` from ASAR so the addon, manifest, dylibs, and non-`.dylib` Mach-O runtime files are filesystem-addressable.
+- macOS `afterPack` copies `dist/apps/electron-backend/native/` into `app.asar.unpacked/electron-backend/native/` so the addon, manifest, dylibs, and non-`.dylib` Mach-O runtime files are filesystem-addressable.
+- Linux and Windows packaging do not include the Embedded MPV native directory.
 
 Current release caveat:
 
