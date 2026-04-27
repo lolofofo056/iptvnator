@@ -44,9 +44,15 @@
                 "assets": [
                     "apps/electron-backend/src/assets",
                     {
-                        "glob": "{embedded_mpv.node,embedded-mpv-runtime.json,embedded-mpv-unavailable.txt,lib/*}",
+                        "glob": "**/*",
                         "input": "apps/electron-backend/native/build/Release",
-                        "output": "native"
+                        "output": "native",
+                        "ignore": [
+                            ".deps/**",
+                            "obj.target/**",
+                            "**/.deps/**",
+                            "**/obj.target/**"
+                        ]
                     }
                 ]
             },
@@ -91,9 +97,15 @@
                 "assets": [
                     "apps/electron-backend/src/assets",
                     {
-                        "glob": "{embedded_mpv.node,embedded-mpv-runtime.json,embedded-mpv-unavailable.txt,lib/*}",
+                        "glob": "**/*",
                         "input": "apps/electron-backend/native/build/Release",
-                        "output": "native"
+                        "output": "native",
+                        "ignore": [
+                            ".deps/**",
+                            "obj.target/**",
+                            "**/.deps/**",
+                            "**/obj.target/**"
+                        ]
                     }
                 ]
             }
@@ -120,6 +132,22 @@
                 "frontendProject": "web",
                 "sourcePath": "dist/apps",
                 "outputPath": "dist/packages",
+                "files": [
+                    {
+                        "from": "electron-backend/native",
+                        "to": "electron-backend/native",
+                        "filter": ["**/*"]
+                    }
+                ],
+                "asarUnpack": [
+                    "**/better-sqlite3/**",
+                    "**/bindings/**",
+                    "**/file-uri-to-path/**",
+                    "electron-backend/native/**",
+                    "**/electron-backend/native/**",
+                    "**/*.node",
+                    "**/*.dylib"
+                ],
                 "prepackageOnly": true
             }
         },
@@ -130,7 +158,23 @@
                 "name": "electron-backend",
                 "frontendProject": "web",
                 "sourcePath": "dist/apps",
-                "outputPath": "dist/executables"
+                "outputPath": "dist/executables",
+                "files": [
+                    {
+                        "from": "electron-backend/native",
+                        "to": "electron-backend/native",
+                        "filter": ["**/*"]
+                    }
+                ],
+                "asarUnpack": [
+                    "**/better-sqlite3/**",
+                    "**/bindings/**",
+                    "**/file-uri-to-path/**",
+                    "electron-backend/native/**",
+                    "**/electron-backend/native/**",
+                    "**/*.node",
+                    "**/*.dylib"
+                ]
             }
         },
         "lint": {

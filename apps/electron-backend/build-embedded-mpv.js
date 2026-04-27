@@ -13,6 +13,13 @@ const addonRoot = path.join(workspaceRoot, 'apps', 'electron-backend', 'native')
 const outputDir = path.join(addonRoot, 'build', 'Release');
 const outputFile = path.join(outputDir, 'embedded_mpv.node');
 const outputLibDir = path.join(outputDir, 'lib');
+const distNativeDir = path.join(
+    workspaceRoot,
+    'dist',
+    'apps',
+    'electron-backend',
+    'native'
+);
 const unavailableMarkerFile = path.join(outputDir, 'embedded-mpv-unavailable.txt');
 const homebrewIncludeDir = '/opt/homebrew/include';
 const homebrewLibDir = '/opt/homebrew/lib';
@@ -30,6 +37,9 @@ const vendoredIncludeDir = path.join(vendoredRuntimeRoot, 'include');
 const vendoredLibDir = path.join(vendoredRuntimeRoot, 'lib');
 const homebrewFallbackEnabled =
     process.env.IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW === '1';
+const embeddedMpvRequired = ['1', 'true', 'yes', 'on'].includes(
+    (process.env.IPTVNATOR_REQUIRE_EMBEDDED_MPV ?? '').trim().toLowerCase()
+);
 
 function log(message) {
     process.stdout.write(`[embedded-mpv] ${message}\n`);
@@ -38,6 +48,11 @@ function log(message) {
 function cleanOutput() {
     fs.rmSync(outputFile, { force: true });
     fs.rmSync(outputLibDir, { recursive: true, force: true });
+    fs.rmSync(path.join(outputDir, '.deps'), { recursive: true, force: true });
+    fs.rmSync(path.join(outputDir, 'obj.target'), {
+        recursive: true,
+        force: true,
+    });
     fs.rmSync(path.join(outputDir, 'embedded-mpv-runtime.json'), {
         force: true,
     });
@@ -45,6 +60,10 @@ function cleanOutput() {
         unavailableMarkerFile,
         'Embedded MPV native runtime is not available for this build.\n'
     );
+}
+
+function cleanDistNativeOutput() {
+    fs.rmSync(distNativeDir, { recursive: true, force: true });
 }
 
 function readRuntimeManifest(runtimeRoot) {
@@ -146,9 +165,13 @@ function runNodeGyp(command, env) {
 
 function main() {
     fs.mkdirSync(outputDir, { recursive: true });
+    cleanDistNativeOutput();
 
     if (process.platform !== 'darwin') {
         cleanOutput();
+        if (embeddedMpvRequired) {
+            throw new Error('Embedded MPV is required but this host is not macOS.');
+        }
         log('Skipping build on non-macOS host.');
         return;
     }
@@ -156,13 +179,16 @@ function main() {
     const runtime = resolveRuntime();
     if (!runtime) {
         cleanOutput();
-        log(
-            [
-                `Skipping build because no embedded MPV runtime was found for darwin-${targetArch}.`,
-                `Expected vendored runtime at ${vendoredRuntimeRoot}.`,
-                'For local development only, set IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW=1 to use Homebrew libmpv.',
-            ].join('\n')
-        );
+        const message = [
+            `Skipping build because no embedded MPV runtime was found for darwin-${targetArch}.`,
+            `Expected vendored runtime at ${vendoredRuntimeRoot}.`,
+            'For local development only, set IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW=1 to use Homebrew libmpv.',
+        ].join('\n');
+        if (embeddedMpvRequired) {
+            throw new Error(message);
+        }
+
+        log(message);
         return;
     }
 

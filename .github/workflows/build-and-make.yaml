@@ -105,7 +105,29 @@ jobs:
             - name: Build backend
               env:
                   IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch || '' }}
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request') && '1' || '0' }}
               run: pnpm run build:backend
+
+            - name: Verify embedded MPV build output
+              # TEMPORARY PR TEST: remove `|| github.event_name == 'pull_request'`
+              # after the macOS Embedded MPV artifact is built and manually tested.
+              if: matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request')
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  echo "::group::Native build output"
+                  find apps/electron-backend/native/build/Release -maxdepth 3 -type f | sort
+                  echo "::endgroup::"
+
+                  echo "::group::Dist native output"
+                  find dist/apps/electron-backend/native -maxdepth 3 -type f | sort
+                  echo "::endgroup::"
+
+                  test -f apps/electron-backend/native/build/Release/embedded_mpv.node
+                  test -f dist/apps/electron-backend/native/embedded_mpv.node
+                  test -f dist/apps/electron-backend/native/embedded-mpv-runtime.json
+                  test -f dist/apps/electron-backend/native/lib/libmpv.2.dylib
 
             - name: Validate AppStream metadata
               if: matrix.os == 'linux'

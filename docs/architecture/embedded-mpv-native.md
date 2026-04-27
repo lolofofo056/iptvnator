@@ -76,8 +76,7 @@ Current development behavior:
 - The staged runtime must contain `include/mpv/client.h`, `lib/*.dylib`, and `runtime-manifest.json`.
 - The compiled `.node` addon is copied into `dist/apps/electron-backend/native/embedded_mpv.node`.
 - Bundled runtime files are copied into `dist/apps/electron-backend/native/lib/`. Most are `.dylib` files, but some Homebrew-linked runtimes expose non-`.dylib` Mach-O files such as a framework `Python` binary.
-- `electron-builder` unpacks `.node` files from ASAR.
-- `electron-builder` also unpacks `.dylib` files from ASAR.
+- `electron-builder` includes `dist/apps/electron-backend/native/` in the app package and unpacks `electron-backend/native/**` from ASAR so the addon, manifest, dylibs, and non-`.dylib` Mach-O runtime files are filesystem-addressable.
 
 Current release caveat:
 
@@ -115,7 +114,7 @@ node tools/embedded-mpv/stage-macos-runtime.mjs arm64 /path/to/lgpl-prefix
 node tools/embedded-mpv/stage-macos-runtime.mjs x64 /path/to/lgpl-prefix
 ```
 
-Tagged macOS release CI builds that prefix from pinned source archives first:
+Tagged macOS release CI builds that prefix from pinned source archives first. The workflow can temporarily run the same path for macOS PR artifacts while the bundled runtime is being tested:
 
 ```bash
 pnpm embedded-mpv:build-runtime -- arm64 /tmp/embedded-mpv-prefix
@@ -165,7 +164,7 @@ For tagged macOS builds, CI must:
 - set `IPTVNATOR_EMBEDDED_MPV_ARCH=${arch}` for backend build and packaging
 - set `IPTVNATOR_REQUIRE_EMBEDDED_MPV=1` for packaging and package-layout verification
 
-For PR, development, Linux, and Windows packaging, `IPTVNATOR_REQUIRE_EMBEDDED_MPV` stays unset or `0`. In that mode the package validators still reject a present but invalid Embedded MPV runtime, but they do not require the addon to exist. This keeps the native feature in-tree without making non-macOS or non-release builds depend on macOS runtime artifacts.
+During the temporary macOS PR artifact test, CI also sets `IPTVNATOR_REQUIRE_EMBEDDED_MPV=1` for macOS PR backend build, packaging, and package-layout verification. After the artifact is manually validated, remove the workflow's `pull_request` condition so PR, development, Linux, and Windows packaging leave `IPTVNATOR_REQUIRE_EMBEDDED_MPV` unset or `0`. In that normal mode the package validators still reject a present but invalid Embedded MPV runtime, but they do not require the addon to exist. This keeps the native feature in-tree without making non-macOS or non-release builds depend on macOS runtime artifacts.
 
 ## Release Safety
 

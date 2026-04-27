@@ -50,7 +50,7 @@ If the prefix contains `runtime-manifest.json`, the staging script copies its bu
 
 ## Building The CI Runtime
 
-Tagged macOS release builds build the runtime from pinned source archives before `electron-backend:build`:
+Tagged macOS release builds build the runtime from pinned source archives before `electron-backend:build`. The workflow can also enable this path temporarily for macOS PR artifact testing:
 
 ```bash
 pnpm embedded-mpv:build-runtime -- arm64 /tmp/embedded-mpv-prefix
@@ -70,6 +70,8 @@ The build manifest records source URLs, downloaded archive SHA-256 values where 
 
 `apps/electron-backend/build-embedded-mpv.js` links the native addon against the staged runtime, copies dylibs into `apps/electron-backend/native/build/Release/lib/`, rewrites Mach-O paths to `@loader_path`, and writes `embedded-mpv-runtime.json`.
 
+The Electron builder and Nx package/make targets package `dist/apps/electron-backend/native/` into `electron-backend/native/` and unpack that whole native directory from ASAR so the addon, runtime manifest, dylibs, and non-`.dylib` Mach-O runtime files are available as real files.
+
 During release packaging, `tools/packaging/electron-after-pack.cjs` verifies that the packaged app uses a `vendored-lgpl` runtime and has no `/opt/homebrew` or `/usr/local` dynamic links for embedded MPV.
 
-Set `IPTVNATOR_REQUIRE_EMBEDDED_MPV=1` when packaging a macOS release artifact that must include Embedded MPV. PR and non-tag development builds leave that variable unset or `0`, so the same in-tree code can package without a staged runtime while Settings keeps Embedded MPV hidden.
+Set `IPTVNATOR_REQUIRE_EMBEDDED_MPV=1` when packaging a macOS release artifact that must include Embedded MPV. The same variable is temporarily enabled for macOS PR artifacts while the bundled runtime is being tested. After manual artifact validation, remove the workflow's PR condition so PR and non-tag development builds leave the variable unset or `0` and can package without a staged runtime while Settings keeps Embedded MPV hidden.
