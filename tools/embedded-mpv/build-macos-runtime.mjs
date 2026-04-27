@@ -272,6 +272,7 @@ function cloneGitSource(sourcePackage) {
             '3rdparty/jinja',
             '3rdparty/markupsafe',
             '3rdparty/fast_float',
+            '3rdparty/Vulkan-Headers',
         ],
         { cwd: packageSourcePath }
     );
@@ -288,6 +289,7 @@ function cloneGitSource(sourcePackage) {
             '3rdparty/jinja',
             '3rdparty/markupsafe',
             '3rdparty/fast_float',
+            '3rdparty/Vulkan-Headers',
         ],
         { cwd: packageSourcePath }
     )

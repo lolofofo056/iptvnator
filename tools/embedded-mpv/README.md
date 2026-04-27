@@ -61,7 +61,7 @@ The builder currently pins:
 
 - FFmpeg `8.1`, configured without `--enable-gpl` or `--enable-nonfree`, and with autodetected external libraries disabled
 - mpv `0.41.0`, configured with `-Dlibmpv=true -Dgpl=false`
-- libplacebo `7.360.1`, checked out from git with the OpenGL-related submodules required by its Meson build
+- libplacebo `7.360.1`, checked out from git with the `glad`, Python template, `fast_float`, and `Vulkan-Headers` submodules required by its Meson build
 - libass `0.17.3` plus FreeType, FriBidi, and HarfBuzz
 
 The build manifest records source URLs, downloaded archive SHA-256 values where applicable, libplacebo git commit/submodule metadata, and the exact FFmpeg/mpv flags. The staged manifest is normalized to `origin: vendored-lgpl`, which is the only embedded MPV runtime origin allowed in required macOS release packaging.
