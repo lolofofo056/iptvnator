@@ -51,19 +51,6 @@
                         "
                     />
                 } @else {
-                    <div class="player-toolbar">
-                        <span class="player-title">{{
-                            activeDetail()?.playback?.title
-                        }}</span>
-                        <button
-                            mat-icon-button
-                            (click)="onClose()"
-                            class="close-btn"
-                        >
-                            <mat-icon>close</mat-icon>
-                        </button>
-                    </div>
-
                     @if (player() === 'videojs') {
                         <app-vjs-player
                             [options]="{
@@ -102,20 +89,6 @@
                     shouldUseInlinePlayer() && isLiveEpgPanelCollapsed()
                 "
             >
-                @if (!shouldUseInlinePlayer()) {
-                    <div class="player-toolbar">
-                        <span class="player-title">{{
-                            activeDetail()?.playback?.title
-                        }}</span>
-                        <button
-                            mat-icon-button
-                            (click)="onClose()"
-                            class="close-btn"
-                        >
-                            <mat-icon>close</mat-icon>
-                        </button>
-                    </div>
-                }
                 @if (shouldUseInlinePlayer()) {
                     <app-live-epg-panel
                         [collapsed]="isLiveEpgPanelCollapsed()"
