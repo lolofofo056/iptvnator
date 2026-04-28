@@ -49,9 +49,21 @@
                     >
                         <div
                             class="rail__art"
+                            [class.rail__art--live]="
+                                card.contentType === 'live'
+                            "
                             [style.aspect-ratio]="aspectRatio()"
                         >
                             @if (card.imageUrl && !failedImages()[card.id]) {
+                                @if (card.contentType === 'live') {
+                                    <span
+                                        class="rail__art-bg"
+                                        aria-hidden="true"
+                                        [style.background-image]="
+                                            'url(' + card.imageUrl + ')'
+                                        "
+                                    ></span>
+                                }
                                 <img
                                     [src]="card.imageUrl"
                                     [alt]="card.title"

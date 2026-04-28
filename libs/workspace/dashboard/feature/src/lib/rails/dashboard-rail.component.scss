@@ -252,6 +252,34 @@
     }
 }
 
+// Live TV channel logos are typically small (100–256px square) and look terrible
+// when stretched to fill a 2:3 portrait card with `object-fit: cover`. The
+// `--live` modifier centers the contained logo over a soft blurred wash sampled
+// from the logo itself — same pattern as Apple Podcasts / Plex Live TV tiles.
+.rail__art--live {
+    img {
+        box-sizing: border-box;
+        object-fit: contain;
+        padding: 26% 18%;
+        position: relative;
+        z-index: 1;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+    }
+}
+
+.rail__art-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(28px) saturate(1.4);
+    transform: scale(1.4);
+    opacity: 0.55;
+    z-index: 0;
+    pointer-events: none;
+}
+
 .rail__action-trigger {
     position: absolute;
     top: 8px;

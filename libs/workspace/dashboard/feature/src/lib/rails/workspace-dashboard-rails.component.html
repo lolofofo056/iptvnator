@@ -54,6 +54,7 @@
                 [class.hero--has-default-backdrop]="
                     item.backdropSource === 'fallback'
                 "
+                [class.hero--live]="item.contentType === 'live'"
                 [routerLink]="item.link"
                 [state]="item.state ?? {}"
             >

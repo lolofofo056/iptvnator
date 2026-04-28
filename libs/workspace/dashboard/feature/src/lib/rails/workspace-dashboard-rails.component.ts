@@ -52,6 +52,7 @@ const SKELETON_RAILS = [1, 2, 3] as const;
 interface DashboardHeroModel {
     readonly backdropUrl?: string;
     readonly backdropSource: DashboardHeroBackdropSource;
+    readonly contentType?: 'live' | 'movie' | 'series';
     readonly fallbackBackdropBackground: string;
     readonly fallbackPosterBackground: string;
     readonly hasBackdrop: boolean;
@@ -260,6 +261,7 @@ export class WorkspaceDashboardRailsComponent {
 
         return {
             ...artwork,
+            contentType: item.type,
             icon: this.typeIcon(item.type),
             link: this.data.getRecentItemLink(item),
             state: this.data.getRecentItemNavigationState(item),
@@ -379,6 +381,7 @@ export class WorkspaceDashboardRailsComponent {
             subtitle: `${this.data.getRecentItemProviderLabel(item)} · ${this.data.getRecentItemTypeLabel(item)}`,
             imageUrl: item.poster_url,
             icon: this.typeIcon(item.type),
+            contentType: item.type,
             link: this.data.getRecentItemLink(item),
             state: this.data.getRecentItemNavigationState(item),
         };
@@ -391,6 +394,7 @@ export class WorkspaceDashboardRailsComponent {
             subtitle: `${this.data.getFavoriteItemProviderLabel(item)} · ${this.data.getFavoriteItemTypeLabel(item)}`,
             imageUrl: item.poster_url,
             icon: this.typeIcon(item.type),
+            contentType: item.type,
             link: this.data.getGlobalFavoriteLink(item),
             state: this.data.getGlobalFavoriteNavigationState(item),
         };
@@ -409,6 +413,7 @@ export class WorkspaceDashboardRailsComponent {
             subtitle: subtitleParts.join(' · '),
             imageUrl: item.poster_url,
             icon: this.typeIcon(item.type),
+            contentType: item.type,
             link: this.data.getRecentlyAddedLink(item),
             state: this.data.getRecentlyAddedNavigationState(item),
         };

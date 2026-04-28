@@ -223,6 +223,27 @@
     }
 }
 
+// Live channel logos (small square images) get destroyed by the default
+// `object-fit: cover` poster treatment. The `.hero--live` modifier centers
+// the logo with breathing room over a tinted backdrop. The blurred
+// `.hero__backdrop` already provides the ambient color wash for the wider hero.
+.hero--live .hero__poster {
+    background:
+        radial-gradient(
+            circle at 50% 35%,
+            var(--app-selection-surface, rgba(120, 173, 255, 0.18)) 0%,
+            transparent 65%
+        ),
+        var(--app-widget-bg, #1e2330);
+
+    img {
+        box-sizing: border-box;
+        object-fit: contain;
+        padding: 22% 18%;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.45));
+    }
+}
+
 .hero__body {
     position: relative;
     z-index: 2;
