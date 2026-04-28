@@ -261,7 +261,10 @@
             "LANGUAGE": "Taal",
             "SHOW_PROGRAM_DETAILS": "Toon details over dit programma"
         },
-        "FETCH_SUCCESS": "TV-Gids bijgewerkt"
+        "FETCH_SUCCESS": "TV-Gids bijgewerkt",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

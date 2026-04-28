@@ -78,21 +78,21 @@ GET load.php?type=itv&action=get_short_epg&ch_id={channel_id}&size={n}&JsHttpReq
 
 ```json
 {
-  "js": {
-    "data": [
-      {
-        "id": "123",
-        "ch_id": "45",
-        "name": "Program Title",
-        "descr": "Program description",
-        "time": "2025-01-15 14:00:00",
-        "time_to": "2025-01-15 14:30:00",
-        "duration": "1800",
-        "start_timestamp": "1736949600",
-        "stop_timestamp": "1736951400"
-      }
-    ]
-  }
+    "js": {
+        "data": [
+            {
+                "id": "123",
+                "ch_id": "45",
+                "name": "Program Title",
+                "descr": "Program description",
+                "time": "2025-01-15 14:00:00",
+                "time_to": "2025-01-15 14:30:00",
+                "duration": "1800",
+                "start_timestamp": "1736949600",
+                "stop_timestamp": "1736951400"
+            }
+        ]
+    }
 }
 ```
 
@@ -120,21 +120,21 @@ GET load.php?type=itv&action=get_epg_info&period={hours}&JsHttpRequest=1-xml
 
 ```json
 {
-  "js": {
-    "data": {
-      "45": [
-        {
-          "id": "1",
-          "name": "Program Title",
-          "descr": "Program description",
-          "time": "2025-01-15 14:00:00",
-          "time_to": "2025-01-15 16:00:00",
-          "start_timestamp": "1736949600",
-          "stop_timestamp": "1736956800"
+    "js": {
+        "data": {
+            "45": [
+                {
+                    "id": "1",
+                    "name": "Program Title",
+                    "descr": "Program description",
+                    "time": "2025-01-15 14:00:00",
+                    "time_to": "2025-01-15 16:00:00",
+                    "start_timestamp": "1736949600",
+                    "stop_timestamp": "1736956800"
+                }
+            ]
         }
-      ]
     }
-  }
 }
 ```
 
@@ -153,16 +153,16 @@ The short EPG path now exists only for the active-panel fallback flow.
 
 Key mapped fields:
 
-| Stalker field | `EpgItem` field |
-| --- | --- |
-| `id` | `id` |
-| `ch_id` | `channel_id` |
-| `name` | `title` |
-| `descr` | `description` |
-| `time` | `start` |
-| `time_to` | `end`, `stop` |
+| Stalker field     | `EpgItem` field   |
+| ----------------- | ----------------- |
+| `id`              | `id`              |
+| `ch_id`           | `channel_id`      |
+| `name`            | `title`           |
+| `descr`           | `description`     |
+| `time`            | `start`           |
+| `time_to`         | `end`, `stop`     |
 | `start_timestamp` | `start_timestamp` |
-| `stop_timestamp` | `stop_timestamp` |
+| `stop_timestamp`  | `stop_timestamp`  |
 
 ### Active panel data (`get_epg_info` / fallback) → `EpgProgram`
 
@@ -180,13 +180,13 @@ Normalization rules:
 
 ### Key files
 
-| File | Purpose |
-| --- | --- |
-| `libs/portal/stalker/data-access/src/lib/stores/features/with-stalker-epg.feature.ts` | bulk cache and fallback handling |
-| `libs/portal/stalker/feature/src/lib/stalker-live-stream-layout/stalker-live-stream-layout.component.ts` | active-channel EPG loading and controlled `app-epg-list` wiring |
-| `libs/portal/stalker/feature/src/lib/stalker-live-stream-layout/stalker-live-stream-layout.component.html` | active panel template |
-| `libs/portal/stalker/feature/src/lib/stalker-collection-channels-list/stalker-collection-channels-list.component.ts` | row preview loading |
-| `libs/ui/shared-portals/src/lib/epg-list/epg-list.component.ts` | shared controlled EPG list with date navigator |
+| File                                                                                                                 | Purpose                                                         |
+| -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `libs/portal/stalker/data-access/src/lib/stores/features/with-stalker-epg.feature.ts`                                | bulk cache and fallback handling                                |
+| `libs/portal/stalker/feature/src/lib/stalker-live-stream-layout/stalker-live-stream-layout.component.ts`             | active-channel EPG loading and controlled `app-epg-list` wiring |
+| `libs/portal/stalker/feature/src/lib/stalker-live-stream-layout/stalker-live-stream-layout.component.html`           | active panel template                                           |
+| `libs/portal/stalker/feature/src/lib/stalker-collection-channels-list/stalker-collection-channels-list.component.ts` | row preview loading                                             |
+| `libs/ui/shared-portals/src/lib/epg-list/epg-list.component.ts`                                                      | shared controlled EPG list with date navigator                  |
 
 ### Store API
 
@@ -215,6 +215,10 @@ playlists.
    `get_short_epg`
 
 The active panel no longer uses local EPG pagination or a "Load more" button.
+When Stalker live TV is playing through an internal player, the active panel is
+wrapped in the shared collapsible live EPG panel. The collapsed/expanded state
+uses the shared `live-epg-panel-state` preference and is only applied after a
+stream URL has been resolved; external playback keeps the full EPG-only panel.
 
 ### Channel row preview flow
 
@@ -238,10 +242,10 @@ derived locally from `bulkItvEpgByChannel`:
 
 EPG requests follow the standard Stalker request path:
 
-| Portal type | Auth path |
-| --- | --- |
-| Full Stalker portal | `StalkerSessionService.makeAuthenticatedRequest()` |
-| Simple Stalker portal | generic IPC request path via Electron |
+| Portal type           | Auth path                                          |
+| --------------------- | -------------------------------------------------- |
+| Full Stalker portal   | `StalkerSessionService.makeAuthenticatedRequest()` |
+| Simple Stalker portal | generic IPC request path via Electron              |
 
 No EPG-specific backend transport was needed; the Electron Stalker request
 handler forwards portal params directly.

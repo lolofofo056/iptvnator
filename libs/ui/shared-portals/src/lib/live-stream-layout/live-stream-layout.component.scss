@@ -20,6 +20,10 @@
     height: 100%;
 }
 
+.itv-container--epg-collapsed {
+    grid-template-rows: minmax(0, 1fr) 56px;
+}
+
 .itv-container-epg {
     display: grid;
     // Use auto for sidebar to respect the directive's width
@@ -63,6 +67,12 @@
     grid-area: epg;
     min-height: 0;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    &.epg-collapsed {
+        min-height: 56px;
+    }
 }
 
 .search-panel {
@@ -87,6 +97,11 @@
 }
 
 .epg-content > app-epg-view {
+    flex: 1;
+    min-height: 0;
+}
+
+.epg > app-live-epg-panel {
     flex: 1;
     min-height: 0;
 }
@@ -149,7 +164,11 @@
         border-radius: 4px;
         object-fit: cover;
         flex-shrink: 0;
-        background: color-mix(in srgb, var(--mat-sys-on-surface) 5%, transparent);
+        background: color-mix(
+            in srgb,
+            var(--mat-sys-on-surface) 5%,
+            transparent
+        );
     }
 
     span,

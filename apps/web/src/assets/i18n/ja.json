@@ -249,7 +249,10 @@
             "LANGUAGE": "言語",
             "SHOW_PROGRAM_DETAILS": "この番組の詳細を表示"
         },
-        "FETCH_SUCCESS": "EPGの取得に成功しました"
+        "FETCH_SUCCESS": "EPGの取得に成功しました",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

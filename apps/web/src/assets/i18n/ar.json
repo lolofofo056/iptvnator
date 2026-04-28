@@ -269,7 +269,10 @@
             "LANGUAGE": "اللغة",
             "SHOW_PROGRAM_DETAILS": "عرض تفاصيل البرنامج"
         },
-        "FETCH_SUCCESS": "تم جلب الدليل بنجاح."
+        "FETCH_SUCCESS": "تم جلب الدليل بنجاح.",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

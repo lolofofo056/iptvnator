@@ -327,7 +327,10 @@
         "TOTAL_CHANNELS": "Σύνολο καναλιών",
         "TOTAL_PROGRAMS": "Σύνολο προγραμμάτων",
         "UP_TO_DATE": "Το EPG είναι ενημερωμένο, δεν απαιτείται συγχρονισμός",
-        "RETRY": "Επανάληψη"
+        "RETRY": "Επανάληψη",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

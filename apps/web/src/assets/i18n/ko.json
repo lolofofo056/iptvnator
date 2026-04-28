@@ -214,7 +214,10 @@
             "DESCRIPTION": "설명",
             "LANGUAGE": "언어",
             "SHOW_PROGRAM_DETAILS": "이 프로그램에 대한 세부 정보 표시"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

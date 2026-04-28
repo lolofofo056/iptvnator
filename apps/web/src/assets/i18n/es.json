@@ -285,7 +285,10 @@
             "DESCRIPTION": "Descripción",
             "LANGUAGE": "Idioma",
             "SHOW_PROGRAM_DETAILS": "Mostrar detalles del programa"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

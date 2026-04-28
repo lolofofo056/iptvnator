@@ -126,6 +126,19 @@ The shared row should be reused instead of rebuilding channel markup per view.
 - Add bottom padding so the last program is not clipped
 - Current program card uses the same selection treatment as selected channels
 
+### Collapsible Live EPG
+
+- Live TV layouts with an internal player use `app-live-epg-panel` around the
+  EPG content.
+- Collapsed state is shared across M3U, Xtream, and Stalker with
+  `live-epg-panel-state`; missing or invalid values restore to expanded.
+- The collapsed panel is a slim current-program strip with a trailing progress
+  line and an expand button.
+- Do not render the collapsed strip for external MPV/VLC playback; those
+  layouts keep the full EPG-only panel.
+- Keep the EPG content mounted while collapsed so current-program state can
+  continue updating.
+
 ### EPG Card
 
 - Radius:

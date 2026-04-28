@@ -335,7 +335,10 @@
         "TOTAL_CHANNELS": "Toplam kanal",
         "TOTAL_PROGRAMS": "Toplam program",
         "UP_TO_DATE": "EPG güncel, senkronizasyona gerek yok",
-        "RETRY": "Tekrar Dene"
+        "RETRY": "Tekrar Dene",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

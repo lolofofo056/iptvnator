@@ -4,6 +4,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
+    LIVE_EPG_PANEL_STATE_STORAGE_KEY,
     PORTAL_PLAYER,
     ResizableDirective,
 } from '@iptvnator/portal/shared/util';
@@ -15,7 +16,11 @@ import { MockPipe } from 'ng-mocks';
 import { of } from 'rxjs';
 import { PlaylistsService } from 'services';
 import { EpgProgram } from 'shared-interfaces';
-import { WebPlayerViewComponent } from 'shared-portals';
+import {
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 import { StalkerLiveStreamLayoutComponent } from './stalker-live-stream-layout.component';
 
 @Component({
@@ -55,6 +60,21 @@ class StubEpgListComponent {
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
     readonly archivePlaybackAvailable = input<boolean | null>(null);
+}
+
+@Component({
+    selector: 'app-live-epg-panel',
+    standalone: true,
+    template: `
+        <div class="live-epg-panel-summary">{{ summary()?.title }}</div>
+        <ng-content />
+    `,
+})
+class StubLiveEpgPanelComponent {
+    readonly collapsed = input(false);
+    readonly summary = input<LiveEpgPanelSummary | null>(null);
+    readonly loading = input(false);
+    readonly collapsedChange = output<boolean>();
 }
 
 @Component({
@@ -184,11 +204,15 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         isLoadingBulkItvEpg.set(false);
         hasMoreChannels.set(false);
         page.set(0);
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
 
         resolveItvPlayback.mockReset();
         resolveItvPlayback.mockResolvedValue({
             streamUrl: 'https://example.com/alpha.m3u8',
         });
+        portalPlayer.isEmbeddedPlayer.mockReset();
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(true);
+        portalPlayer.openResolvedPlayback.mockClear();
         fetchChannelEpg.mockReset();
         fetchChannelEpg.mockResolvedValue([]);
         ensureBulkItvEpg.mockReset();
@@ -242,6 +266,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
                     imports: [
                         ChannelListItemComponent,
                         EpgListComponent,
+                        LiveEpgPanelComponent,
                         PortalEmptyStateComponent,
                         ResizableDirective,
                         TranslatePipe,
@@ -252,6 +277,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
                     imports: [
                         StubChannelListItemComponent,
                         StubEpgListComponent,
+                        StubLiveEpgPanelComponent,
                         StubPortalEmptyStateComponent,
                         StubResizableDirective,
                         MockPipe(
@@ -270,6 +296,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
 
     afterEach(() => {
         fixture?.destroy();
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
     });
 
     it('renders the controlled epg list and removes the load-more button', () => {
@@ -283,10 +310,75 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         ).toBeNull();
     });
 
-    it('does not reset live channels when loading the next lazy page', async () => {
-        hasMoreChannels.set(true);
+    it('restores the collapsed live EPG panel state after embedded playback starts', async () => {
+        fixture.destroy();
+        localStorage.setItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY, 'collapsed');
+
+        fixture = TestBed.createComponent(StalkerLiveStreamLayoutComponent);
+        component = fixture.componentInstance;
+        await component.playChannel(itvChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(true);
+    });
+
+    it('persists live EPG panel toggle changes', () => {
+        component.onLiveEpgPanelCollapsedChange(true);
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'collapsed'
+        );
+
+        component.onLiveEpgPanelCollapsedChange(false);
+
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'expanded'
+        );
+    });
+
+    it('does not render the collapsible panel for external playback', async () => {
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        await component.playChannel(itvChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('app-live-epg-panel')
+        ).toBeNull();
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(false);
+    });
+
+    it('renders the current EPG program in the collapsible panel summary', async () => {
         fixture.detectChanges();
         await fixture.whenStable();
+
+        await component.playChannel(itvChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.live-epg-panel-summary')
+                .textContent
+        ).toContain('Current Show');
+    });
+
+    it('does not reset live channels when loading the next lazy page', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        page.set(0);
+        hasMoreChannels.set(true);
         stalkerStore.setItvChannels.mockClear();
         stalkerStore.setPage.mockClear();
 

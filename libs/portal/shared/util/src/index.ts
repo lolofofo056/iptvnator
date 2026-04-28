@@ -10,6 +10,7 @@ export * from './lib/portal-navigation-actions';
 export * from './lib/portal-collection-context';
 export * from './lib/portal-collection-context.service';
 export * from './lib/portal-collection-items';
+export * from './lib/live-epg-panel-state';
 export * from './lib/remote-channel-navigation';
 export * from './lib/workspace-header-context.service';
 export * from './lib/workspace-view-command.types';

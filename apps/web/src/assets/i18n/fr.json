@@ -283,7 +283,10 @@
             "LANGUAGE": "Langue",
             "SHOW_PROGRAM_DETAILS": "Afficher les détails de ce programme"
         },
-        "FETCH_SUCCESS": "L'EPG a été récupéré avec succès"
+        "FETCH_SUCCESS": "L'EPG a été récupéré avec succès",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

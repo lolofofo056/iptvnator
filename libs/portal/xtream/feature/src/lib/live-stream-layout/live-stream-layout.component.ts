@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     Component,
@@ -22,8 +23,11 @@ import {
     getAdjacentChannelItem,
     getChannelItemByNumber,
     isWorkspaceLayoutRoute,
+    LiveEpgPanelState,
+    persistLiveEpgPanelState,
     persistPortalChannelSortMode,
     queryParamSignal,
+    restoreLiveEpgPanelState,
     restorePortalChannelSortMode,
 } from '@iptvnator/portal/shared/util';
 import {
@@ -34,7 +38,12 @@ import {
 } from '@iptvnator/portal/xtream/data-access';
 import { EpgListComponent, EpgProgramActivationEvent } from '@iptvnator/ui/epg';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
+import {
+    EpgViewComponent,
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 import { EpgItem, EpgProgram } from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { ActivatedRoute } from '@angular/router';
@@ -58,11 +67,13 @@ interface XtreamLiveChannelItem {
     imports: [
         EpgListComponent,
         EpgViewComponent,
+        LiveEpgPanelComponent,
         MatIcon,
         MatIconButton,
         MatMenuModule,
         MatProgressSpinnerModule,
         MatTooltipModule,
+        NgTemplateOutlet,
         PortalChannelsListComponent,
         PortalEmptyStateComponent,
         ResizableDirective,
@@ -141,6 +152,15 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             this.controlledEpgPrograms().length > 0 &&
             this.hasPastPrograms() &&
             !this.archivePlaybackAvailable()
+    );
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveEpgPanelSummary = computed(() =>
+        this.toLiveEpgPanelSummary(this.currentEpgItem())
     );
     readonly liveChannelSortLabel = computed(() =>
         getPortalChannelSortModeLabel(this.liveChannelSortMode())
@@ -321,6 +341,12 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         persistPortalChannelSortMode(LIVE_CHANNEL_SORT_STORAGE_KEY, mode);
     }
 
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
     ngOnDestroy(): void {
         this.unsubscribeRemoteChannelChange?.();
         this.unsubscribeRemoteCommand?.();
@@ -434,6 +460,20 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
                 program.stop ?? program.end,
                 program.stop_timestamp
             ),
+        };
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgItem | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop ?? program.end,
         };
     }
 

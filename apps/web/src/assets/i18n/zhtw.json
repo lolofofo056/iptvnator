@@ -260,7 +260,10 @@
             "DESCRIPTION": "說明",
             "LANGUAGE": "語言",
             "SHOW_PROGRAM_DETAILS": "顯示關於該節目的詳細資訊"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

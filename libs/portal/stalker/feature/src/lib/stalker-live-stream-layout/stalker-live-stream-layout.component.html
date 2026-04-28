@@ -82,20 +82,25 @@
                 <app-web-player-view [streamUrl]="streamUrl()" />
             </div>
         }
-        <div class="epg">
-            <div class="epg-content">
-                @if (isLoadingEpg()) {
-                    <div class="loading-indicator">
-                        <mat-spinner diameter="24" />
-                    </div>
-                } @else {
-                    <app-epg-list
-                        [controlledChannel]="controlledChannel()"
-                        [controlledPrograms]="activeEpgPrograms()"
-                        [controlledArchiveDays]="0"
-                    />
-                }
-            </div>
+        @let canCollapseEpgPanel = !!streamUrl() && isEmbeddedPlayer;
+        <div
+            class="epg"
+            [class.epg-collapsed]="
+                canCollapseEpgPanel && isLiveEpgPanelCollapsed()
+            "
+        >
+            @if (canCollapseEpgPanel) {
+                <app-live-epg-panel
+                    [collapsed]="isLiveEpgPanelCollapsed()"
+                    [summary]="liveEpgPanelSummary()"
+                    [loading]="isLoadingEpg()"
+                    (collapsedChange)="onLiveEpgPanelCollapsedChange($event)"
+                >
+                    <ng-container *ngTemplateOutlet="epgPanelContent" />
+                </app-live-epg-panel>
+            } @else {
+                <ng-container *ngTemplateOutlet="epgPanelContent" />
+            }
         </div>
     } @else {
         <app-portal-empty-state
@@ -104,3 +109,19 @@
         />
     }
 </div>
+
+<ng-template #epgPanelContent>
+    <div class="epg-content">
+        @if (isLoadingEpg()) {
+            <div class="loading-indicator">
+                <mat-spinner diameter="24" />
+            </div>
+        } @else {
+            <app-epg-list
+                [controlledChannel]="controlledChannel()"
+                [controlledPrograms]="activeEpgPrograms()"
+                [controlledArchiveDays]="0"
+            />
+        }
+    </div>
+</ng-template>

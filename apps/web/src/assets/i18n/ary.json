@@ -261,7 +261,10 @@
             "LANGUAGE": "اللغة",
             "SHOW_PROGRAM_DETAILS": "وري تفاصيل حول هاد البرنامج"
         },
-        "FETCH_SUCCESS": "EPG تجلب بنجاح"
+        "FETCH_SUCCESS": "EPG تجلب بنجاح",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

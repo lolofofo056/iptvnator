@@ -102,7 +102,8 @@ export const SettingsStore = signalStore(
         isEmbeddedPlayer() {
             return (
                 store.player() === VideoPlayer.VideoJs ||
-                store.player() === VideoPlayer.Html5Player
+                store.player() === VideoPlayer.Html5Player ||
+                store.player() === VideoPlayer.ArtPlayer
             );
         },
     })),

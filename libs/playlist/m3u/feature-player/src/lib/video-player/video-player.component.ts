@@ -39,19 +39,19 @@ import {
     Observable,
     Subscription,
     combineLatest,
-    combineLatestWith,
-    distinctUntilChanged,
     filter,
     map,
     startWith,
-    switchMap,
     take,
 } from 'rxjs';
 import {
     getAdjacentChannelItem,
     getChannelItemByNumber,
     isWorkspaceLayoutRoute,
+    persistLiveEpgPanelState,
     PORTAL_EXTERNAL_PLAYBACK,
+    restoreLiveEpgPanelState,
+    LiveEpgPanelState,
     WorkspaceHeaderContextService,
 } from '@iptvnator/portal/shared/util';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
@@ -62,6 +62,7 @@ import {
     SidebarComponent,
     VjsPlayerComponent,
 } from '@iptvnator/ui/playback';
+import { LiveEpgPanelComponent, LiveEpgPanelSummary } from 'shared-portals';
 import { ChannelListLoadingStateComponent } from 'components';
 import { DataService, PlaylistsService, SettingsStore } from 'services';
 import {
@@ -93,6 +94,7 @@ const M3U_SIDEBAR_DEFAULT_WIDTH = 460;
         CommonModule,
         EpgListComponent,
         HtmlVideoPlayerComponent,
+        LiveEpgPanelComponent,
         PortalEmptyStateComponent,
         ResizableDirective,
         SidebarComponent,
@@ -153,6 +155,12 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     readonly sidebarWidth = signal(M3U_SIDEBAR_DEFAULT_WIDTH);
     readonly sidebarMinWidth = M3U_SIDEBAR_MIN_WIDTH;
     readonly sidebarMaxWidth = M3U_SIDEBAR_MAX_WIDTH;
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
 
     /** Channels list */
     readonly channels$: Observable<Channel[]> = this.store.select(
@@ -161,6 +169,9 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 
     /** Current epg program */
     readonly epgProgram = this.store.selectSignal(selectCurrentEpgProgram);
+    readonly liveEpgPanelSummary = computed(() =>
+        this.toLiveEpgPanelSummary(this.epgProgram())
+    );
 
     /** Active M3U view (all, groups, favorites, recent) */
     readonly activeView = toSignal(
@@ -427,6 +438,12 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         this.persistSidebarWidth(this.sidebarStorageKey(), width);
     }
 
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
     /**
      * Opens a playlist provided as a url param
      * e.g. iptvnat.or?url=http://...
@@ -472,9 +489,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         );
 
         return this.clampSidebarWidth(
-            Number.isNaN(storedWidth)
-                ? M3U_SIDEBAR_DEFAULT_WIDTH
-                : storedWidth
+            Number.isNaN(storedWidth) ? M3U_SIDEBAR_DEFAULT_WIDTH : storedWidth
         );
     }
 
@@ -522,7 +537,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
                     _id: playlistId,
                     recentlyViewed: updatedPlaylist?.recentlyViewed ?? [],
                 } as PlaylistMeta,
-            }) as any
+            })
         );
     }
 
@@ -724,6 +739,20 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         }
 
         return !this.isExternalPlayer(this.playerSettings.player);
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgProgram | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop,
+        };
     }
 
     private getExternalSessionStateKey(

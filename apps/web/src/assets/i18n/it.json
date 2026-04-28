@@ -303,7 +303,10 @@
             "LANGUAGE": "Lingua",
             "SHOW_PROGRAM_DETAILS": "Visualizza dettagli su questo programma"
         },
-        "FETCH_SUCCESS": "EPG scaricato correttamente"
+        "FETCH_SUCCESS": "EPG scaricato correttamente",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

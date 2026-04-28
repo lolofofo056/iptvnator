@@ -459,7 +459,10 @@
         "TOTAL_CHANNELS": "Total channels",
         "TOTAL_PROGRAMS": "Total programs",
         "UP_TO_DATE": "EPG is up-to-date, no sync needed",
-        "RETRY": "Retry"
+        "RETRY": "Retry",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

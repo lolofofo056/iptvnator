@@ -1,6 +1,5 @@
 @let isEmbeddedPlayer = usesEmbeddedPlayer();
 @let streamUrl = activeStreamUrl();
-@let epgPrograms = controlledEpgPrograms();
 
 @if (selectedCategoryId()) {
     <div
@@ -79,48 +78,24 @@
                 <app-web-player-view [streamUrl]="streamUrl" />
             </div>
         }
-        <div class="epg">
-            <div class="epg-content">
-                @if (isLoadingEpg()) {
-                    <div class="loading-indicator">
-                        <mat-spinner diameter="24" />
-                    </div>
-                } @else if (isElectron && epgPrograms.length > 0) {
-                    @if (showArchiveUnavailableNotice()) {
-                        <div class="archive-unavailable-banner" role="status">
-                            <div class="archive-unavailable-banner__title">
-                                {{
-                                    'EPG.ARCHIVE_PLAYBACK_UNAVAILABLE_TITLE'
-                                        | translate
-                                }}
-                            </div>
-                            <div
-                                class="archive-unavailable-banner__description"
-                            >
-                                {{
-                                    'EPG.ARCHIVE_PLAYBACK_UNAVAILABLE_DESCRIPTION'
-                                        | translate
-                                }}
-                            </div>
-                        </div>
-                    }
-                    <app-epg-list
-                        [controlledPrograms]="epgPrograms"
-                        [controlledArchiveDays]="controlledArchiveDays()"
-                        [archivePlaybackAvailable]="
-                            archivePlaybackAvailable()
-                        "
-                        (programActivated)="onProgramActivated($event)"
-                    />
-                } @else if (!isElectron && epgItems().length > 0) {
-                    <app-epg-view [epgItems]="epgItems()" />
-                } @else {
-                    <app-portal-empty-state
-                        icon="event_busy"
-                        [message]="'EPG.EPG_NOT_AVAILABLE_CHANNEL_TITLE' | translate"
-                    />
-                }
-            </div>
+        <div
+            class="epg"
+            [class.epg-collapsed]="
+                isEmbeddedPlayer && isLiveEpgPanelCollapsed()
+            "
+        >
+            @if (isEmbeddedPlayer) {
+                <app-live-epg-panel
+                    [collapsed]="isLiveEpgPanelCollapsed()"
+                    [summary]="liveEpgPanelSummary()"
+                    [loading]="isLoadingEpg()"
+                    (collapsedChange)="onLiveEpgPanelCollapsedChange($event)"
+                >
+                    <ng-container *ngTemplateOutlet="epgPanelContent" />
+                </app-live-epg-panel>
+            } @else {
+                <ng-container *ngTemplateOutlet="epgPanelContent" />
+            }
         </div>
     } @else {
         <app-portal-empty-state
@@ -129,3 +104,42 @@
         />
     }
 </div>
+
+<ng-template #epgPanelContent>
+    <div class="epg-content">
+        @if (isLoadingEpg()) {
+            <div class="loading-indicator">
+                <mat-spinner diameter="24" />
+            </div>
+        } @else if (isElectron && controlledEpgPrograms().length > 0) {
+            @if (showArchiveUnavailableNotice()) {
+                <div class="archive-unavailable-banner" role="status">
+                    <div class="archive-unavailable-banner__title">
+                        {{
+                            'EPG.ARCHIVE_PLAYBACK_UNAVAILABLE_TITLE' | translate
+                        }}
+                    </div>
+                    <div class="archive-unavailable-banner__description">
+                        {{
+                            'EPG.ARCHIVE_PLAYBACK_UNAVAILABLE_DESCRIPTION'
+                                | translate
+                        }}
+                    </div>
+                </div>
+            }
+            <app-epg-list
+                [controlledPrograms]="controlledEpgPrograms()"
+                [controlledArchiveDays]="controlledArchiveDays()"
+                [archivePlaybackAvailable]="archivePlaybackAvailable()"
+                (programActivated)="onProgramActivated($event)"
+            />
+        } @else if (!isElectron && epgItems().length > 0) {
+            <app-epg-view [epgItems]="epgItems()" />
+        } @else {
+            <app-portal-empty-state
+                icon="event_busy"
+                [message]="'EPG.EPG_NOT_AVAILABLE_CHANNEL_TITLE' | translate"
+            />
+        }
+    </div>
+</ng-template>

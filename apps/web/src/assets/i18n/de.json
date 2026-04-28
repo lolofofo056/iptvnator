@@ -54,7 +54,10 @@
             "DESCRIPTION": "Beschreibung",
             "LANGUAGE": "Sprache",
             "SHOW_PROGRAM_DETAILS": "Details anzeigen"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "HOME": {
         "SUBTITLE": "Wählen Sie eine Playlist aus oder laden Sie eine neue Playlist hoch",
