@@ -47,12 +47,41 @@
 
 #program-list {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
     padding: 4px 8px 12px;
     display: flex;
     flex-direction: column;
     gap: 0;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--app-muted-color) 55%, transparent)
+        transparent;
+
+    &::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: color-mix(
+            in srgb,
+            var(--app-muted-color) 55%,
+            transparent
+        );
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+
+        &:hover {
+            background-color: var(--app-muted-color);
+            background-clip: content-box;
+        }
+    }
 }
 
 .program-item {
