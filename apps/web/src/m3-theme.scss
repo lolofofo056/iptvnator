@@ -80,6 +80,9 @@ html {
         transparent
     );
 
+    // Live / on-air accent (broadcast indicator)
+    --app-live-color: #d12c2c;
+
     // Content area
     --app-content-shadow: -2px 4px 12px rgba(0, 0, 0, 0.06);
 
@@ -151,6 +154,9 @@ html {
             var(--app-selection-color) 44%,
             transparent
         );
+
+        // Live / on-air accent (broadcast indicator)
+        --app-live-color: #ff8f8f;
 
         // Content area
         --app-content-shadow: -4px 8px 20px rgba(0, 0, 0, 0.18);

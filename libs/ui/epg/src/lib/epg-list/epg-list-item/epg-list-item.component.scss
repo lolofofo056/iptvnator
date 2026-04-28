@@ -33,9 +33,9 @@
 }
 
 .live {
-    color: #ff8f8f;
-    background: rgba(255, 95, 95, 0.12);
-    border-color: rgba(255, 95, 95, 0.28);
+    color: var(--app-live-color);
+    background: color-mix(in srgb, var(--app-live-color) 14%, transparent);
+    border-color: color-mix(in srgb, var(--app-live-color) 32%, transparent);
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -76,18 +76,17 @@
 
 .description-icon {
     margin-inline-start: auto;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 9px;
+    border-radius: 10px;
     cursor: pointer;
     opacity: 0.7;
     transition:
         opacity 0.15s ease,
-        background-color 0.15s ease,
-        transform 0.15s ease;
+        background-color 0.15s ease;
 
     mat-icon {
         width: 18px;
@@ -98,6 +97,5 @@
     &:hover {
         opacity: 1;
         background: color-mix(in srgb, currentColor 10%, transparent);
-        transform: translateY(-1px);
     }
 }
