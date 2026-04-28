@@ -7,13 +7,13 @@
 }
 
 .time {
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     line-height: 1;
     font-weight: 600;
     letter-spacing: 0.02em;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    opacity: 0.76;
+    color: var(--app-muted-color);
 }
 
 .badge {
