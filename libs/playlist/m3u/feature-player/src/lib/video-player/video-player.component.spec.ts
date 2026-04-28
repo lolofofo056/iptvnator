@@ -45,7 +45,10 @@ class StubLiveEpgPanelComponent {
     readonly collapsed = input(false);
     readonly summary = input<LiveEpgPanelSummary | null>(null);
     readonly loading = input(false);
+    readonly showDateNavigator = input(false);
+    readonly selectedDate = input<string | null>(null);
     readonly collapsedChange = output<boolean>();
+    readonly dateNavigation = output<'next' | 'prev'>();
 }
 
 describe('VideoPlayerComponent', () => {

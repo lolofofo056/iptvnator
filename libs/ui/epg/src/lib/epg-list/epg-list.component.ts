@@ -20,12 +20,16 @@ import { normalizeDateLocale } from '@iptvnator/pipes';
 import { Store } from '@ngrx/store';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { EpgActions, selectActive } from 'm3u-state';
-import { addDays, format, subDays } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { startWith } from 'rxjs';
 import { Channel, EpgChannel, EpgProgram } from 'shared-interfaces';
+import {
+    EPG_DATE_KEY_FORMAT,
+    EpgDateNavigationDirection,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '../epg-date';
 import { EpgListItemComponent } from './epg-list-item/epg-list-item.component';
-
-const DATE_FORMAT = 'yyyy-MM-dd';
 
 export interface EpgProgramActivationEvent {
     program: EpgProgram;
@@ -51,7 +55,12 @@ export class EpgListComponent {
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
     readonly archivePlaybackAvailable = input<boolean | null>(null);
+    readonly selectedDateInput = input<string | null>(null, {
+        alias: 'selectedDate',
+    });
+    readonly showDateNavigator = input(true);
     readonly programActivated = output<EpgProgramActivationEvent>();
+    readonly selectedDateChange = output<string>();
 
     private readonly store = inject(Store);
     private readonly epgService = inject(EpgService);
@@ -70,7 +79,10 @@ export class EpgListComponent {
     );
 
     readonly programList = viewChild<ElementRef<HTMLElement>>('programList');
-    readonly selectedDate = signal(format(new Date(), DATE_FORMAT));
+    readonly internalSelectedDate = signal(getTodayEpgDateKey());
+    readonly selectedDateKey = computed(
+        () => this.selectedDateInput() ?? this.internalSelectedDate()
+    );
     readonly timeNow = signal(new Date().toISOString());
     readonly currentTimeMs = computed(() => Date.parse(this.timeNow()));
     readonly currentLocale = computed(() => {
@@ -85,8 +97,8 @@ export class EpgListComponent {
             this.controlledChannel() !== null ||
             this.controlledPrograms() !== null
     );
-    readonly displayChannel = computed(
-        () => this.controlledChannel() ?? this.activeChannel()
+    readonly displayChannel = computed<Channel | null>(
+        () => this.controlledChannel() ?? this.activeChannel() ?? null
     );
     readonly channel = computed<EpgChannel | null>(() => {
         const channel = this.displayChannel();
@@ -96,7 +108,9 @@ export class EpgListComponent {
 
         return {
             id: channel.tvg?.id || '',
-            displayName: channel.name ? [{ lang: '', value: channel.name }] : [],
+            displayName: channel.name
+                ? [{ lang: '', value: channel.name }]
+                : [],
             url: channel.url ? [channel.url] : [],
             icon: channel.tvg?.logo ? [{ src: channel.tvg.logo }] : [],
         };
@@ -119,14 +133,14 @@ export class EpgListComponent {
         subDays(new Date(), this.archiveDays()).toISOString()
     );
     readonly archivePlaybackEnabled = computed(
-        () => this.archivePlaybackAvailable() ?? (this.archiveDays() > 0)
+        () => this.archivePlaybackAvailable() ?? this.archiveDays() > 0
     );
     readonly filteredItems = computed(() =>
         [...this.items()]
             .filter(
                 (item) =>
                     getProgramDateKey(item.start, item.startTimestamp) ===
-                    this.selectedDate()
+                    this.selectedDateKey()
             )
             .sort(
                 (left, right) =>
@@ -185,16 +199,14 @@ export class EpgListComponent {
         });
     }
 
-    changeDate(direction: 'next' | 'prev'): void {
-        const selectedDate = new Date(`${this.selectedDate()}T00:00:00`);
-        this.selectedDate.set(
-            format(
-                direction === 'next'
-                    ? addDays(selectedDate, 1)
-                    : subDays(selectedDate, 1),
-                DATE_FORMAT
-            )
-        );
+    changeDate(direction: EpgDateNavigationDirection): void {
+        const nextDate = shiftEpgDateKey(this.selectedDateKey(), direction);
+
+        if (this.selectedDateInput() == null) {
+            this.internalSelectedDate.set(nextDate);
+        }
+
+        this.selectedDateChange.emit(nextDate);
     }
 
     activateProgram(program: EpgProgram): void {
@@ -225,7 +237,8 @@ export class EpgListComponent {
 
     canActivateProgram(program: EpgProgram): boolean {
         return (
-            this.isProgramPlaying(program) || this.canPlayArchivedProgram(program)
+            this.isProgramPlaying(program) ||
+            this.canPlayArchivedProgram(program)
         );
     }
 
@@ -240,7 +253,9 @@ export class EpgListComponent {
         const total = stop - start;
         const elapsed = now - start;
 
-        return total > 0 ? Math.min(100, Math.max(0, (elapsed / total) * 100)) : 0;
+        return total > 0
+            ? Math.min(100, Math.max(0, (elapsed / total) * 100))
+            : 0;
     }
 
     isProgramPlaying(program: EpgProgram): boolean {
@@ -289,7 +304,7 @@ export class EpgListComponent {
     }
 
     private scheduleScrollToCurrentProgram(): void {
-        if (this.selectedDate() !== format(new Date(), DATE_FORMAT)) {
+        if (this.selectedDateKey() !== getTodayEpgDateKey()) {
             return;
         }
 
@@ -385,5 +400,5 @@ function getProgramDateKey(
         return '';
     }
 
-    return format(new Date(programTimeMs), DATE_FORMAT);
+    return format(new Date(programTimeMs), EPG_DATE_KEY_FORMAT);
 }

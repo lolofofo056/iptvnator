@@ -15,7 +15,10 @@ import {
             [collapsed]="collapsed"
             [summary]="summary"
             [loading]="loading"
+            [showDateNavigator]="showDateNavigator"
+            [selectedDate]="selectedDate"
             (collapsedChange)="collapsed = $event"
+            (dateNavigation)="dateDirection = $event"
         >
             <div class="projected-content">Projected EPG</div>
         </app-live-epg-panel>
@@ -24,6 +27,9 @@ import {
 class HostComponent {
     collapsed = false;
     loading = false;
+    showDateNavigator = false;
+    selectedDate = '2026-04-05';
+    dateDirection: 'next' | 'prev' | null = null;
     summary: LiveEpgPanelSummary | null = {
         title: 'Current Show',
         start: '2026-04-05T11:30:00.000Z',
@@ -106,5 +112,31 @@ describe('LiveEpgPanelComponent', () => {
             fixture.nativeElement.querySelector('.live-epg-panel__title')
                 .textContent
         ).toContain('EPG.NO_PROGRAM_INFO');
+    });
+
+    it('renders date navigation in the unified toolbar and emits day changes', () => {
+        fixture.componentInstance.showDateNavigator = true;
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.selected-date').textContent
+        ).toContain('April 5, Sunday');
+
+        fixture.nativeElement.querySelector('.next-day').click();
+
+        expect(fixture.componentInstance.dateDirection).toBe('next');
+    });
+
+    it('hides date navigation controls while collapsed', () => {
+        fixture.componentInstance.collapsed = true;
+        fixture.componentInstance.showDateNavigator = true;
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.live-epg-panel__date-chip')
+        ).toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('.live-epg-panel__date-nav')
+        ).toBeNull();
     });
 });

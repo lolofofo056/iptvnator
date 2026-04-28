@@ -60,6 +60,9 @@ class StubEpgListComponent {
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
     readonly archivePlaybackAvailable = input<boolean | null>(null);
+    readonly selectedDate = input<string | null>(null);
+    readonly showDateNavigator = input(true);
+    readonly selectedDateChange = output<string>();
 }
 
 @Component({
@@ -74,7 +77,10 @@ class StubLiveEpgPanelComponent {
     readonly collapsed = input(false);
     readonly summary = input<LiveEpgPanelSummary | null>(null);
     readonly loading = input(false);
+    readonly showDateNavigator = input(false);
+    readonly selectedDate = input<string | null>(null);
     readonly collapsedChange = output<boolean>();
+    readonly dateNavigation = output<'next' | 'prev'>();
 }
 
 @Component({

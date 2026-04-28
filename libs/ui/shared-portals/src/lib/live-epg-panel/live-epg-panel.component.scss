@@ -16,7 +16,7 @@
 .live-epg-panel__summary-bar {
     position: relative;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     column-gap: 8px;
     min-height: 56px;
@@ -45,17 +45,27 @@
 
 .live-epg-panel__summary {
     min-width: 0;
+    display: grid;
+    align-content: center;
+    row-gap: 3px;
+}
+
+.live-epg-panel__program-line {
+    min-width: 0;
     display: flex;
     align-items: baseline;
     gap: 8px;
 }
 
 .live-epg-panel__label {
-    flex-shrink: 0;
-    font-size: 0.7rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.61rem;
     line-height: 1;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.09em;
     text-transform: uppercase;
     color: var(--app-selection-color);
 }
@@ -65,7 +75,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.9rem;
+    font-size: 0.94rem;
     line-height: 1.25;
     font-weight: 600;
     color: var(--mat-sys-on-surface);
@@ -83,6 +93,67 @@
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: var(--mat-sys-on-surface-variant);
+}
+
+.live-epg-panel__date-nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    app-region: no-drag;
+
+    button {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        color: var(--mat-sys-on-surface-variant);
+
+        &:hover:not([disabled]) {
+            color: var(--mat-sys-on-surface);
+            background: color-mix(in srgb, currentColor 10%, transparent);
+        }
+    }
+}
+
+.live-epg-panel__selected-date {
+    min-width: 150px;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 0.83rem;
+    line-height: 1.2;
+    font-weight: 600;
+    color: var(--mat-sys-on-surface-variant);
+}
+
+.live-epg-panel__date-chip {
+    display: none;
+    min-width: 0;
+    max-width: 150px;
+    height: 36px;
+    padding-inline: 10px;
+    border-radius: 10px;
+    color: var(--mat-sys-on-surface-variant);
+    background: color-mix(in srgb, currentColor 7%, transparent);
+    app-region: no-drag;
+
+    mat-icon {
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        font-size: 18px;
+    }
+
+    span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
 }
 
 .live-epg-panel__progress {
@@ -119,6 +190,26 @@
         border-bottom-color: transparent;
     }
 
+    .live-epg-panel__date-nav {
+        display: none;
+    }
+
+    .live-epg-panel__summary {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+    }
+
+    .live-epg-panel__label {
+        flex-shrink: 0;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+    }
+
+    .live-epg-panel__program-line {
+        gap: 8px;
+    }
+
     .live-epg-panel__body {
         flex-basis: 0;
         block-size: 0;
@@ -126,5 +217,25 @@
         opacity: 0;
         visibility: hidden;
         pointer-events: none;
+    }
+}
+
+@media only screen and (max-width: 720px) {
+    .live-epg-panel__date-nav {
+        display: none;
+    }
+
+    .live-epg-panel__date-chip {
+        display: inline-flex;
+    }
+}
+
+@media only screen and (max-width: 560px) {
+    .live-epg-panel__label {
+        display: none;
+    }
+
+    .live-epg-panel--collapsed .live-epg-panel__label {
+        display: none;
     }
 }

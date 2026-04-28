@@ -22,8 +22,11 @@ import { isM3uCatchupPlaybackSupported } from 'm3u-utils';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import {
     COMPONENT_OVERLAY_REF,
+    EpgDateNavigationDirection,
     EpgListComponent,
+    getTodayEpgDateKey,
     MultiEpgContainerComponent,
+    shiftEpgDateKey,
 } from '@iptvnator/ui/epg';
 import {
     ChannelActions,
@@ -158,6 +161,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     readonly liveEpgPanelState = signal<LiveEpgPanelState>(
         restoreLiveEpgPanelState()
     );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
     );
@@ -442,6 +446,16 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
         this.liveEpgPanelState.set(state);
         persistLiveEpgPanelState(state);
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
     }
 
     /**

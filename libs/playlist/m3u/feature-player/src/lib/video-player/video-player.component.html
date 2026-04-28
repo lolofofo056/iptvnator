@@ -91,14 +91,22 @@
                     <app-live-epg-panel
                         [collapsed]="isLiveEpgPanelCollapsed()"
                         [summary]="liveEpgPanelSummary()"
+                        [showDateNavigator]="true"
+                        [selectedDate]="selectedLiveEpgDate()"
                         (collapsedChange)="
                             onLiveEpgPanelCollapsedChange($event)
                         "
+                        (dateNavigation)="onLiveEpgDateNavigation($event)"
                     >
                         <div class="epg-content">
                             <app-epg-list
+                                [selectedDate]="selectedLiveEpgDate()"
+                                [showDateNavigator]="false"
                                 [archivePlaybackAvailable]="
                                     archivePlaybackAvailable()
+                                "
+                                (selectedDateChange)="
+                                    onLiveEpgSelectedDateChange($event)
                                 "
                             />
                         </div>

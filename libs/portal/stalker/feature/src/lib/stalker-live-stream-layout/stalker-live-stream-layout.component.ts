@@ -24,7 +24,12 @@ import {
     EpgProgram,
     ResolvedPortalPlayback,
 } from 'shared-interfaces';
-import { EpgListComponent } from '@iptvnator/ui/epg';
+import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
 import {
     LiveEpgPanelComponent,
     LiveEpgPanelSummary,
@@ -120,6 +125,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly liveEpgPanelState = signal<LiveEpgPanelState>(
         restoreLiveEpgPanelState()
     );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
     );
@@ -361,6 +367,16 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
         this.liveEpgPanelState.set(state);
         persistLiveEpgPanelState(state);
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
     }
 
     private async loadEpgForChannel(item: StalkerItvChannel) {

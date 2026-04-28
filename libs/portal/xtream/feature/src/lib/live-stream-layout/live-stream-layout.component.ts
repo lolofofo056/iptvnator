@@ -36,7 +36,13 @@ import {
     XtreamUrlService,
     XtreamStore,
 } from '@iptvnator/portal/xtream/data-access';
-import { EpgListComponent, EpgProgramActivationEvent } from '@iptvnator/ui/epg';
+import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    EpgProgramActivationEvent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import {
     EpgViewComponent,
@@ -156,6 +162,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     readonly liveEpgPanelState = signal<LiveEpgPanelState>(
         restoreLiveEpgPanelState()
     );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
     );
@@ -345,6 +352,16 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
         this.liveEpgPanelState.set(state);
         persistLiveEpgPanelState(state);
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
     }
 
     ngOnDestroy(): void {

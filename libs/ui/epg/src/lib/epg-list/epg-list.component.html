@@ -1,33 +1,35 @@
 @let items = filteredItems();
 @let timeshiftLimit = timeshiftUntil();
 
-<!-- channel info panel -->
-<div id="channel-header" color="primary">
-    <div id="date-navigator">
-        <button
-            class="previous-day"
-            mat-icon-button
-            (click)="changeDate('prev')"
-            [matTooltip]="'EPG.PREVIOUS_DAY' | translate"
-        >
-            <mat-icon>chevron_left</mat-icon>
-        </button>
-        <span class="selected-date">
-            {{
-                selectedDate()
-                    | date: 'MMMM d, EEEE' : undefined : currentLocale()
-            }}</span
-        >
-        <button
-            class="next-day"
-            mat-icon-button
-            (click)="changeDate('next')"
-            [matTooltip]="'EPG.NEXT_DAY' | translate"
-        >
-            <mat-icon>chevron_right</mat-icon>
-        </button>
+@if (showDateNavigator()) {
+    <!-- channel info panel -->
+    <div id="channel-header" color="primary">
+        <div id="date-navigator">
+            <button
+                class="previous-day"
+                mat-icon-button
+                (click)="changeDate('prev')"
+                [matTooltip]="'EPG.PREVIOUS_DAY' | translate"
+            >
+                <mat-icon>chevron_left</mat-icon>
+            </button>
+            <span class="selected-date">
+                {{
+                    selectedDateKey()
+                        | date: 'MMMM d, EEEE' : undefined : currentLocale()
+                }}</span
+            >
+            <button
+                class="next-day"
+                mat-icon-button
+                (click)="changeDate('next')"
+                [matTooltip]="'EPG.NEXT_DAY' | translate"
+            >
+                <mat-icon>chevron_right</mat-icon>
+            </button>
+        </div>
     </div>
-</div>
+}
 
 @if (timeshiftLimit) {
     <!-- program list -->

@@ -243,6 +243,34 @@ describe('EpgListComponent', () => {
                 .textContent.trim()
         ).toContain('Sonntag');
     });
+
+    it('can hide its internal date navigator for a parent-owned toolbar', () => {
+        fixture.componentRef.setInput('controlledPrograms', buildPrograms());
+        fixture.componentRef.setInput('showDateNavigator', false);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('#channel-header')
+        ).toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('#program-list')
+        ).not.toBeNull();
+    });
+
+    it('emits date changes when the selected date is controlled', () => {
+        const emittedDates: string[] = [];
+        component.selectedDateChange.subscribe((date) =>
+            emittedDates.push(date)
+        );
+        fixture.componentRef.setInput('selectedDate', '2026-04-04');
+        fixture.componentRef.setInput('controlledPrograms', buildPrograms());
+        fixture.detectChanges();
+
+        component.changeDate('next');
+
+        expect(emittedDates).toEqual(['2026-04-05']);
+        expect(component.selectedDateKey()).toBe('2026-04-04');
+    });
 });
 
 function buildPrograms(overrides?: {
@@ -253,11 +281,9 @@ function buildPrograms(overrides?: {
 }): EpgProgram[] {
     const pastStart = '2026-04-05T09:00:00.000Z';
     const pastStop = '2026-04-05T10:00:00.000Z';
-    const currentStart =
-        overrides?.currentStart ?? '2026-04-05T11:30:00.000Z';
+    const currentStart = overrides?.currentStart ?? '2026-04-05T11:30:00.000Z';
     const currentStop = overrides?.currentStop ?? '2026-04-05T12:30:00.000Z';
-    const futureStart =
-        overrides?.futureStart ?? '2026-04-05T12:30:00.000Z';
+    const futureStart = overrides?.futureStart ?? '2026-04-05T12:30:00.000Z';
     const futureStop = overrides?.futureStop ?? '2026-04-05T13:30:00.000Z';
 
     return [

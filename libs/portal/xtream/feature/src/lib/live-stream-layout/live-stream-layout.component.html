@@ -89,12 +89,25 @@
                     [collapsed]="isLiveEpgPanelCollapsed()"
                     [summary]="liveEpgPanelSummary()"
                     [loading]="isLoadingEpg()"
+                    [showDateNavigator]="true"
+                    [selectedDate]="selectedLiveEpgDate()"
                     (collapsedChange)="onLiveEpgPanelCollapsedChange($event)"
+                    (dateNavigation)="onLiveEpgDateNavigation($event)"
                 >
-                    <ng-container *ngTemplateOutlet="epgPanelContent" />
+                    <ng-container
+                        *ngTemplateOutlet="
+                            epgPanelContent;
+                            context: { unifiedDateNavigator: true }
+                        "
+                    />
                 </app-live-epg-panel>
             } @else {
-                <ng-container *ngTemplateOutlet="epgPanelContent" />
+                <ng-container
+                    *ngTemplateOutlet="
+                        epgPanelContent;
+                        context: { unifiedDateNavigator: false }
+                    "
+                />
             }
         </div>
     } @else {
@@ -105,7 +118,7 @@
     }
 </div>
 
-<ng-template #epgPanelContent>
+<ng-template #epgPanelContent let-unifiedDateNavigator="unifiedDateNavigator">
     <div class="epg-content">
         @if (isLoadingEpg()) {
             <div class="loading-indicator">
@@ -131,7 +144,14 @@
                 [controlledPrograms]="controlledEpgPrograms()"
                 [controlledArchiveDays]="controlledArchiveDays()"
                 [archivePlaybackAvailable]="archivePlaybackAvailable()"
+                [selectedDate]="
+                    unifiedDateNavigator ? selectedLiveEpgDate() : null
+                "
+                [showDateNavigator]="!unifiedDateNavigator"
                 (programActivated)="onProgramActivated($event)"
+                (selectedDateChange)="
+                    unifiedDateNavigator && onLiveEpgSelectedDateChange($event)
+                "
             />
         } @else if (!isElectron && epgItems().length > 0) {
             <app-epg-view [epgItems]="epgItems()" />
