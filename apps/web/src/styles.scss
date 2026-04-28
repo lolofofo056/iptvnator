@@ -30,6 +30,7 @@
 // Always-visible themed scrollbar. Apply to scroll containers that should
 // reserve gutter and not rely on macOS overlay scrollbars (which auto-fade).
 .app-scrollbar {
+    overflow-y: scroll;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
     scrollbar-color: color-mix(in srgb, var(--app-muted-color) 55%, transparent)
