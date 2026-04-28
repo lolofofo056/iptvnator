@@ -33,7 +33,7 @@
 
 @if (timeshiftLimit) {
     <!-- program list -->
-    <div id="program-list" #programList>
+    <div id="program-list" class="app-scrollbar" #programList>
         @if (items.length > 0) {
             @for (program of items; track $index) {
                 @if (!canActivateProgram(program)) {
