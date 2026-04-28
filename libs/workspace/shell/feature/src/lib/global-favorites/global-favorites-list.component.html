@@ -13,7 +13,7 @@
     </mat-form-field>
 </div>
 
-<div class="nav-list" cdkDropList (cdkDropListDropped)="onDrop($event)">
+<div class="nav-list app-scrollbar" cdkDropList (cdkDropListDropped)="onDrop($event)">
     @if (enrichedChannels().length === 0) {
         <div class="empty-state">
             <mat-icon class="empty-icon">star_border</mat-icon>
