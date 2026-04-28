@@ -23,7 +23,10 @@
 <div class="content-container">
     @if (activeDetail()) {
         @if (shouldUseInlinePlayer()) {
-            <div class="video-player" [class.video-player--radio]="isRadioSelection()">
+            <div
+                class="video-player"
+                [class.video-player--radio]="isRadioSelection()"
+            >
                 @if (isRadioSelection()) {
                     <button
                         mat-icon-button
@@ -93,7 +96,12 @@
         }
 
         @if (!isRadioSelection()) {
-            <div class="epg">
+            <div
+                class="epg"
+                [class.epg-collapsed]="
+                    shouldUseInlinePlayer() && isLiveEpgPanelCollapsed()
+                "
+            >
                 @if (!shouldUseInlinePlayer()) {
                     <div class="player-toolbar">
                         <span class="player-title">{{
@@ -108,19 +116,55 @@
                         </button>
                     </div>
                 }
-                <div class="epg-content">
-                    @if (isM3uSelection()) {
-                        <app-epg-list
-                            [controlledChannel]="currentM3uChannel()"
-                            [controlledPrograms]="currentM3uPrograms()"
-                            [archivePlaybackAvailable]="
-                                currentM3uArchivePlaybackAvailable()
-                            "
-                        />
-                    } @else {
-                        <app-epg-view [epgItems]="currentPortalEpgItems()" />
-                    }
-                </div>
+                @if (shouldUseInlinePlayer()) {
+                    <app-live-epg-panel
+                        [collapsed]="isLiveEpgPanelCollapsed()"
+                        [summary]="liveEpgPanelSummary()"
+                        [showDateNavigator]="isM3uSelection()"
+                        [selectedDate]="selectedLiveEpgDate()"
+                        (collapsedChange)="
+                            onLiveEpgPanelCollapsedChange($event)
+                        "
+                        (dateNavigation)="onLiveEpgDateNavigation($event)"
+                    >
+                        <div class="epg-content">
+                            @if (isM3uSelection()) {
+                                <app-epg-list
+                                    [controlledChannel]="currentM3uChannel()"
+                                    [controlledPrograms]="currentM3uPrograms()"
+                                    [archivePlaybackAvailable]="
+                                        currentM3uArchivePlaybackAvailable()
+                                    "
+                                    [selectedDate]="selectedLiveEpgDate()"
+                                    [showDateNavigator]="false"
+                                    (selectedDateChange)="
+                                        onLiveEpgSelectedDateChange($event)
+                                    "
+                                />
+                            } @else {
+                                <app-epg-view
+                                    [epgItems]="currentPortalEpgItems()"
+                                />
+                            }
+                        </div>
+                    </app-live-epg-panel>
+                } @else {
+                    <div class="epg-content">
+                        @if (isM3uSelection()) {
+                            <app-epg-list
+                                [controlledChannel]="currentM3uChannel()"
+                                [controlledPrograms]="currentM3uPrograms()"
+                                [archivePlaybackAvailable]="
+                                    currentM3uArchivePlaybackAvailable()
+                                "
+                            />
+                        } @else {
+                            <app-epg-view
+                                [epgItems]="currentPortalEpgItems()"
+                            />
+                        }
+                    </div>
+                }
             </div>
         }
     } @else {
