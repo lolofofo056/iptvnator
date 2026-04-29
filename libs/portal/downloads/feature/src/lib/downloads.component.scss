@@ -5,6 +5,35 @@
     min-height: 0;
 }
 
+%downloads-skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: color-mix(
+        in srgb,
+        var(--app-widget-header-bg, var(--mat-sys-surface-container-high)) 56%,
+        var(--app-body-color, var(--mat-sys-on-surface-variant)) 44%
+    );
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            100deg,
+            transparent 8%,
+            color-mix(
+                    in srgb,
+                    var(--app-heading-color, var(--mat-sys-on-surface)) 18%,
+                    transparent
+                )
+                44%,
+            transparent 74%
+        );
+        transform: translateX(-120%);
+        animation: downloads-skeleton-shimmer 1.15s ease-in-out infinite;
+    }
+}
+
 .downloads-layout {
     display: flex;
     flex: 1;
@@ -143,6 +172,12 @@
         overflow-x: hidden;
         padding: 0 16px;
         container-type: inline-size;
+
+        &--loading {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
     }
 
     &__list {
@@ -151,6 +186,111 @@
         gap: 12px;
         padding-bottom: 24px;
         align-content: start;
+
+        &--skeleton {
+            pointer-events: none;
+        }
+    }
+
+    &__loading-label {
+        margin: 0;
+        padding: 2px 4px 0;
+        font-size: 0.86rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        color: var(--mat-sys-on-surface);
+    }
+
+    &__skeleton-item {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+        align-items: stretch;
+        gap: 1rem;
+        min-width: 0;
+        min-height: 124px;
+        padding: 1rem;
+        border-radius: 14px;
+        background: color-mix(
+            in srgb,
+            var(--app-widget-bg, var(--mat-sys-surface-container-high)) 88%,
+            var(--mat-sys-surface-container) 12%
+        );
+        border: 1px solid var(--app-separator, var(--mat-sys-outline-variant));
+        box-shadow: var(--app-widget-shadow, none);
+    }
+
+    &__skeleton-poster {
+        @extend %downloads-skeleton-shimmer;
+        width: 64px;
+        height: 90px;
+        border-radius: 10px;
+        border: 1px solid var(--app-separator, var(--mat-sys-outline-variant));
+    }
+
+    &__skeleton-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+        min-width: 0;
+        min-height: 90px;
+    }
+
+    &__skeleton-title {
+        @extend %downloads-skeleton-shimmer;
+        width: min(70%, 280px);
+        height: 13px;
+        border-radius: 999px;
+
+        &--short {
+            width: min(48%, 190px);
+        }
+    }
+
+    &__skeleton-meta {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+
+        span {
+            @extend %downloads-skeleton-shimmer;
+            width: 88px;
+            height: 20px;
+            border-radius: 999px;
+
+            &:last-child {
+                width: 132px;
+            }
+        }
+    }
+
+    &__skeleton-progress {
+        @extend %downloads-skeleton-shimmer;
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        margin-top: 0.05rem;
+    }
+
+    &__skeleton-actions {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.35rem;
+        margin-top: auto;
+        padding-top: 0.65rem;
+        border-top: 1px solid
+            color-mix(
+                in srgb,
+                var(--app-separator, var(--mat-sys-outline-variant)) 72%,
+                transparent
+            );
+
+        span {
+            @extend %downloads-skeleton-shimmer;
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+        }
     }
 
     &__item {
@@ -414,5 +554,28 @@
 @container (max-width: 760px) {
     .downloads__item {
         align-items: start;
+    }
+
+    .downloads__skeleton-item {
+        align-items: start;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .downloads__skeleton-poster,
+    .downloads__skeleton-title,
+    .downloads__skeleton-meta span,
+    .downloads__skeleton-progress,
+    .downloads__skeleton-actions span {
+        &::after {
+            animation: none;
+            transform: none;
+        }
+    }
+}
+
+@keyframes downloads-skeleton-shimmer {
+    100% {
+        transform: translateX(120%);
     }
 }
