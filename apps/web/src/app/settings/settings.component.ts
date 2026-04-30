@@ -20,6 +20,7 @@ import {
     Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
     MAT_DIALOG_DATA,
@@ -57,6 +58,7 @@ import {
 } from 'services';
 import {
     /* EmbeddedMpvSupport, */
+    CoverSize,
     Language,
     StartupBehavior,
     StreamFormat,
@@ -93,6 +95,12 @@ interface StartupBehaviorOption {
     labelKey: string;
 }
 
+interface CoverSizeOption {
+    value: CoverSize;
+    icon: string;
+    labelKey: string;
+}
+
 type SettingsPlaylistDeleteSummary =
     SettingsDeleteAllPlaylistsDialogData['summary'];
 
@@ -104,6 +112,7 @@ type SettingsPlaylistDeleteSummary =
         EpgSourceStatusComponent,
         FormsModule,
         MatButtonModule,
+        MatButtonToggleModule,
         MatCheckboxModule,
         MatDividerModule,
         MatIconModule,
@@ -225,6 +234,24 @@ export class SettingsComponent implements OnInit, OnDestroy {
         },
     ];
 
+    readonly coverSizeOptions: CoverSizeOption[] = [
+        {
+            value: 'small',
+            icon: 'view_module',
+            labelKey: 'SETTINGS.COVER_SIZE_SMALL',
+        },
+        {
+            value: 'medium',
+            icon: 'view_comfy',
+            labelKey: 'SETTINGS.COVER_SIZE_MEDIUM',
+        },
+        {
+            value: 'large',
+            icon: 'view_quilt',
+            labelKey: 'SETTINGS.COVER_SIZE_LARGE',
+        },
+    ];
+
     readonly startupBehaviorOptions: StartupBehaviorOption[] = [
         {
             value: StartupBehavior.FirstView,
@@ -260,6 +287,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 Validators.pattern(/^\d+$/),
             ],
         ],
+        coverSize: 'medium' as CoverSize,
     });
 
     /** Form array with epg sources */
@@ -532,6 +560,17 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.settingsForm.get('theme')?.markAsDirty();
         this.settingsForm.markAsDirty();
         this.settingsService.changeTheme(theme);
+    }
+
+    selectCoverSize(size: CoverSize): void {
+        if (this.settingsForm.value.coverSize === size) {
+            return;
+        }
+
+        this.settingsForm.patchValue({ coverSize: size });
+        this.settingsForm.get('coverSize')?.markAsDirty();
+        this.settingsForm.markAsDirty();
+        this.settingsStore.updateSettings({ coverSize: size });
     }
 
     /**

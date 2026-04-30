@@ -1,7 +1,7 @@
 :host {
     display: block;
-    --rail-card-width: 172px;
-    --rail-gap: 14px;
+    --rail-card-width: var(--cover-rail-width, 172px);
+    --rail-gap: var(--cover-gap, 14px);
     --rail-radius: 12px;
 }
 
@@ -444,6 +444,6 @@
 
 @media (max-width: 720px) {
     :host {
-        --rail-card-width: 140px;
+        --rail-card-width: min(var(--cover-rail-width, 172px), 140px);
     }
 }

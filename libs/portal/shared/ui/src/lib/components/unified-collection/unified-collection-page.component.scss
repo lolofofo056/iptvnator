@@ -16,8 +16,11 @@
     flex: 1;
     overflow: hidden;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(var(--cover-grid-min-width, 148px), 1fr)
+    );
+    gap: var(--cover-gap, 16px);
     padding: 16px;
     align-content: start;
 }

@@ -1,4 +1,4 @@
-import { Component, HostBinding, inject, OnInit } from '@angular/core';
+import { Component, effect, HostBinding, inject, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterOutlet } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
@@ -9,7 +9,7 @@ import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
 import { EpgProgressPanelComponent } from '@iptvnator/ui/epg/progress-panel';
 import { PlaylistActions, selectAllPlaylistsMeta } from 'm3u-state';
 import { filter, take } from 'rxjs';
-import { DataService } from 'services';
+import { DataService, SettingsStore } from 'services';
 import {
     AUTO_UPDATE_PLAYLISTS,
     Language,
@@ -39,6 +39,7 @@ export class AppComponent implements OnInit {
     private store = inject(Store);
     private translate = inject(TranslateService);
     private settingsService = inject(SettingsService);
+    private settingsStore = inject(SettingsStore);
     private readonly workspaceShellActions = inject(WORKSPACE_SHELL_ACTIONS);
 
     /** Default language as fallback */
@@ -64,6 +65,11 @@ export class AppComponent implements OnInit {
                 });
             }
         }
+        effect(() => {
+            const size = this.settingsStore.coverSize?.() ?? 'medium';
+            document.documentElement.dataset.coverSize = size;
+        });
+
         if (window.electron) {
             document.addEventListener('keydown', (event) => {
                 if (event.ctrlKey || event.metaKey) {

@@ -1,6 +1,6 @@
 :host {
     display: block;
-    --rail-gap: 16px;
+    --rail-gap: var(--cover-gap, 16px);
 }
 
 .rail {

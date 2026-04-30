@@ -119,6 +119,49 @@
                     </div>
                 </div>
 
+                <div class="setting-item setting-item--full-control">
+                    <div class="setting-item__meta">
+                        <h4>{{ 'SETTINGS.COVER_SIZE' | translate }}</h4>
+                        <p>{{ 'SETTINGS.COVER_SIZE_DESCRIPTION' | translate }}</p>
+                    </div>
+                    <div class="setting-item__control">
+                        <div
+                            class="theme-switcher"
+                            role="radiogroup"
+                            [attr.aria-label]="'SETTINGS.COVER_SIZE' | translate"
+                            data-test-id="select-cover-size"
+                        >
+                            @for (
+                                option of coverSizeOptions;
+                                track option.value
+                            ) {
+                                <button
+                                    type="button"
+                                    class="theme-switcher__option"
+                                    [class.theme-switcher__option--selected]="
+                                        settingsForm.value.coverSize ===
+                                        option.value
+                                    "
+                                    [attr.aria-checked]="
+                                        settingsForm.value.coverSize ===
+                                        option.value
+                                    "
+                                    [attr.data-test-id]="
+                                        'cover-size-' + option.value
+                                    "
+                                    role="radio"
+                                    (click)="selectCoverSize(option.value)"
+                                >
+                                    <mat-icon>{{ option.icon }}</mat-icon>
+                                    <span>{{
+                                        option.labelKey | translate
+                                    }}</span>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
                 <div class="setting-item">
                     <div class="setting-item__meta">
                         <h4>{{ 'SETTINGS.SHOW_DASHBOARD' | translate }}</h4>

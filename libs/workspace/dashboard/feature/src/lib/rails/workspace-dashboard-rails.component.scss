@@ -417,18 +417,17 @@
 
 .rails-page__skeleton-track {
     display: flex;
-    gap: 14px;
+    gap: var(--cover-gap, 14px);
     padding: 4px 0 16px;
     overflow: hidden;
 }
 
 .rails-page__skeleton-card {
     @extend %skeleton-shimmer;
-    // Matches the real .rail__card width (--rail-card-width: 172px) and
-    // .rail__art aspect-ratio 2/3, so when cards arrive the geometry is
-    // identical and there's no layout shift.
-    flex: 0 0 172px;
-    width: 172px;
+    // Mirrors the real .rail__card width (--cover-rail-width) so geometry
+    // matches when cards arrive — no layout shift.
+    flex: 0 0 var(--cover-rail-width, 172px);
+    width: var(--cover-rail-width, 172px);
     aspect-ratio: 2 / 3;
     border-radius: 12px;
 }
@@ -474,8 +473,8 @@
     }
 
     .rails-page__skeleton-card {
-        flex: 0 0 140px;
-        width: 140px;
+        flex: 0 0 min(var(--cover-rail-width, 172px), 140px);
+        width: min(var(--cover-rail-width, 172px), 140px);
     }
 
     .hero__title {

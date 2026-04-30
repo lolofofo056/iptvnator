@@ -56,9 +56,7 @@ export function resolveGridRating(
 
 @Component({
     selector: 'app-grid-list',
-    template: `<div
-            class="grid grid-cols-[repeat(auto-fill,minmax(148px,1fr))] gap-4"
-        >
+    template: `<div class="grid-list__grid">
             @if (isLoading()) {
                 @for (row of skeletonRows(); track row) {
                     <div class="grid-skeleton-card" aria-hidden="true">

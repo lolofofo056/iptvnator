@@ -51,6 +51,9 @@ export class ContentCardComponent {
     /** Whether to show placeholder when no poster */
     readonly showPlaceholder = input<boolean>(true);
 
+    /** Whether to render the type badge (live/movie/series) on the poster */
+    readonly showTypeBadge = input<boolean>(true);
+
     /** Emitted when the card is clicked */
     readonly cardClick = output<void>();
 
