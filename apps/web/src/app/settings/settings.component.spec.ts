@@ -78,6 +78,7 @@ const DEFAULT_SETTINGS = {
     remoteControl: false,
     remoteControlPort: 8765,
     epgUrl: [],
+    coverSize: 'medium',
 };
 
 class MockSettingsStore {
