@@ -403,7 +403,8 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             },
             item.xtream_id,
             startTimestamp,
-            stopTimestamp
+            stopTimestamp,
+            playlist.serverTimezone
         );
 
         this.activeStreamUrl.set(catchupUrl);

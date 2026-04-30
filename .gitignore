@@ -65,3 +65,4 @@ testem.log
 Thumbs.db
 .angular
 .astro
+.claude/settings.local.json

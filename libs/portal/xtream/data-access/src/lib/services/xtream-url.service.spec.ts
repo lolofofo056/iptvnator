@@ -76,4 +76,35 @@ describe('XtreamUrlService', () => {
             'legacy'
         );
     });
+
+    describe('formatCatchupStartTime (via constructCatchupUrl)', () => {
+        // 2025-03-01 02:00:00 UTC = 2025-02-28 21:00:00 America/New_York
+        const timestamp = 1740794400;
+
+        it('formats time in the server timezone when provided', () => {
+            const url = service.constructCatchupUrl(
+                credentials,
+                101,
+                timestamp,
+                timestamp + 3600,
+                'rest',
+                'America/New_York'
+            );
+            expect(url).toContain('2025-02-28:21-00');
+        });
+
+        it('falls back to client local time when no timezone is given', () => {
+            const url = service.constructCatchupUrl(
+                credentials,
+                101,
+                timestamp,
+                timestamp + 3600,
+                'rest'
+            );
+            const date = new Date(timestamp * 1000);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const expected = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}:${pad(date.getHours())}-${pad(date.getMinutes())}`;
+            expect(url).toContain(expected);
+        });
+    });
 });

@@ -102,13 +102,17 @@ export class XtreamUrlService {
         streamId: number,
         startTimestamp: number,
         stopTimestamp: number,
-        scheme: XtreamCatchupScheme
+        scheme: XtreamCatchupScheme,
+        serverTimezone?: string
     ): string {
         const durationMinutes = Math.max(
             1,
             Math.round((stopTimestamp - startTimestamp) / 60)
         );
-        const timeString = this.formatCatchupStartTime(startTimestamp);
+        const timeString = this.formatCatchupStartTime(
+            startTimestamp,
+            serverTimezone
+        );
 
         if (scheme === 'legacy') {
             const params = new URLSearchParams({
@@ -129,14 +133,16 @@ export class XtreamUrlService {
         credentials: XtreamCredentials,
         streamId: number,
         startTimestamp: number,
-        stopTimestamp: number
+        stopTimestamp: number,
+        serverTimezone?: string
     ): Promise<string> {
         const scheme = await this.getCatchupScheme(
             playlistId,
             credentials,
             streamId,
             startTimestamp,
-            stopTimestamp
+            stopTimestamp,
+            serverTimezone
         );
 
         return this.constructCatchupUrl(
@@ -144,7 +150,8 @@ export class XtreamUrlService {
             streamId,
             startTimestamp,
             stopTimestamp,
-            scheme
+            scheme,
+            serverTimezone
         );
     }
 
@@ -153,7 +160,8 @@ export class XtreamUrlService {
         credentials: XtreamCredentials,
         streamId: number,
         startTimestamp: number,
-        stopTimestamp: number
+        stopTimestamp: number,
+        serverTimezone?: string
     ): Promise<XtreamCatchupScheme> {
         const cacheKey = `${XTREAM_CATCHUP_SCHEME_KEY_PREFIX}${playlistId}`;
         const cached = this.catchupSchemeCache.get(cacheKey);
@@ -177,7 +185,8 @@ export class XtreamUrlService {
             credentials,
             streamId,
             startTimestamp,
-            stopTimestamp
+            stopTimestamp,
+            serverTimezone
         ).finally(() => {
             this.catchupSchemeRequests.delete(cacheKey);
         });
@@ -191,21 +200,24 @@ export class XtreamUrlService {
         credentials: XtreamCredentials,
         streamId: number,
         startTimestamp: number,
-        stopTimestamp: number
+        stopTimestamp: number,
+        serverTimezone?: string
     ): Promise<XtreamCatchupScheme> {
         const restUrl = this.constructCatchupUrl(
             credentials,
             streamId,
             startTimestamp,
             stopTimestamp,
-            'rest'
+            'rest',
+            serverTimezone
         );
         const legacyUrl = this.constructCatchupUrl(
             credentials,
             streamId,
             startTimestamp,
             stopTimestamp,
-            'legacy'
+            'legacy',
+            serverTimezone
         );
 
         const restStatus = await this.probeCatchupUrl(restUrl);
@@ -252,10 +264,28 @@ export class XtreamUrlService {
         );
     }
 
-    private formatCatchupStartTime(timestamp: number): string {
+    private formatCatchupStartTime(
+        timestamp: number,
+        timezone?: string
+    ): string {
         const date = new Date(timestamp * 1000);
-        const pad = (value: number) => String(value).padStart(2, '0');
 
+        if (timezone) {
+            const parts = new Intl.DateTimeFormat('en-CA', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+            }).formatToParts(date);
+            const get = (type: Intl.DateTimeFormatPartTypes) =>
+                parts.find((p) => p.type === type)?.value ?? '00';
+            return `${get('year')}-${get('month')}-${get('day')}:${get('hour')}-${get('minute')}`;
+        }
+
+        const pad = (value: number) => String(value).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}:${pad(date.getHours())}-${pad(date.getMinutes())}`;
     }
 }
