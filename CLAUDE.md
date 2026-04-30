@@ -24,6 +24,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - The wiki exporter only owns `_repo-context/` in the external vault. It must never overwrite repo docs or maintained wiki pages outside that folder.
 - Final task summaries should state whether docs were updated, which doc changed, and whether wiki export ran, was skipped, or failed.
 
+## Regression Prevention And Test Updates
+
+- Before the final summary for any feature, behavior change, bug fix, data-flow change, Electron IPC/database change, or user-visible UI workflow change, Claude Code must complete a test impact pass. Identify the affected projects and decide whether unit, integration, E2E, build, lint, or manual/CDP verification is required.
+- Bug fixes must normally include regression coverage that fails on the old behavior and passes with the fix. If automated coverage is not practical, document why in the final summary and include the strongest manual validation performed.
+- Feature work and behavior changes must update existing tests when assertions, fixtures, mocks, routes, or E2E flows are now stale, incomplete, or missing. Prefer extending the closest existing spec or E2E file before adding a new suite.
+- Default validation ladder:
+    1. Run targeted unit tests for directly affected projects with `pnpm nx test <project>` or existing scripts such as `pnpm run test:frontend`, `pnpm run test:backend`, or `pnpm run test:unit:ci` when the scope is broader.
+    2. Run affected E2E coverage when changing user-visible workflows, routing, persistence, playback, portals, settings, import flows, or Electron-only behavior.
+    3. Use `pnpm nx show projects --withTarget test` and `pnpm nx show projects --withTarget e2e` when project ownership or available validation targets are unclear.
+    4. Prefer specific atomized E2E targets before broad suites when they cover the changed behavior, for example `pnpm nx run web-e2e:e2e-ci--src/xtream.e2e.ts` or `pnpm nx run electron-backend-e2e:e2e-ci--src/search.e2e.ts`.
+- Electron-specific changes affecting IPC, SQLite, packaged runtime, external players, native file access, or Electron-only routes require Electron E2E coverage where available, or CDP/manual verification with `agent-browser` and the tracing flags documented below.
+- Final task summaries must list tests added or updated, validation commands run with results, and any skipped validation with the reason. For docs-only changes, state that unit/E2E validation was not required and verify the changed Markdown instead.
+
 ## Project Overview
 
 IPTVnator is a cross-platform IPTV player application built with Angular and Electron, supporting M3U/M3U8 playlists, Xtream Codes API, and Stalker portals.
@@ -139,19 +152,26 @@ npx --yes agent-browser --cdp 9222 tab list
 # Run frontend tests
 pnpm run test:frontend
 # or
-nx test web
+pnpm nx test web
 
 # Run backend tests
 pnpm run test:backend
 # or
-nx test electron-backend
+pnpm nx test electron-backend
 
-# Run e2e tests (Playwright)
-nx e2e web-e2e
+# Run targeted E2E tests (Playwright)
+pnpm nx run web-e2e:e2e-ci--src/xtream.e2e.ts
+pnpm nx run electron-backend-e2e:e2e-ci--src/search.e2e.ts
 
-# Run tests with coverage
-nx test web --configuration=ci
+# Run broad E2E suites only when the impact justifies it
+pnpm nx e2e web-e2e
+pnpm nx e2e electron-backend-e2e
+
+# Run tests with coverage when needed
+pnpm nx test web --configuration=ci
 ```
+
+Before finishing behavior changes or bug fixes, follow `Regression Prevention And Test Updates` above and report the test impact decision in the final summary.
 
 ### Linting
 
@@ -608,23 +628,25 @@ The factory pattern ensures a single codebase works in both environments without
 ### Testing Strategy
 
 - **Unit tests**: Jest with `jest-preset-angular` and `ng-mocks`
-- **E2E tests**: Playwright testing the web app
+- **E2E tests**: Playwright testing the web app and Electron app
 - Backend tests use standard Jest
+- Bug fixes should add focused regression coverage unless there is a documented reason not to.
+- Use the impact-based validation policy in `Regression Prevention And Test Updates` to choose targeted unit tests, atomized E2E targets, broad suites, or CDP/manual verification.
 
 ### Nx Commands
 
 Use `nx` CLI for better performance:
 
 ```bash
-nx run <project>:<target>
-# Example: nx run web:build
-# Example: nx run electron-backend:serve
+pnpm nx run <project>:<target>
+# Example: pnpm nx run web:build
+# Example: pnpm nx run electron-backend:serve
 ```
 
 To run multiple projects:
 
 ```bash
-nx run-many --target=test --all
+pnpm nx run-many --target=test --all
 ```
 
 ### Electron Build Process
