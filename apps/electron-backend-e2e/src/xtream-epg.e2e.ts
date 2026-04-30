@@ -108,7 +108,7 @@ for (const timeZone of ['UTC', 'Europe/Berlin'] as const) {
                 `${formatTimeInZone(
                     currentProgram.startTimestamp,
                     timeZone
-                )} - ${formatTimeInZone(currentProgram.stopTimestamp, timeZone)}`
+                )}–${formatTimeInZone(currentProgram.stopTimestamp, timeZone)}`
             );
 
             const firstFutureDateKey = getFirstFutureDateKey(

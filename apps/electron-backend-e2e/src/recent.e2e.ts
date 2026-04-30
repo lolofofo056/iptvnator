@@ -73,15 +73,17 @@ test.describe('Electron Recently Viewed', () => {
                 app.mainWindow,
                 'Stable Recent Channel'
             ).first();
-            const closeButton = app.mainWindow
-                .locator('.player-toolbar .close-btn')
+            const livePlayer = app.mainWindow
+                .locator('app-unified-live-tab .content-container .video-player')
                 .first();
 
             await item.click();
-            await expect(closeButton).toBeVisible({ timeout: 20000 });
+            await expect(livePlayer).toBeVisible({ timeout: 20000 });
+            await expect(item).toHaveClass(/(^|\s)active(\s|$)/);
 
             await item.click();
-            await expect(closeButton).toBeVisible({ timeout: 20000 });
+            await expect(livePlayer).toBeVisible({ timeout: 20000 });
+            await expect(item).toHaveClass(/(^|\s)active(\s|$)/);
         } finally {
             await closeElectronApp(app);
         }
@@ -189,7 +191,7 @@ test.describe('Electron Recently Viewed', () => {
             await toggleFavoriteForChannel(app.mainWindow, liveTitle);
             await openPlaylistFavorites(app.mainWindow);
             await channelItemByTitle(app.mainWindow, liveTitle).first().click();
-            await closeUnifiedLiveDetail(app.mainWindow);
+            await expectUnifiedLiveDetailOpen(app.mainWindow, liveTitle);
 
             await app.mainWindow
                 .getByRole('link', { name: 'Movies', exact: true })
@@ -396,7 +398,7 @@ test.describe('Electron Recently Viewed', () => {
             await toggleFavoriteForChannel(app.mainWindow, liveTitle);
             await openPlaylistFavorites(app.mainWindow);
             await channelItemByTitle(app.mainWindow, liveTitle).first().click();
-            await closeUnifiedLiveDetail(app.mainWindow);
+            await expectUnifiedLiveDetailOpen(app.mainWindow, liveTitle);
 
             await app.mainWindow
                 .getByRole('link', { name: 'Movies', exact: true })
@@ -561,11 +563,18 @@ async function clearRecentItems(page: Page, typeLabel: string): Promise<void> {
     await page.getByRole('button', { name: 'Yes' }).click();
 }
 
-async function closeUnifiedLiveDetail(page: Page): Promise<void> {
-    const closeButton = page.locator('.player-toolbar .close-btn').first();
-
-    await expect(closeButton).toBeVisible({ timeout: 20000 });
-    await closeButton.click();
+async function expectUnifiedLiveDetailOpen(
+    page: Page,
+    title: string
+): Promise<void> {
+    await expect(
+        page
+            .locator('app-unified-live-tab .content-container .video-player')
+            .first()
+    ).toBeVisible({ timeout: 20000 });
+    await expect(channelItemByTitle(page, title).first()).toHaveClass(
+        /(^|\s)active(\s|$)/
+    );
 }
 
 async function goBackFromDetail(page: Page): Promise<void> {
