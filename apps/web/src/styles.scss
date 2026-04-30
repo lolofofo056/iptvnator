@@ -70,6 +70,28 @@
     }
 }
 
+// Shared count-badge pill. Section headers (dashboard rails, content rails)
+// and dense list rows (category sidebars) share a single visual treatment so
+// "count" reads consistently across the app. Theme-aware via --app-muted-color.
+.app-count-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--app-muted-color, #8891a4);
+    font-variant-numeric: tabular-nums;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(
+        in srgb,
+        var(--app-muted-color, #8891a4) 18%,
+        transparent
+    );
+    letter-spacing: 0;
+}
+
 app-root.macos-platform .current-playlist {
     padding-top: 30px;
 }
