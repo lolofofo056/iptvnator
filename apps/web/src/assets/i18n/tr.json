@@ -67,7 +67,7 @@
             "REFRESH_XTREAM": "Xtream oynatma listesini uzaktan yenile",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Xtream Oynatma Listesini Yenile",
-                "MESSAGE": "Bu işlem yerel olarak önbelleğe alınmış kategorileri ve yayınları silecek ve her şeyi uzaktan sunucudan yeniden içe aktaracaktır. Favorileriniz ve son izlenen öğeleriniz korunacaktır. Devam etmek istediğinizden emin misiniz?",
+                "MESSAGE": "Bu işlem yerel Xtream önbelleğini siler ve kategoriler ile yayınları uzak sunucudan yeniden içe aktarır. Favoriler, son izlenen öğeler, gizli kategori görünürlüğü ve oynatma ilerlemesi, eşleşen içerik hâlâ varsa başarılı bir yeniden içe aktarmadan sonra geri yüklenir. Sunucuya ulaşılamazsa geri yükleme, daha sonraki başarılı bir yenilemeye kadar beklemede kalır. Devam edilsin mi?",
                 "STARTED": "Yenileme başladı. Oynatma listesine gidiliyor...",
                 "ERROR": "Oynatma listesi yenilenemedi. Lütfen tekrar deneyin."
             },

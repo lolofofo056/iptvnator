@@ -68,7 +68,7 @@
             "REFRESH_XTREAM": "Actualiser la liste Xtream depuis le serveur",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Actualiser la liste Xtream",
-                "MESSAGE": "Cela supprimera les catégories et flux mis en cache localement et réimportera tout depuis le serveur distant. Vos favoris et éléments récemment consultés seront conservés. Voulez-vous continuer ?",
+                "MESSAGE": "Cela supprimera le cache Xtream local et réimportera les catégories et les flux depuis le serveur distant. Les favoris, les éléments récemment consultés, la visibilité des catégories masquées et la progression de lecture seront restaurés après une réimportation réussie si le contenu correspondant existe toujours. Si le serveur est inaccessible, la restauration restera en attente jusqu'à une prochaine actualisation réussie. Continuer ?",
                 "STARTED": "Actualisation démarrée. Navigation vers la liste de lecture...",
                 "ERROR": "Échec de l'actualisation de la liste de lecture. Veuillez réessayer."
             },

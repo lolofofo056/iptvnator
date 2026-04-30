@@ -194,6 +194,11 @@ describe('PlaylistRefreshActionService', () => {
         service.refresh(item);
         await confirmPromise;
 
+        expect(dialogService.openConfirmDialog).toHaveBeenCalledWith(
+            expect.objectContaining({
+                width: '400px',
+            })
+        );
         expect(setItemSpy).toHaveBeenCalledWith(
             `xtream-restore-${item._id}`,
             JSON.stringify({

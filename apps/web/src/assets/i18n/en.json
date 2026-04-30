@@ -109,7 +109,7 @@
             "REFRESH_XTREAM": "Refresh Xtream playlist from remote",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Refresh Xtream Playlist",
-                "MESSAGE": "This will delete locally cached categories and streams and re-import everything from the remote server. Your favorites and recently viewed items will be preserved. Are you sure you want to continue?",
+                "MESSAGE": "This will delete the local Xtream cache and re-import categories and streams from the remote server. Favorites, recently viewed items, hidden category visibility, and playback progress are restored after a successful re-import when matching content still exists. If the server cannot be reached, the restore remains pending until a later successful refresh. Continue?",
                 "STARTED": "Refresh started. Navigating to playlist...",
                 "ERROR": "Failed to refresh playlist. Please try again.",
                 "IN_PROGRESS": "Refreshing playlist...",

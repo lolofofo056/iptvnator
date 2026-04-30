@@ -321,6 +321,7 @@ export class RecentPlaylistsComponent {
             message: this.translate.instant(
                 'HOME.PLAYLISTS.REFRESH_XTREAM_DIALOG.MESSAGE'
             ),
+            width: '400px',
             onConfirm: async () => {
                 if (
                     this.isDeletePending(item._id) ||
