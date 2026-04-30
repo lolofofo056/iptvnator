@@ -271,18 +271,22 @@ export class XtreamUrlService {
         const date = new Date(timestamp * 1000);
 
         if (timezone) {
-            const parts = new Intl.DateTimeFormat('en-CA', {
-                timeZone: timezone,
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false,
-            }).formatToParts(date);
-            const get = (type: Intl.DateTimeFormatPartTypes) =>
-                parts.find((p) => p.type === type)?.value ?? '00';
-            return `${get('year')}-${get('month')}-${get('day')}:${get('hour')}-${get('minute')}`;
+            try {
+                const parts = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: timezone,
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                }).formatToParts(date);
+                const get = (type: Intl.DateTimeFormatPartTypes) =>
+                    parts.find((p) => p.type === type)?.value ?? '00';
+                return `${get('year')}-${get('month')}-${get('day')}:${get('hour')}-${get('minute')}`;
+            } catch {
+                // Invalid timezone string — fall through to local-time formatting
+            }
         }
 
         const pad = (value: number) => String(value).padStart(2, '0');

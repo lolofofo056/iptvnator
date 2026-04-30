@@ -106,5 +106,20 @@ describe('XtreamUrlService', () => {
             const expected = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}:${pad(date.getHours())}-${pad(date.getMinutes())}`;
             expect(url).toContain(expected);
         });
+
+        it('falls back to client local time when an invalid timezone string is given', () => {
+            const url = service.constructCatchupUrl(
+                credentials,
+                101,
+                timestamp,
+                timestamp + 3600,
+                'rest',
+                'UTC+5'
+            );
+            const date = new Date(timestamp * 1000);
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const expected = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}:${pad(date.getHours())}-${pad(date.getMinutes())}`;
+            expect(url).toContain(expected);
+        });
     });
 });
