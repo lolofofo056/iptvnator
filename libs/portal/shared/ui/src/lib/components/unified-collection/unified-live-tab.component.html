@@ -8,6 +8,8 @@
 >
     <app-global-favorites-list
         [channels]="channelsForList()"
+        [mode]="mode()"
+        [favoriteUids]="favoriteUids()"
         [epgMap]="epgMap()"
         [progressTick]="progressTick()"
         [activeUid]="activeUid()"

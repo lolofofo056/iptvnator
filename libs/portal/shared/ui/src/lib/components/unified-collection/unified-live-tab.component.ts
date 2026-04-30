@@ -79,11 +79,13 @@ export class UnifiedLiveTabComponent {
     readonly mode = input<'favorites' | 'recent'>('favorites');
     readonly searchTerm = input('');
     readonly autoOpenItem = input<OpenLiveCollectionItemState | null>(null);
+    readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly sortMode = input<FavoritesChannelSortMode>(
         DEFAULT_FAVORITES_CHANNEL_SORT_MODE
     );
 
     readonly removeItem = output<UnifiedCollectionItem>();
+    readonly favoriteToggled = output<UnifiedCollectionItem>();
     readonly reorderItems = output<UnifiedCollectionItem[]>();
     readonly itemPlayed = output<UnifiedCollectionItem>();
     readonly autoOpenHandled = output<void>();
@@ -268,7 +270,11 @@ export class UnifiedLiveTabComponent {
             (candidate) => candidate.uid === channel.uid
         );
         if (item) {
-            this.removeItem.emit(item);
+            if (this.mode() === 'favorites') {
+                this.removeItem.emit(item);
+            } else {
+                this.favoriteToggled.emit(item);
+            }
         }
     }
 

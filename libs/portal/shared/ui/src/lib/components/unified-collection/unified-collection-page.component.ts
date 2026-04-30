@@ -132,6 +132,7 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
 
     readonly isLoading = signal(true);
     readonly allItems = signal<UnifiedCollectionItem[]>([]);
+    readonly favoriteUidSet = signal<ReadonlySet<string>>(new Set<string>());
     readonly selectedContentType = signal<CollectionContentType>(
         this.historyCollectionViewState()?.selectedContentType ?? 'live'
     );
@@ -487,12 +488,35 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
     async onRemoveItem(item: UnifiedCollectionItem): Promise<void> {
         if (this.mode() === 'favorites') {
             await this.favoritesData.removeFavorite(item);
+            this.favoriteUidSet.update((favoriteUids) => {
+                const nextFavoriteUids = new Set(favoriteUids);
+                nextFavoriteUids.delete(item.uid);
+                return nextFavoriteUids;
+            });
         } else {
             await this.recentData.removeRecentItem(item);
         }
         this.allItems.update((items) =>
             items.filter((i) => i.uid !== item.uid)
         );
+    }
+
+    async onFavoriteToggled(item: UnifiedCollectionItem): Promise<void> {
+        if (this.mode() !== 'recent') {
+            return;
+        }
+
+        const nextFavoriteUids = new Set(this.favoriteUidSet());
+
+        if (nextFavoriteUids.has(item.uid)) {
+            await this.favoritesData.removeFavorite(item);
+            nextFavoriteUids.delete(item.uid);
+        } else {
+            await this.favoritesData.addFavorite(item);
+            nextFavoriteUids.add(item.uid);
+        }
+
+        this.favoriteUidSet.set(nextFavoriteUids);
     }
 
     clearAllCurrent(): void {
@@ -612,10 +636,15 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
                           params.playlistId,
                           params.portalType
                       );
+            const favoriteUids =
+                params.mode === 'favorites'
+                    ? new Set(items.map((item) => item.uid))
+                    : await this.loadFavoriteUidSet(params);
             if (requestId !== this.loadRequestId) {
                 return;
             }
             this.allItems.set(items);
+            this.favoriteUidSet.set(favoriteUids);
             this.autoSelectContentType();
             if (
                 this.pendingAutoOpenLiveItem() &&
@@ -642,6 +671,23 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
             playlistId: this.playlistId(),
             scope: this.effectiveScope(),
         });
+    }
+
+    private async loadFavoriteUidSet(params: {
+        portalType?: string;
+        playlistId?: string;
+        scope: CollectionScope;
+    }): Promise<ReadonlySet<string>> {
+        try {
+            const favorites = await this.favoritesData.getFavorites(
+                params.scope,
+                params.playlistId,
+                params.portalType
+            );
+            return new Set(favorites.map((item) => item.uid));
+        } catch {
+            return new Set<string>();
+        }
     }
 
     private autoSelectContentType(): void {

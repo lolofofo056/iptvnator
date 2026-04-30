@@ -60,6 +60,8 @@ class StubResizableDirective {
 })
 class StubGlobalFavoritesListComponent {
     readonly channels = input.required<UnifiedFavoriteChannel[]>();
+    readonly mode = input<'favorites' | 'recent'>('favorites');
+    readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly epgMap = input<Map<string, EpgProgram | null>>(new Map());
     readonly progressTick = input(0);
     readonly activeUid = input<string | null>(null);
@@ -291,6 +293,33 @@ describe('UnifiedLiveTabComponent', () => {
             fixture.nativeElement.querySelector('app-epg-list')
         ).not.toBeNull();
         expect(fixture.nativeElement.querySelector('app-epg-view')).toBeNull();
+    });
+
+    it('passes recent mode and favorite state to the shared live collection list', async () => {
+        const item = buildLiveItem('m3u');
+        const favoriteUids = new Set<string>([item.uid]);
+        const toggledItems: UnifiedCollectionItem[] = [];
+        const subscription = component.favoriteToggled.subscribe((toggled) =>
+            toggledItems.push(toggled)
+        );
+
+        fixture.componentRef.setInput('items', [item]);
+        fixture.componentRef.setInput('mode', 'recent');
+        fixture.componentRef.setInput('favoriteUids', favoriteUids);
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const list = fixture.debugElement.query(
+            By.directive(StubGlobalFavoritesListComponent)
+        ).componentInstance as StubGlobalFavoritesListComponent;
+
+        expect(list.mode()).toBe('recent');
+        expect(list.favoriteUids()).toBe(favoriteUids);
+
+        list.favoriteToggled.emit(list.channels()[0]);
+
+        expect(toggledItems).toEqual([item]);
+        subscription.unsubscribe();
     });
 
     it('wraps inline M3U EPG in the live panel with shared date navigation', async () => {

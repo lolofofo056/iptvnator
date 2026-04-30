@@ -89,7 +89,7 @@ test.describe('Electron Recently Viewed', () => {
         }
     });
 
-    test('tracks M3U recent channels in newest-first order, supports all-playlists scope, and persists removals after restart', async ({
+    test('tracks M3U recent channels in newest-first order, supports all-playlists scope, and persists favorites after restart', async ({
         dataDir,
     }) => {
         const playlistTitle = 'm3u-recent-source.m3u';
@@ -129,10 +129,15 @@ test.describe('Electron Recently Viewed', () => {
                 .poll(() => visibleLiveTitles(app.mainWindow))
                 .toEqual(['Recent Channel Two', 'Recent Channel One']);
 
-            await removeLiveRecentItem(app.mainWindow, 'Recent Channel Two');
+            await toggleFavoriteForChannel(app.mainWindow, 'Recent Channel Two');
             await expect
                 .poll(() => visibleLiveTitles(app.mainWindow))
-                .toEqual(['Recent Channel One']);
+                .toEqual(['Recent Channel Two', 'Recent Channel One']);
+
+            await openPlaylistFavorites(app.mainWindow);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'Recent Channel Two').first()
+            ).toBeVisible({ timeout: 20000 });
 
             const restarted = await restartElectronApp(app, dataDir);
             app.electronApp = restarted.electronApp;
@@ -147,7 +152,12 @@ test.describe('Electron Recently Viewed', () => {
             await switchUnifiedCollectionScope(app.mainWindow, 'All playlists');
             await expect
                 .poll(() => visibleLiveTitles(app.mainWindow))
-                .toEqual(['Recent Channel One']);
+                .toEqual(['Recent Channel Two', 'Recent Channel One']);
+
+            await openPlaylistFavorites(app.mainWindow);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'Recent Channel Two').first()
+            ).toBeVisible({ timeout: 20000 });
         } finally {
             await closeElectronApp(app);
         }
@@ -643,14 +653,6 @@ async function playFirstSeriesEpisode(page: Page): Promise<void> {
     await episodeCard.click();
 }
 
-async function removeLiveRecentItem(page: Page, title: string): Promise<void> {
-    const item = channelItemByTitle(page, title).first();
-
-    await expect(item).toBeVisible({ timeout: 20000 });
-    await item.hover();
-    await item.locator('.favorite-button').first().click();
-}
-
 async function toggleFavoriteForChannel(
     page: Page,
     title: string
@@ -660,6 +662,9 @@ async function toggleFavoriteForChannel(
     await expect(item).toBeVisible({ timeout: 20000 });
     await item.hover();
     await item.locator('.favorite-button').first().click();
+    await expect(item.locator('.favorite-button mat-icon').first()).toHaveText(
+        'star'
+    );
 }
 
 async function visibleLiveTitles(page: Page): Promise<string[]> {

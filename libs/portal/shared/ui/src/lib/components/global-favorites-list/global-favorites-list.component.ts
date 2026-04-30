@@ -26,6 +26,8 @@ export interface EnrichedUnifiedFavorite extends UnifiedFavoriteChannel {
     progressPercentage: number;
 }
 
+export type GlobalFavoritesListMode = 'favorites' | 'recent';
+
 @Component({
     selector: 'app-global-favorites-list',
     templateUrl: './global-favorites-list.component.html',
@@ -40,6 +42,8 @@ export interface EnrichedUnifiedFavorite extends UnifiedFavoriteChannel {
 })
 export class GlobalFavoritesListComponent {
     readonly channels = input.required<UnifiedFavoriteChannel[]>();
+    readonly mode = input<GlobalFavoritesListMode>('favorites');
+    readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly epgMap = input<Map<string, EpgProgram | null>>(new Map());
     readonly progressTick = input<number>(0);
     readonly activeUid = input<string | null>(null);
@@ -55,7 +59,11 @@ export class GlobalFavoritesListComponent {
 
     readonly isCustomSort = computed(() => this.sortMode() === 'custom');
     readonly canDragDrop = computed(
-        () => this.draggable() && this.isCustomSort() && !this.hasSearchTerm()
+        () =>
+            this.mode() === 'favorites' &&
+            this.draggable() &&
+            this.isCustomSort() &&
+            !this.hasSearchTerm()
     );
 
     readonly hasSearchTerm = computed(
@@ -72,10 +80,13 @@ export class GlobalFavoritesListComponent {
             ? channels.filter((ch) => ch.name.toLowerCase().includes(term))
             : channels;
 
-        const sorted = sortFavoriteChannelItems(filtered, this.sortMode(), {
-            getName: (ch) => ch.name,
-            getAddedAt: (ch) => ch.addedAt,
-        });
+        const sorted =
+            this.mode() === 'favorites'
+                ? sortFavoriteChannelItems(filtered, this.sortMode(), {
+                      getName: (ch) => ch.name,
+                      getAddedAt: (ch) => ch.addedAt,
+                  })
+                : filtered;
 
         return sorted.map((ch) => {
             const epgKey = ch.tvgId?.trim() || ch.name?.trim();
@@ -96,6 +107,12 @@ export class GlobalFavoritesListComponent {
 
     onFavoriteToggled(channel: UnifiedFavoriteChannel): void {
         this.favoriteToggled.emit(channel);
+    }
+
+    isChannelFavorite(channel: UnifiedFavoriteChannel): boolean {
+        return (
+            this.mode() === 'favorites' || this.favoriteUids().has(channel.uid)
+        );
     }
 
     onDrop(event: CdkDragDrop<EnrichedUnifiedFavorite[]>): void {
