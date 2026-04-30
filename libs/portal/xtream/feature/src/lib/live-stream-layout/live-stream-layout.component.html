@@ -68,10 +68,20 @@
 }
 <div class="content-container">
     @if (!selectedCategoryId()) {
-        <app-portal-empty-state
-            icon="live_tv"
-            [message]="'PORTALS.SELECT_CATEGORY' | translate"
-        />
+        @if (isSelectedTypeContentLoading()) {
+            <div class="live-loading-content">
+                <app-portal-channels-list
+                    [sortMode]="liveChannelSortMode()"
+                    [searchTermInput]="workspaceSearchTerm()"
+                    (playClicked)="playLive($event)"
+                />
+            </div>
+        } @else {
+            <app-portal-empty-state
+                icon="live_tv"
+                [message]="'PORTALS.SELECT_CATEGORY' | translate"
+            />
+        }
     } @else if (streamUrl) {
         @if (isEmbeddedPlayer) {
             <div class="video-player">

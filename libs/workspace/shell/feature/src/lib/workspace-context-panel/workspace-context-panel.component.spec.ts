@@ -31,6 +31,7 @@ describe('WorkspaceContextPanelComponent', () => {
     const xtreamSelectedTypeContentState =
         signal<XtreamContentLoadState>('loading');
     const xtreamImportPhase = signal<string | null>('loading-live');
+    const xtreamIsImporting = signal(true);
     const xtreamIsLoadingCategories = signal(false);
 
     const xtreamStore = {
@@ -44,6 +45,7 @@ describe('WorkspaceContextPanelComponent', () => {
         selectedTypeCountsReady: computed(
             () => xtreamSelectedTypeContentState() === 'ready'
         ),
+        isImporting: xtreamIsImporting,
         currentImportPhase: xtreamImportPhase,
         isLoadingCategories: xtreamIsLoadingCategories,
         setSelectedItem: jest.fn(),
@@ -75,6 +77,7 @@ describe('WorkspaceContextPanelComponent', () => {
         xtreamSelectedCategoryId.set(null);
         xtreamSelectedTypeContentState.set('loading');
         xtreamImportPhase.set('loading-live');
+        xtreamIsImporting.set(true);
         xtreamIsLoadingCategories.set(false);
         xtreamStore.setSelectedItem.mockClear();
         xtreamStore.setSelectedCategory.mockClear();
@@ -137,9 +140,9 @@ describe('WorkspaceContextPanelComponent', () => {
         const status = fixture.nativeElement.querySelector(
             '.context-inline-status'
         ) as HTMLElement | null;
-        const manageButton = fixture.nativeElement.querySelector(
-            '.context-header__action'
-        ) as HTMLButtonElement | null;
+        const manageButton = Array.from(
+            fixture.nativeElement.querySelectorAll('.context-header__action')
+        ).at(-1) as HTMLButtonElement | undefined;
 
         expect(countPlaceholders).toHaveLength(2);
         expect(categoryButtons.every((button) => button.disabled)).toBe(true);
@@ -154,6 +157,26 @@ describe('WorkspaceContextPanelComponent', () => {
         expect(xtreamStore.setSelectedItem).not.toHaveBeenCalled();
         expect(xtreamStore.setSelectedCategory).not.toHaveBeenCalled();
         expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('keeps local xtream loading states quiet when no import is running', () => {
+        fixture.componentRef.setInput('section', 'vod');
+        xtreamIsImporting.set(false);
+        fixture.detectChanges();
+
+        const countPlaceholders = fixture.nativeElement.querySelectorAll(
+            '.item-count--loading'
+        );
+        const categoryButtons = Array.from(
+            fixture.nativeElement.querySelectorAll('.category-item')
+        ) as HTMLButtonElement[];
+        const status = fixture.nativeElement.querySelector(
+            '.context-inline-status'
+        ) as HTMLElement | null;
+
+        expect(countPlaceholders).toHaveLength(2);
+        expect(categoryButtons.every((button) => button.disabled)).toBe(true);
+        expect(status).toBeNull();
     });
 
     it('shows real counts and enables navigation once the selected xtream type is ready', () => {
@@ -174,9 +197,9 @@ describe('WorkspaceContextPanelComponent', () => {
         const categoryButtons = Array.from(
             fixture.nativeElement.querySelectorAll('.category-item')
         ) as HTMLButtonElement[];
-        const manageButton = fixture.nativeElement.querySelector(
-            '.context-header__action'
-        ) as HTMLButtonElement | null;
+        const manageButton = Array.from(
+            fixture.nativeElement.querySelectorAll('.context-header__action')
+        ).at(-1) as HTMLButtonElement | undefined;
 
         expect(countTexts).toEqual(['3', '0']);
         expect(categoryButtons.every((button) => !button.disabled)).toBe(true);

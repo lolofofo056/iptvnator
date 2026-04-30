@@ -12,6 +12,10 @@ import {
 } from './data-sources/xtream-data-source.interface';
 
 export type ContentType = 'live' | 'vod' | 'series';
+export type XtreamCachedContentScope =
+    | ContentType
+    | 'search'
+    | 'recently-added';
 export type XtreamContentLoadState = 'idle' | 'loading' | 'ready' | 'error';
 export type XtreamContentLoadStateByType = Record<
     ContentType,

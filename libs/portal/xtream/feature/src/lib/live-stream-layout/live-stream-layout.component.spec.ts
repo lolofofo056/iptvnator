@@ -31,7 +31,7 @@ const LIVE_CHANNEL_SORT_STORAGE_KEY = 'xtream-live-channel-sort-mode';
 @Component({
     selector: 'app-portal-channels-list',
     standalone: true,
-    template: '',
+    template: '<div data-test-id="portal-channels-list-stub"></div>',
 })
 class StubPortalChannelsListComponent {
     readonly sortMode = input<'server' | 'name-asc' | 'name-desc'>('server');
@@ -120,6 +120,7 @@ describe('LiveStreamLayoutComponent', () => {
     const epgItems = signal<EpgItem[]>([]);
     const currentEpgItem = signal<EpgItem | null>(null);
     const isLoadingEpg = signal(false);
+    const selectedTypeContentLoading = signal(false);
     const selectedCategoryId = signal<number | null>(1);
     const selectedContentType = signal<'live' | 'vod' | 'series'>('live');
     const selectedItem = signal<unknown>(sampleChannel);
@@ -131,6 +132,7 @@ describe('LiveStreamLayoutComponent', () => {
         epgItems,
         currentEpgItem,
         isLoadingEpg,
+        selectedTypeContentLoading,
         selectedCategoryId,
         selectedContentType,
         selectedItem,
@@ -176,6 +178,7 @@ describe('LiveStreamLayoutComponent', () => {
         epgItems.set([]);
         currentEpgItem.set(null);
         isLoadingEpg.set(false);
+        selectedTypeContentLoading.set(false);
         selectedCategoryId.set(1);
         selectedContentType.set('live');
         selectedItem.set(sampleChannel);
@@ -313,6 +316,22 @@ describe('LiveStreamLayoutComponent', () => {
                 .querySelector('.epg')
                 .classList.contains('epg-collapsed')
         ).toBe(false);
+    });
+
+    it('shows the channel loading skeleton surface while live content loads without a selected category', () => {
+        selectedCategoryId.set(null);
+        selectedTypeContentLoading.set(true);
+
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="portal-channels-list-stub"]'
+            )
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-portal-empty-state')
+        ).toBeNull();
     });
 
     it('renders the current EPG program in the collapsible panel summary', () => {

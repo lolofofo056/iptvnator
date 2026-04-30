@@ -223,6 +223,16 @@ export class ElectronXtreamDataSource implements IXtreamDataSource {
         return this.dbService.getAllXtreamCategories(playlistId, type);
     }
 
+    async getCachedCategories(
+        playlistId: string,
+        type: CategoryType
+    ): Promise<XtreamCategoryFromDb[]> {
+        return this.dbService.getXtreamCategories(
+            playlistId,
+            mapCategoryTypeToDbType(type)
+        );
+    }
+
     async saveCategories(
         playlistId: string,
         categories: XtreamCategory[],
@@ -327,6 +337,13 @@ export class ElectronXtreamDataSource implements IXtreamDataSource {
         }
 
         // Return from cache (now populated)
+        return this.dbService.getXtreamContent(playlistId, type);
+    }
+
+    async getCachedContent(
+        playlistId: string,
+        type: StreamType
+    ): Promise<XtreamContentItem[]> {
         return this.dbService.getXtreamContent(playlistId, type);
     }
 

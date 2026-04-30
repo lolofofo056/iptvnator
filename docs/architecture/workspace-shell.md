@@ -54,7 +54,12 @@ Provider route integration:
 3. Xtream and Stalker parent routes attach route-scoped session providers that
    bootstrap the active playlist, sync provider section state, and clean up
    provider-local state when the route is destroyed.
-4. Workspace routes no longer rely on nested provider shell components for
+4. Xtream route bootstrap is DB-first for already imported Electron playlists:
+   if the requested section has persisted categories and content, the route
+   hydrates from SQLite even when the portal status probe reports unavailable,
+   expired, or inactive. Fresh/no-cache Xtream routes still use the status probe
+   to block remote imports before the loading overlay starts.
+5. Workspace routes no longer rely on nested provider shell components for
    hidden local chrome.
 
 ## Shell Structure
