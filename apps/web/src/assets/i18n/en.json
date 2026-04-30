@@ -765,7 +765,7 @@
             "OPEN_DASHBOARD": "Open dashboard",
             "RAIL_SOURCES": "Sources",
             "OPEN_SOURCES": "Open sources",
-            "RAIL_GLOBAL_FAVORITES": "Global favorites",
+            "RAIL_GLOBAL_FAVORITES": "Favorites",
             "RAIL_GLOBAL_RECENT": "Recently viewed",
             "RAIL_SETTINGS": "Settings",
             "OPEN_SETTINGS": "Open settings",
@@ -879,7 +879,10 @@
                 "GO_TO_LIVE_LABEL": "Live TV",
                 "GO_TO_LIVE_DESCRIPTION": "Jump to live TV section",
                 "GO_TO_SERIES_LABEL": "Series",
-                "GO_TO_SERIES_DESCRIPTION": "Jump to series section"
+                "GO_TO_SERIES_DESCRIPTION": "Jump to series section",
+                "SWITCH_PLAYER_LABEL": "Switch player to {{name}}",
+                "SWITCH_PLAYER_DESCRIPTION": "Set {{name}} as the active video player",
+                "SWITCH_PLAYER_FEEDBACK": "Player set to {{name}}"
             }
         },
         "SOURCES": {
@@ -922,7 +925,8 @@
             "GROUP_GLOBAL": "Global actions",
             "GROUP_PLAYLIST": "This playlist",
             "GROUP_VIEW": "Current view",
-            "GROUP_SECTION": "This section"
+            "GROUP_SECTION": "This section",
+            "GROUP_RECENT": "Recently used"
         },
         "GLOBAL_FAVORITES": {
             "TITLE": "Global Favorites",

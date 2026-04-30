@@ -46,6 +46,8 @@ import {
     WORKSPACE_SHELL_ACTIONS,
 } from '@iptvnator/workspace/shell/util';
 import { WorkspaceCommandPaletteComponent } from '../../workspace-command-palette/workspace-command-palette.component';
+import { RecentCommandsService } from '../../recent-commands';
+import { WorkspacePlayerCommandsContributor } from '../../workspace-player-commands';
 
 export interface WorkspaceHeaderBulkAction {
     icon: string;
@@ -102,6 +104,11 @@ export class WorkspaceShellFacade {
     );
     readonly headerContext = inject(WorkspaceHeaderContextService);
     private readonly viewCommands = inject(WorkspaceViewCommandService);
+    private readonly recentCommands = inject(RecentCommandsService);
+    // Eager construction registers the player-switch commands via WorkspaceViewCommandService.
+    private readonly _playerCommandsBootstrap = inject(
+        WorkspacePlayerCommandsContributor
+    );
     private readonly playlistRefreshAction = inject(
         PlaylistRefreshActionService
     );
@@ -780,9 +787,14 @@ export class WorkspaceShellFacade {
         }
 
         const commands = this.commandPaletteCommands();
+        const recentIds = this.recentCommands.entries().map((entry) => entry.id);
         const dialogRef = this.dialog.open<
             WorkspaceCommandPaletteComponent,
-            { commands: WorkspaceResolvedCommandItem[]; query: string },
+            {
+                commands: WorkspaceResolvedCommandItem[];
+                query: string;
+                recentIds: readonly string[];
+            },
             WorkspaceCommandSelection | undefined
         >(WorkspaceCommandPaletteComponent, {
             width: 'min(760px, 92vw)',
@@ -792,6 +804,7 @@ export class WorkspaceShellFacade {
             data: {
                 commands,
                 query: this.searchQuery(),
+                recentIds,
             },
         });
         this.commandPaletteRef = dialogRef;
@@ -811,7 +824,12 @@ export class WorkspaceShellFacade {
                         item.visible &&
                         item.enabled
                 );
-                command?.run({ query: selection.query.trim() });
+                if (!command) {
+                    return;
+                }
+
+                command.run({ query: selection.query.trim() });
+                this.recentCommands.record(command.id);
             });
     }
 

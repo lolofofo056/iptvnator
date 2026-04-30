@@ -22,6 +22,8 @@ import {
     WorkspaceStartupPreferencesService,
     WORKSPACE_SHELL_ACTIONS,
 } from '@iptvnator/workspace/shell/util';
+import { RecentCommandsService } from '../../recent-commands';
+import { WorkspacePlayerCommandsContributor } from '../../workspace-player-commands';
 import { WorkspaceShellFacade } from './workspace-shell.facade';
 
 class MockXtreamStore {
@@ -90,6 +92,11 @@ describe('WorkspaceShellFacade', () => {
     };
 
     let facade: WorkspaceShellFacade;
+    let recentCommands: {
+        entries: jest.Mock;
+        record: jest.Mock;
+        prune: jest.Mock;
+    };
     let router: {
         url: string;
         events: ReturnType<typeof of>;
@@ -175,6 +182,11 @@ describe('WorkspaceShellFacade', () => {
         };
         storeDispatch = jest.fn();
         stalkerStore = new MockStalkerStore();
+        recentCommands = {
+            entries: jest.fn().mockReturnValue([]),
+            record: jest.fn(),
+            prune: jest.fn(),
+        };
 
         const selectSignal = jest.fn().mockReturnValue(playlistsSignal);
 
@@ -264,6 +276,14 @@ describe('WorkspaceShellFacade', () => {
                         currentLang: 'en',
                         defaultLang: 'en',
                     },
+                },
+                {
+                    provide: RecentCommandsService,
+                    useValue: recentCommands,
+                },
+                {
+                    provide: WorkspacePlayerCommandsContributor,
+                    useValue: {},
                 },
             ],
         });
@@ -489,6 +509,9 @@ describe('WorkspaceShellFacade', () => {
             'open-downloads',
             'open-settings',
             'open-sources',
+            'add-playlist-stalker',
+            'add-playlist-xtream',
+            'add-playlist-m3u',
             'add-playlist',
         ]);
         expect(commands.every((command) => command.group === 'global')).toBe(
@@ -569,5 +592,45 @@ describe('WorkspaceShellFacade', () => {
         );
 
         unregister();
+    });
+
+    it('records the executed command id after the palette closes with a selection', () => {
+        const dialog = TestBed.inject(MatDialog) as unknown as {
+            open: jest.Mock;
+        };
+        dialog.open.mockReturnValueOnce({
+            afterClosed: () =>
+                of({ commandId: 'open-settings', query: '' }),
+        });
+
+        facade.openCommandPalette();
+
+        expect(recentCommands.record).toHaveBeenCalledWith('open-settings');
+    });
+
+    it('does not record when the palette closes without a selection', () => {
+        const dialog = TestBed.inject(MatDialog) as unknown as {
+            open: jest.Mock;
+        };
+        dialog.open.mockReturnValueOnce({
+            afterClosed: () => of(undefined),
+        });
+
+        facade.openCommandPalette();
+
+        expect(recentCommands.record).not.toHaveBeenCalled();
+    });
+
+    it('does not prune recent ids whose commands are temporarily invisible (e.g. on the same route)', () => {
+        const dialog = TestBed.inject(MatDialog) as unknown as {
+            open: jest.Mock;
+        };
+        dialog.open.mockReturnValueOnce({
+            afterClosed: () => of(undefined),
+        });
+
+        facade.openCommandPalette();
+
+        expect(recentCommands.prune).not.toHaveBeenCalled();
     });
 });

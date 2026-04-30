@@ -24,10 +24,13 @@ import {
 interface WorkspaceCommandPaletteData {
     commands: WorkspaceResolvedCommandItem[];
     query?: string;
+    recentIds?: readonly string[];
 }
 
+type PaletteSectionGroup = WorkspaceCommandGroup | 'recent';
+
 interface WorkspaceCommandGroupSection {
-    group: WorkspaceCommandGroup;
+    group: PaletteSectionGroup;
     items: WorkspaceResolvedCommandItem[];
 }
 
@@ -78,14 +81,45 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
         });
     });
 
+    readonly recentSection = computed<WorkspaceCommandGroupSection | null>(
+        () => {
+            if (this.query().trim() !== '') {
+                return null;
+            }
+
+            const recentIds = this.data?.recentIds ?? [];
+            if (recentIds.length === 0) {
+                return null;
+            }
+
+            const byId = new Map(
+                this.visibleCommands().map((command) => [command.id, command])
+            );
+            const items = recentIds
+                .map((id) => byId.get(id))
+                .filter(
+                    (command): command is WorkspaceResolvedCommandItem =>
+                        !!command && command.enabled
+                );
+
+            return items.length === 0 ? null : { group: 'recent', items };
+        }
+    );
+
     readonly commandGroups = computed<WorkspaceCommandGroupSection[]>(() => {
         const commands = this.filteredCommands();
-        const sections: WorkspaceCommandGroupSection[] = [];
+        const recent = this.recentSection();
+        const excludedIds = new Set(
+            recent ? recent.items.map((item) => item.id) : []
+        );
 
         const buildSection = (
             group: WorkspaceCommandGroup
         ): WorkspaceCommandGroupSection | null => {
-            const items = commands.filter((command) => command.group === group);
+            const items = commands.filter(
+                (command) =>
+                    command.group === group && !excludedIds.has(command.id)
+            );
 
             if (items.length === 0) {
                 return null;
@@ -93,6 +127,12 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
 
             return { group, items };
         };
+
+        const sections: WorkspaceCommandGroupSection[] = [];
+
+        if (recent) {
+            sections.push(recent);
+        }
 
         const groups = [
             buildSection('view'),
@@ -208,7 +248,10 @@ export class WorkspaceCommandPaletteComponent implements AfterViewInit {
         return index >= 0 && this.selectedIndex() === index;
     }
 
-    getGroupTitleKey(group: WorkspaceCommandGroup): string {
+    getGroupTitleKey(group: PaletteSectionGroup): string {
+        if (group === 'recent') {
+            return 'WORKSPACE.COMMAND_PALETTE.GROUP_RECENT';
+        }
         if (group === 'view') {
             return 'WORKSPACE.COMMAND_PALETTE.GROUP_VIEW';
         }
