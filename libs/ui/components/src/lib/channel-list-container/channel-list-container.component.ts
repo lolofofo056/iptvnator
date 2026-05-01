@@ -71,6 +71,19 @@ function groupChannelsByTitle(channels: Channel[]): Record<string, Channel[]> {
     }, {});
 }
 
+function mapChannelsByFirstUrl(channels: Channel[]): Map<string, Channel> {
+    const channelsByUrl = new Map<string, Channel>();
+
+    for (const channel of channels) {
+        const channelUrl = channel.url;
+        if (!channelsByUrl.has(channelUrl)) {
+            channelsByUrl.set(channelUrl, channel);
+        }
+    }
+
+    return channelsByUrl;
+}
+
 @Component({
     selector: 'app-channel-list-container',
     templateUrl: './channel-list-container.component.html',
@@ -174,7 +187,8 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     }
 
     /** Route-aware playlist ID for recent-item mutations */
-    private readonly resolvedPlaylistId = this.playlistContext.resolvedPlaylistId;
+    private readonly resolvedPlaylistId =
+        this.playlistContext.resolvedPlaylistId;
     private readonly activePlaylist = this.playlistContext.activePlaylist;
 
     readonly hiddenGroupTitles = computed(() => {
@@ -256,11 +270,11 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
         this.channelList$,
     ]).pipe(
         map(([favoriteChannelIds, channelList]) => {
+            const channelsByUrl = mapChannelsByFirstUrl(channelList);
+
             return favoriteChannelIds
                 .map((favoriteChannelId) =>
-                    channelList.find(
-                        (channel) => channel.url === favoriteChannelId
-                    )
+                    channelsByUrl.get(favoriteChannelId)
                 )
                 .filter((channel): channel is Channel => channel !== undefined);
         })
@@ -336,10 +350,13 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
             this.channelEpgMap.set(epgMap);
             this.channelIconMap.set(
                 new Map(
-                    Array.from(metadataMap.entries(), ([channelId, metadata]) => [
-                        channelId,
-                        metadata?.iconUrl?.trim() || '',
-                    ])
+                    Array.from(
+                        metadataMap.entries(),
+                        ([channelId, metadata]) => [
+                            channelId,
+                            metadata?.iconUrl?.trim() || '',
+                        ]
+                    )
                 )
             );
         });

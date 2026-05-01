@@ -314,6 +314,32 @@ describe('GroupsViewComponent', () => {
         expect(component.selectedGroup()?.key).toBe('News');
     });
 
+    it('keeps the first grouped-channel match for duplicate active channel URLs', () => {
+        const movieMirror = createChannel(
+            'mirror-1',
+            'Movie Mirror',
+            'http://example.com/shared-stream.m3u8',
+            'Movies'
+        );
+        const sportsMirror = createChannel(
+            'mirror-2',
+            'Sports Mirror',
+            'http://example.com/shared-stream.m3u8',
+            'Sports'
+        );
+
+        setInputs({
+            activeChannelUrl: 'http://example.com/shared-stream.m3u8',
+            groupedChannels: {
+                Movies: [movieMirror],
+                Sports: [sportsMirror],
+            },
+        });
+
+        expect(component.activeChannelGroupKey()).toBe('Movies');
+        expect(component.selectedGroupKey()).toBe('Movies');
+    });
+
     it('retains a visible manual selection and falls back to the first visible group', () => {
         component.selectGroup('Movies');
         fixture.detectChanges();

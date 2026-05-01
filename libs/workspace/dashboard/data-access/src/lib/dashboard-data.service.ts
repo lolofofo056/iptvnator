@@ -95,7 +95,9 @@ export class DashboardDataService {
     readonly xtreamPlaylistCount = computed(
         () => this.playlists().filter((playlist) => !!playlist.serverUrl).length
     );
-    readonly hasXtreamPlaylists = computed(() => this.xtreamPlaylistCount() > 0);
+    readonly hasXtreamPlaylists = computed(
+        () => this.xtreamPlaylistCount() > 0
+    );
     readonly globalRecentLoading = this.globalRecentLoadingState.asReadonly();
     readonly globalRecentLoaded = this.globalRecentLoadedState.asReadonly();
     readonly globalFavoritesLoading =
@@ -775,13 +777,28 @@ export class DashboardDataService {
         const fallbackTimestamp =
             this.getM3uFavoriteTimestamp(playlistMeta) ??
             new Date(0).toISOString();
+        const favoritePositions = new Map<string, number>();
+
+        favorites.forEach((favorite, index) => {
+            if (!favoritePositions.has(favorite)) {
+                favoritePositions.set(favorite, index);
+            }
+        });
 
         return items.reduce<DashboardFavoriteItem[]>((acc, channel) => {
             const channelId = String(channel.id ?? '').trim();
             const channelUrl = String(channel.url ?? '').trim();
-            const matchedFavoriteId = favorites.find(
-                (favorite) => favorite === channelId || favorite === channelUrl
-            );
+            const channelIdFavoritePosition = favoritePositions.get(channelId);
+            const channelUrlFavoritePosition =
+                favoritePositions.get(channelUrl);
+            const matchedFavoriteId =
+                channelIdFavoritePosition !== undefined &&
+                (channelUrlFavoritePosition === undefined ||
+                    channelIdFavoritePosition <= channelUrlFavoritePosition)
+                    ? channelId
+                    : channelUrlFavoritePosition !== undefined
+                      ? channelUrl
+                      : null;
 
             if (!matchedFavoriteId) {
                 return acc;

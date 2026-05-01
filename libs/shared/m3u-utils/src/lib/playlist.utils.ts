@@ -13,19 +13,25 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export function aggregateFavoriteChannels(playlists: Playlist[]): Channel[] {
     const favorites: Channel[] = [];
-    playlists.forEach((playlist) => {
-        if (playlist.favorites?.length && playlist.favorites.length > 0) {
-            playlist?.playlist?.items.forEach((channel: Channel) => {
-                if (
-                    playlist.favorites &&
-                    (playlist.favorites.includes(channel.id) ||
-                        playlist.favorites.includes(channel.url))
-                ) {
-                    favorites.push(channel);
-                }
-            });
+
+    for (const playlist of playlists) {
+        const favoriteIds = new Set(
+            (playlist.favorites ?? []).filter(
+                (favorite): favorite is string => typeof favorite === 'string'
+            )
+        );
+
+        if (favoriteIds.size === 0) {
+            continue;
         }
-    });
+
+        for (const channel of playlist.playlist?.items ?? []) {
+            if (favoriteIds.has(channel.id) || favoriteIds.has(channel.url)) {
+                favorites.push(channel);
+            }
+        }
+    }
+
     return favorites;
 }
 

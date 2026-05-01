@@ -261,13 +261,12 @@ export class GroupsViewComponent {
         const groups = this.visibleGroups();
 
         if (!term) {
-            return groups
-                .map((group) => ({
-                    channels: group.channels,
-                    count: group.count,
-                    key: group.key,
-                    titleMatches: false,
-                }));
+            return groups.map((group) => ({
+                channels: group.channels,
+                count: group.count,
+                key: group.key,
+                titleMatches: false,
+            }));
         }
 
         return groups.reduce<FilteredGroupView[]>((acc, group) => {
@@ -341,20 +340,30 @@ export class GroupsViewComponent {
         });
     });
 
+    private readonly groupKeyByChannelUrl = computed(() => {
+        const groupKeys = new Map<string, string>();
+
+        for (const [groupKey, channels] of Object.entries(
+            this.groupedChannels()
+        )) {
+            for (const channel of channels) {
+                const channelUrl = channel.url;
+                if (!groupKeys.has(channelUrl)) {
+                    groupKeys.set(channelUrl, groupKey);
+                }
+            }
+        }
+
+        return groupKeys;
+    });
+
     readonly activeChannelGroupKey = computed(() => {
         const activeChannelUrl = this.activeChannelUrl();
         if (!activeChannelUrl) {
             return null;
         }
 
-        const grouped = this.groupedChannels();
-        for (const [groupKey, channels] of Object.entries(grouped)) {
-            if (channels.some((channel) => channel.url === activeChannelUrl)) {
-                return groupKey;
-            }
-        }
-
-        return null;
+        return this.groupKeyByChannelUrl().get(activeChannelUrl) ?? null;
     });
 
     selectGroup(groupKey: string): void {

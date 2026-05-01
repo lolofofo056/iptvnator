@@ -78,9 +78,6 @@ export const appConfig: ApplicationConfig = {
             registrationStrategy: 'registerWhenStable:30000',
         }),
         importProvidersFrom(
-            AppConfig.environment === 'WEB'
-                ? NgxIndexedDBModule.forRoot(dbConfig)
-                : [],
             NgxIndexedDBModule.forRoot(dbConfig),
             NgxSkeletonLoaderModule.forRoot({
                 animation: 'pulse',
