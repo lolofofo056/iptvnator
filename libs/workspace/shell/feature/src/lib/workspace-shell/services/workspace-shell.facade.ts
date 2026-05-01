@@ -268,22 +268,6 @@ export class WorkspaceShellFacade {
         () => this.currentRoute().contextPanel !== 'none'
     );
     private readonly xtreamImport = inject(WorkspaceShellXtreamImportService);
-    readonly xtreamImportCount = this.xtreamImport.xtreamImportCount;
-    readonly xtreamItemsToImport = this.xtreamImport.xtreamItemsToImport;
-    readonly xtreamActiveImportCount = this.xtreamImport.xtreamActiveImportCount;
-    readonly xtreamActiveItemsToImport =
-        this.xtreamImport.xtreamActiveItemsToImport;
-    readonly xtreamImportPhase = this.xtreamImport.xtreamImportPhase;
-    readonly isCancellingXtreamImport = this.xtreamImport.isCancellingXtreamImport;
-    readonly canCancelXtreamImport = this.xtreamImport.canCancelXtreamImport;
-    readonly xtreamImportTitleLabel = this.xtreamImport.xtreamImportTitleLabel;
-    readonly xtreamImportTypeLabel = this.xtreamImport.xtreamImportTypeLabel;
-    readonly xtreamImportProgressLabel =
-        this.xtreamImport.xtreamImportProgressLabel;
-    readonly xtreamImportPhaseTone = this.xtreamImport.xtreamImportPhaseTone;
-    readonly xtreamImportSourceLabel = this.xtreamImport.xtreamImportSourceLabel;
-    readonly xtreamImportPhaseLabel = this.xtreamImport.xtreamImportPhaseLabel;
-    readonly xtreamImportDetailLabel = this.xtreamImport.xtreamImportDetailLabel;
     readonly showXtreamImportOverlay = computed(() => {
         const context = this.currentContext();
         const section = this.currentSection();
@@ -752,10 +736,6 @@ export class WorkspaceShellFacade {
         this.dialog.open(PlaylistInfoComponent, {
             data: playlist,
         });
-    }
-
-    cancelXtreamImport(): void {
-        this.xtreamImport.cancelXtreamImport();
     }
 
     openAccountInfo(): void {

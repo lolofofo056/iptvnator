@@ -314,51 +314,53 @@ describe('WorkspaceShellFacade', () => {
 
     it('uses a loading label for remote Xtream fetch phases', () => {
         const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamImport = TestBed.inject(WorkspaceShellXtreamImportService);
 
         xtreamStore.currentImportPhase.set('loading-categories');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_LOADING'
         );
 
         xtreamStore.currentImportPhase.set('loading-live');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_LOADING'
         );
-        expect(facade.xtreamImportSourceLabel()).toBe(
+        expect(xtreamImport.xtreamImportSourceLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_REMOTE_BADGE'
         );
-        expect(facade.xtreamImportDetailLabel()).toBe(
+        expect(xtreamImport.xtreamImportDetailLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_DETAIL_REMOTE'
         );
 
         xtreamStore.currentImportPhase.set('saving-categories');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_SAVING'
         );
 
         xtreamStore.currentImportPhase.set('saving-content');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_SAVING'
         );
-        expect(facade.xtreamImportSourceLabel()).toBe(
+        expect(xtreamImport.xtreamImportSourceLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_LOCAL_BADGE'
         );
-        expect(facade.xtreamImportDetailLabel()).toBe(
+        expect(xtreamImport.xtreamImportDetailLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_DETAIL_LOCAL'
         );
     });
 
     it('builds a type-aware xtream import progress label', () => {
         const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamImport = TestBed.inject(WorkspaceShellXtreamImportService);
 
         xtreamStore.activeImportContentType.set('vod');
         xtreamStore.activeImportCurrentCount.set(20);
         xtreamStore.activeImportTotalCount.set(12323);
 
-        expect(facade.xtreamImportTypeLabel()).toBe(
+        expect(xtreamImport.xtreamImportTypeLabel()).toBe(
             'WORKSPACE.SHELL.RAIL_MOVIES'
         );
-        expect(facade.xtreamImportProgressLabel()).toBe(
+        expect(xtreamImport.xtreamImportProgressLabel()).toBe(
             'WORKSPACE.SHELL.RAIL_MOVIES imported: 20 / 12,323'
         );
     });

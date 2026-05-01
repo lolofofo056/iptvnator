@@ -1,11 +1,5 @@
-import {
-    Component,
-    inject,
-} from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { TranslatePipe } from '@ngx-translate/core';
 import { ExternalPlaybackDockComponent } from 'components';
 import {
     PlaylistDropOverlayComponent,
@@ -13,6 +7,7 @@ import {
 } from '../playlist-drop-overlay';
 import { WorkspaceShellContextSidebarComponent } from './components/workspace-shell-context-sidebar/workspace-shell-context-sidebar.component';
 import { WorkspaceShellHeaderComponent } from './components/workspace-shell-header/workspace-shell-header.component';
+import { WorkspaceShellImportOverlayComponent } from './components/workspace-shell-import-overlay/workspace-shell-import-overlay.component';
 import { WorkspaceShellRailComponent } from './components/workspace-shell-rail/workspace-shell-rail.component';
 import { WorkspaceShellFacade } from './services/workspace-shell.facade';
 import { WorkspaceShellXtreamImportService } from './services/workspace-shell-xtream-import.service';
@@ -22,14 +17,12 @@ import { WorkspaceShellCommandPaletteService } from './services/workspace-shell-
     selector: 'app-workspace-shell',
     imports: [
         ExternalPlaybackDockComponent,
-        MatButtonModule,
-        MatProgressBarModule,
         PlaylistDropOverlayComponent,
         PlaylistDropZoneDirective,
         RouterOutlet,
-        TranslatePipe,
         WorkspaceShellContextSidebarComponent,
         WorkspaceShellHeaderComponent,
+        WorkspaceShellImportOverlayComponent,
         WorkspaceShellRailComponent,
     ],
     templateUrl: './workspace-shell.component.html',
