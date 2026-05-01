@@ -37,6 +37,7 @@
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Versuchen Sie bitte die TV-Guide Einstellungen zu ändern.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Ups, leider ist das TV-Programm nicht verfügbar.",
         "EPG_NOT_AVAILABLE_DATE": "Ups, leider ist das TV-Programm für das ausgewählte Datum nicht verfügbar",
+        "NO_GUIDE_HINT": "Versuchen Sie ein anderes Datum oder aktualisieren Sie die Playlist.",
         "LIVE_NOW": "Live jetzt",
         "LIVE_STREAM": "Live stream",
         "NEXT_DAY": "Zum nächsten Tag",

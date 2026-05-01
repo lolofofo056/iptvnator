@@ -247,6 +247,7 @@
         "LIVE_STREAM": "現場直播",
         "TIMESHIFT_AVAILABLE": "時間平移功能可用，點選以播放",
         "EPG_NOT_AVAILABLE_DATE": "抱歉，選擇的日期上 EPG 無法使用",
+        "NO_GUIDE_HINT": "嘗試其他日期或重新整理播放清單。",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "抱歉，此頻道上的 EPG 無法使用。",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "請在應用程式設定中增加/更改 EPG 列表的URL。",
         "FETCH_EPG": "取得 EPG 資料...",

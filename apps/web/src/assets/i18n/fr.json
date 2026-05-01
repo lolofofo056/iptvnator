@@ -269,6 +269,7 @@
         "LIVE_STREAM": "Diffusion en direct",
         "TIMESHIFT_AVAILABLE": "Contrôle du direct disponible, cliquez pour lire",
         "EPG_NOT_AVAILABLE_DATE": "L'EPG n'est pas disponible pour la date sélectionnée",
+        "NO_GUIDE_HINT": "Essayez une autre date ou actualisez la playlist.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "L'EPG n'est pas disponible pour cette chaîne.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Veuillez ajouter/modifier l'URL de la liste EPG dans les réglages de l'application.",
         "FETCH_EPG": "Récupération des données EPG...",

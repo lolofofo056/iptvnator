@@ -201,6 +201,7 @@
         "LIVE_STREAM": "正在直播",
         "TIMESHIFT_AVAILABLE": "时移功能可用，点击播放",
         "EPG_NOT_AVAILABLE_DATE": "错误：电子节目单EPG在所选日期不可用",
+        "NO_GUIDE_HINT": "尝试其他日期或刷新播放列表。",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "错误：电子节目单EPG不适用于此频道",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "请添加/更改设置项中电子节目单的URL",
         "FETCH_EPG": "获取 EPG 数据...",

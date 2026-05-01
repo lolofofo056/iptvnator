@@ -309,6 +309,7 @@
         "LIVE_STREAM": "Canlı yayın",
         "TIMESHIFT_AVAILABLE": "Zaman kaydırma mevcut, tıklayarak oynat",
         "EPG_NOT_AVAILABLE_DATE": "Üzgünüz, seçilen tarih için EPG mevcut değil",
+        "NO_GUIDE_HINT": "Başka bir tarih deneyin veya oynatma listesini yenileyin.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Üzgünüz, bu kanal için EPG mevcut değil.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Lütfen uygulamanın ayarlarında EPG listesi URL'sini ekleyin veya değiştirin.",
         "FETCH_EPG": "EPG verileri alınıyor...",

@@ -266,6 +266,7 @@
         "LIVE_STREAM": "Transmissão ao vivo",
         "TIMESHIFT_AVAILABLE": "Timeshift está disponível, clique para reproduzir",
         "EPG_NOT_AVAILABLE_DATE": "Ooops, EPG não está disponível para a data selecionada",
+        "NO_GUIDE_HINT": "Tente uma data diferente ou atualize a lista de reprodução.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Ooops, EPG não está disponível para este canal.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Adicione/altere a URL da lista de EPG nas configurações do aplicativo.",
         "FETCH_EPG": "Buscando dados do EPG...",
