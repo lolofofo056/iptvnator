@@ -168,15 +168,21 @@ export async function reorderGlobalFavorites(
     let current = 0;
     const total = updates.length;
 
+    const updateFavoritePosition = db
+        .update(schema.favorites)
+        .set({ position: sql.placeholder('position') })
+        .where(eq(schema.favorites.contentId, sql.placeholder('contentId')))
+        .prepare();
+
     for (const chunk of chunkValues(updates, DEFAULT_BATCH_SIZE)) {
         await checkpointOperation(control);
 
-        await db.transaction(async (tx) => {
+        await db.transaction(async () => {
             for (const { content_id, position } of chunk) {
-                await tx
-                    .update(schema.favorites)
-                    .set({ position })
-                    .where(eq(schema.favorites.contentId, content_id));
+                await updateFavoritePosition.execute({
+                    position,
+                    contentId: content_id,
+                });
             }
         });
 
