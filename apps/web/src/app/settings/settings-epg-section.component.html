@@ -1,0 +1,127 @@
+<section
+    class="settings-group"
+    [class.settings-group--active]="activeSection() === 'epg'"
+    id="epg"
+    [formGroup]="form()"
+>
+    <header class="settings-group__header">
+        <div class="settings-group__header-icon">
+            <mat-icon>list_alt</mat-icon>
+        </div>
+        <div class="settings-group__header-text">
+            <h3>{{ 'SETTINGS.EPG_SOURCES' | translate }}</h3>
+            <p>{{ 'SETTINGS.EPG_SOURCES_DESCRIPTION' | translate }}</p>
+        </div>
+    </header>
+
+    <div class="setting-item setting-item--full-control">
+        <div class="setting-item__control">
+            <ng-container formArrayName="epgUrl">
+                @if (epgUrl().length === 0) {
+                    <div
+                        class="epg-sources-empty"
+                        data-test-id="epg-sources-empty"
+                    >
+                        <mat-icon class="epg-sources-empty__icon"
+                            >event_busy</mat-icon
+                        >
+                        <h4 class="epg-sources-empty__title">
+                            {{ 'SETTINGS.EPG_EMPTY_TITLE' | translate }}
+                        </h4>
+                        <p class="epg-sources-empty__hint">
+                            {{ 'SETTINGS.EPG_EMPTY_HINT' | translate }}
+                        </p>
+                    </div>
+                } @else {
+                    <div class="epg-sources">
+                        @for (_ of epgUrl().controls; track _; let i = $index) {
+                            <div class="epg-source-row">
+                                <mat-form-field
+                                    appearance="outline"
+                                    subscriptSizing="dynamic"
+                                    class="w-full"
+                                >
+                                    <mat-label>{{
+                                        'SETTINGS.EPG_URL_PLACEHOLDER'
+                                            | translate
+                                    }}</mat-label>
+                                    <input
+                                        matInput
+                                        type="url"
+                                        [formControlName]="i"
+                                        #epgField
+                                    />
+                                    <mat-error>{{
+                                        'SETTINGS.EPG_URL_ERROR' | translate
+                                    }}</mat-error>
+                                </mat-form-field>
+                                @if (epgField.value) {
+                                    <app-epg-source-status
+                                        [url]="epgField.value"
+                                    />
+                                }
+                                <button
+                                    mat-icon-button
+                                    [matTooltip]="
+                                        'SETTINGS.REFRESH_EPG' | translate
+                                    "
+                                    type="button"
+                                    [disabled]="epgField.value === ''"
+                                    (click)="refreshEpg.emit(epgUrl().value[i])"
+                                >
+                                    <mat-icon>refresh</mat-icon>
+                                </button>
+                                <button
+                                    mat-icon-button
+                                    [matTooltip]="
+                                        'SETTINGS.REMOVE_EPG_SOURCE' | translate
+                                    "
+                                    type="button"
+                                    (click)="removeEpgSource.emit(i)"
+                                >
+                                    <mat-icon>remove</mat-icon>
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </ng-container>
+        </div>
+    </div>
+
+    <footer class="settings-group__footer">
+        <div class="inline-actions">
+            <button mat-button type="button" (click)="addEpgSource.emit()">
+                <mat-icon>add</mat-icon>
+                {{ 'SETTINGS.ADD_EPG_SOURCE' | translate }}
+            </button>
+            <button
+                mat-button
+                type="button"
+                [disabled]="epgUrl().length === 0 || isClearingEpgData()"
+                (click)="refreshAllEpg.emit()"
+            >
+                <mat-icon>refresh</mat-icon>
+                {{ 'SETTINGS.REFRESH_ALL_EPG' | translate }}
+            </button>
+            <button
+                mat-button
+                color="warn"
+                type="button"
+                [disabled]="isClearingEpgData()"
+                (click)="clearEpgData.emit()"
+            >
+                @if (isClearingEpgData()) {
+                    <mat-progress-spinner
+                        class="button-spinner"
+                        diameter="16"
+                        mode="indeterminate"
+                    />
+                    {{ 'SETTINGS.CLEARING_EPG_DATA' | translate }}
+                } @else {
+                    {{ 'SETTINGS.CLEAR_EPG_DATA' | translate }}
+                }
+            </button>
+        </div>
+    </footer>
+</section>
