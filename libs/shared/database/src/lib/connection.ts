@@ -527,7 +527,12 @@ export async function initDatabase(
 
         if (!readonly) {
             sqlite.pragma('journal_mode = WAL');
+            sqlite.pragma('synchronous = NORMAL');
         }
+
+        sqlite.pragma('cache_size = -64000');
+        sqlite.pragma('temp_store = MEMORY');
+        sqlite.pragma('mmap_size = 268435456');
 
         // Create tables only for read-write connections
         if (!readonly && !skipTableCreation) {
