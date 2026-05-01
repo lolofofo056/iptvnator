@@ -38,7 +38,7 @@ export interface CommandBuilderContext {
 
 export function buildCommandPaletteItems(
     ctx: CommandBuilderContext,
-    viewCommands: WorkspaceCommandContribution[]
+    viewCommands: readonly WorkspaceCommandContribution[]
 ): WorkspaceResolvedCommandItem[] {
     return [
         ...getViewCommandDefinitions(ctx),
