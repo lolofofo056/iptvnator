@@ -610,7 +610,7 @@ export class PlaylistBackupService {
         playlistId: string,
         existing: Playlist | null
     ): Promise<Playlist> {
-        const parsedPlaylist = this.playlistsService.handlePlaylistParsing(
+        const parsedPlaylist = await this.playlistsService.handlePlaylistParsing(
             'TEXT',
             entry.source.rawM3u,
             entry.title

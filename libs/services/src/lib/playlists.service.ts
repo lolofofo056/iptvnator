@@ -2,7 +2,6 @@
 import { inject, Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
-import { parse } from 'iptv-playlist-parser';
 import {
     aggregateFavoriteChannels,
     createFavoritesPlaylist,
@@ -760,13 +759,17 @@ export class PlaylistsService {
         );
     }
 
-    handlePlaylistParsing(
+    async handlePlaylistParsing(
         uploadType: 'FILE' | 'URL' | 'TEXT',
         playlist: string,
         title: string,
         path?: string
     ) {
         try {
+            // Dynamic import keeps the ~130KB validator dep (transitively pulled
+            // by iptv-playlist-parser) out of the eager bundle. parse() only runs
+            // on user-triggered imports.
+            const { parse } = await import('iptv-playlist-parser');
             const parsedPlaylist = parse(playlist);
             return createPlaylistObject(
                 title,
