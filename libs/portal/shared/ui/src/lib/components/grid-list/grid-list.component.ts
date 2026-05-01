@@ -1,4 +1,10 @@
-import { Component, computed, input, output } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    input,
+    output,
+} from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatIcon } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
@@ -177,6 +183,7 @@ export function resolveGridRating(
         ProgressCapsuleComponent,
         WatchedBadgeComponent,
     ],
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GridListComponent {
     readonly items = input<GridListItem[]>();

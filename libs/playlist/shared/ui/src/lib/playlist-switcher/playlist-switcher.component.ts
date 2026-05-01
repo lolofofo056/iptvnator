@@ -1,5 +1,6 @@
 import { DatePipe, DOCUMENT } from '@angular/common';
 import {
+    ChangeDetectionStrategy,
     Component,
     computed,
     DestroyRef,
@@ -53,6 +54,7 @@ const DEFAULT_PLAYLIST_TYPE_FILTERS: Record<PlaylistFilterType, boolean> = {
     selector: 'app-playlist-switcher',
     templateUrl: './playlist-switcher.component.html',
     styleUrls: ['./playlist-switcher.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         DatePipe,
         FormsModule,

@@ -1,5 +1,6 @@
 import { NgComponentOutlet } from '@angular/common';
 import {
+    ChangeDetectionStrategy,
     Component,
     computed,
     DestroyRef,
@@ -44,6 +45,7 @@ interface CategoryContentItem {
     selector: 'app-category-content-view',
     templateUrl: './category-content-view.component.html',
     styleUrls: ['./category-content-view.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         GridListComponent,
         MatIcon,

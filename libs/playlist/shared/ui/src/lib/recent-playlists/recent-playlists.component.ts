@@ -4,6 +4,7 @@ import {
     moveItemInArray,
 } from '@angular/cdk/drag-drop';
 import {
+    ChangeDetectionStrategy,
     Component,
     effect,
     inject,
@@ -62,6 +63,7 @@ type PlaylistBusyOperation = {
     selector: 'app-recent-playlists',
     templateUrl: './recent-playlists.component.html',
     styleUrls: ['./recent-playlists.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         DragDropModule,
         EmptyStateComponent,

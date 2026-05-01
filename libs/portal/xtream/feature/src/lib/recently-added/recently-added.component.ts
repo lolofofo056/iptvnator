@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -33,6 +33,7 @@ const SKELETON_CARDS_PER_RAIL = [1, 2, 3, 4, 5, 6] as const;
     selector: 'app-recently-added',
     templateUrl: './recently-added.component.html',
     styleUrls: ['./recently-added.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [ContentCardComponent, ContentRailShellComponent, TranslatePipe],
 })
 export class RecentlyAddedComponent {

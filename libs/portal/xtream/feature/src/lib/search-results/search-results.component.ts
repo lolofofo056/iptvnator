@@ -1,6 +1,7 @@
 import { KeyValuePipe } from '@angular/common';
 import {
     AfterViewInit,
+    ChangeDetectionStrategy,
     Component,
     computed,
     effect,
@@ -58,6 +59,7 @@ function groupResultsByPlaylistName(
 
 @Component({
     selector: 'app-search-results',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         ContentCardComponent,
         FormsModule,

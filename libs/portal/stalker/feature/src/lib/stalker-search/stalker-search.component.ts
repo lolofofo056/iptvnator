@@ -1,4 +1,5 @@
 import {
+    ChangeDetectionStrategy,
     Component,
     computed,
     effect,
@@ -71,6 +72,7 @@ interface StalkerSearchResponse {
     ],
     templateUrl: './stalker-search.component.html',
     styleUrl: './stalker-search.component.scss',
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class StalkerSearchComponent {
     private readonly activatedRoute = inject(ActivatedRoute);

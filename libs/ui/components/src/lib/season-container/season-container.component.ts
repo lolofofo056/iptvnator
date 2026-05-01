@@ -1,5 +1,6 @@
 import { KeyValuePipe } from '@angular/common';
 import {
+    ChangeDetectionStrategy,
     Component,
     DoCheck,
     OnInit,
@@ -67,6 +68,7 @@ function parseDuration(duration: string | number | undefined): number {
     selector: 'app-season-container',
     templateUrl: './season-container.component.html',
     styleUrls: ['./season-container.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         KeyValuePipe,
         MatButtonModule,
