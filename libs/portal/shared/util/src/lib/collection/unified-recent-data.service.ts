@@ -81,6 +81,40 @@ export class UnifiedRecentDataService {
         this.dispatchPlaylistRecentUpdate(item.playlistId, updatedPlaylist);
     }
 
+    /**
+     * Bulk remove. Xtream items are batched into a single IPC call;
+     * m3u/stalker items still go per-playlist because they update a JSON
+     * column on the playlist row (not the recently_viewed SQL table).
+     */
+    async removeRecentItemsBatch(
+        items: UnifiedCollectionItem[]
+    ): Promise<void> {
+        if (items.length === 0) {
+            return;
+        }
+
+        const xtreamBatch: { contentId: number; playlistId: string }[] = [];
+        const nonXtreamItems: UnifiedCollectionItem[] = [];
+
+        for (const item of items) {
+            if (item.sourceType === 'xtream' && item.contentId != null) {
+                xtreamBatch.push({
+                    contentId: item.contentId,
+                    playlistId: item.playlistId,
+                });
+            } else if (item.sourceType !== 'xtream') {
+                nonXtreamItems.push(item);
+            }
+        }
+
+        await Promise.all([
+            xtreamBatch.length > 0
+                ? this.dbService.removeRecentItemsBatch(xtreamBatch)
+                : Promise.resolve(),
+            ...nonXtreamItems.map((item) => this.removeRecentItem(item)),
+        ]);
+    }
+
     async clearRecentItems(
         scope: CollectionScope,
         playlistId?: string

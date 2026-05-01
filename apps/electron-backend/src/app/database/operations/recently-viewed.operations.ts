@@ -150,3 +150,36 @@ export async function removeRecentItem(
 
     return { success: true };
 }
+
+export async function removeRecentItemsBatch(
+    db: AppDatabase,
+    items: { contentId: number; playlistId: string }[]
+): Promise<{ success: boolean; count: number }> {
+    if (!Array.isArray(items) || items.length === 0) {
+        return { success: true, count: 0 };
+    }
+
+    const stmt = db
+        .delete(schema.recentlyViewed)
+        .where(
+            and(
+                eq(
+                    schema.recentlyViewed.contentId,
+                    sql.placeholder('contentId')
+                ),
+                eq(
+                    schema.recentlyViewed.playlistId,
+                    sql.placeholder('playlistId')
+                )
+            )
+        )
+        .prepare();
+
+    await db.transaction(async () => {
+        for (const { contentId, playlistId } of items) {
+            await stmt.execute({ contentId, playlistId });
+        }
+    });
+
+    return { success: true, count: items.length };
+}

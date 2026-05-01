@@ -556,11 +556,7 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
                 if (remaining.length > 0) {
                     this.selectedContentType.set(remaining[0]);
                 }
-                void Promise.all(
-                    itemsToRemove.map((item) =>
-                        this.recentData.removeRecentItem(item)
-                    )
-                );
+                void this.recentData.removeRecentItemsBatch(itemsToRemove);
             },
         });
     }

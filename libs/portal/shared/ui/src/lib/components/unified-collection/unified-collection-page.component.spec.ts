@@ -132,6 +132,7 @@ describe('UnifiedCollectionPageComponent', () => {
     const recentData = {
         getRecentItems: jest.fn().mockResolvedValue([]),
         removeRecentItem: jest.fn(),
+        removeRecentItemsBatch: jest.fn(),
         clearRecentItems: jest.fn(),
     };
     const dialogService = {

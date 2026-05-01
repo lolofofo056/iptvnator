@@ -540,6 +540,9 @@ const electronApi = {
         ipcRenderer.invoke('DB_CLEAR_PLAYLIST_RECENT_ITEMS', playlistId),
     dbRemoveRecentItem: (contentId: number, playlistId: string) =>
         ipcRenderer.invoke('DB_REMOVE_RECENT_ITEM', contentId, playlistId),
+    dbRemoveRecentItemsBatch: (
+        items: { contentId: number; playlistId: string }[]
+    ) => ipcRenderer.invoke('DB_REMOVE_RECENT_ITEMS_BATCH', items),
     dbGetContentByXtreamId: (
         xtreamId: number,
         playlistId: string,

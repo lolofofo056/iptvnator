@@ -273,6 +273,9 @@ declare global {
                 contentId: number,
                 playlistId: string
             ) => Promise<{ success: boolean }>;
+            dbRemoveRecentItemsBatch: (
+                items: { contentId: number; playlistId: string }[]
+            ) => Promise<{ success: boolean; count: number }>;
             dbGetContentByXtreamId: (
                 xtreamId: number,
                 playlistId: string,

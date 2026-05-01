@@ -838,6 +838,21 @@ export class DatabaseService {
         }
     }
 
+    async removeRecentItemsBatch(
+        items: { contentId: number; playlistId: string }[]
+    ): Promise<boolean> {
+        if (items.length === 0) {
+            return true;
+        }
+        try {
+            await window.electron.dbRemoveRecentItemsBatch(items);
+            return true;
+        } catch (error) {
+            console.error('Error removing recent items batch:', error);
+            return false;
+        }
+    }
+
     /**
      * Get content by xtream ID
      */
