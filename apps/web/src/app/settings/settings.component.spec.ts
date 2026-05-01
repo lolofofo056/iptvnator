@@ -117,6 +117,11 @@ interface SettingsSectionScrollDirectiveTestApi {
     getScrollRoot(): HTMLElement | null;
 }
 
+interface SettingsComponentPrivateTestApi {
+    matDialog: MatDialog;
+    waitForUiFeedbackFrame(): Promise<void>;
+}
+
 describe('SettingsComponent', () => {
     let component: SettingsComponent;
     let fixture: ComponentFixture<SettingsComponent>;
@@ -144,6 +149,11 @@ describe('SettingsComponent', () => {
         autoRefresh: overrides.autoRefresh ?? false,
         ...overrides,
     });
+
+    const createDialogRef = (result: boolean): ReturnType<MatDialog['open']> =>
+        ({
+            afterClosed: () => of(result),
+        }) as unknown as ReturnType<MatDialog['open']>;
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
@@ -274,6 +284,12 @@ describe('SettingsComponent', () => {
         mockStore.overrideSelector(selectAllPlaylistsMeta, playlists);
         mockStore.refreshState();
         fixture.detectChanges();
+    }
+
+    function privateApi(
+        settingsComponent: SettingsComponent
+    ): SettingsComponentPrivateTestApi {
+        return settingsComponent as unknown as SettingsComponentPrivateTestApi;
     }
 
     it('should create and init component', () => {
@@ -557,10 +573,8 @@ describe('SettingsComponent', () => {
         ]);
 
         const openSpy = jest
-            .spyOn((component as any).matDialog, 'open')
-            .mockReturnValue({
-                afterClosed: () => of(false),
-            } as any);
+            .spyOn(privateApi(component).matDialog, 'open')
+            .mockReturnValue(createDialogRef(false));
 
         component.removeAll();
 
@@ -596,9 +610,9 @@ describe('SettingsComponent', () => {
 
         const dispatchSpy = jest.spyOn(store, 'dispatch');
         (databaseService.deleteAllPlaylists as jest.Mock).mockClear();
-        jest.spyOn((component as any).matDialog, 'open').mockReturnValue({
-            afterClosed: () => of(true),
-        } as any);
+        jest.spyOn(privateApi(component).matDialog, 'open').mockReturnValue(
+            createDialogRef(true)
+        );
         jest.spyOn(translate, 'instant').mockImplementation(
             (key: string, params?: Record<string, number>) => {
                 if (key === 'SETTINGS.REMOVE_ALL_PROGRESS') {
@@ -608,7 +622,7 @@ describe('SettingsComponent', () => {
             }
         );
         jest.spyOn(
-            component as any,
+            privateApi(component),
             'waitForUiFeedbackFrame'
         ).mockResolvedValue(undefined);
 
@@ -688,13 +702,12 @@ describe('SettingsComponent', () => {
         mockStore.refreshState();
         browserFixture.detectChanges();
 
-        jest.spyOn((browserComponent as any).matDialog, 'open').mockReturnValue(
-            {
-                afterClosed: () => of(true),
-            } as any
-        );
         jest.spyOn(
-            browserComponent as any,
+            privateApi(browserComponent).matDialog,
+            'open'
+        ).mockReturnValue(createDialogRef(true));
+        jest.spyOn(
+            privateApi(browserComponent),
             'waitForUiFeedbackFrame'
         ).mockResolvedValue(undefined);
         (databaseService.deleteAllPlaylists as jest.Mock).mockClear();

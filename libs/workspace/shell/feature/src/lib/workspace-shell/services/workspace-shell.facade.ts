@@ -189,9 +189,7 @@ export class WorkspaceShellFacade {
 
         links.push({
             icon: 'favorite',
-            tooltip: this.translateText(
-                'WORKSPACE.SHELL.RAIL_GLOBAL_FAVORITES'
-            ),
+            tooltip: this.translateText('HOME.PLAYLISTS.GLOBAL_FAVORITES'),
             path: ['/workspace/global-favorites'],
             exact: true,
         });

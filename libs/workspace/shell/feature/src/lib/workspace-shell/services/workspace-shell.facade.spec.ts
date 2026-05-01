@@ -475,7 +475,7 @@ describe('WorkspaceShellFacade', () => {
             },
             {
                 icon: 'favorite',
-                tooltip: 'WORKSPACE.SHELL.RAIL_GLOBAL_FAVORITES',
+                tooltip: 'HOME.PLAYLISTS.GLOBAL_FAVORITES',
                 path: ['/workspace/global-favorites'],
                 exact: true,
             },
