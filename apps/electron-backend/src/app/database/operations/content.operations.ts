@@ -311,16 +311,18 @@ export async function saveContent(
     for (let index = 0; index < values.length; index += chunkSize) {
         await checkpointOperation(control);
         const chunk = values.slice(index, index + chunkSize);
-        await db
-            .insert(schema.content)
-            .values(chunk)
-            .onConflictDoNothing({
-                target: [
-                    schema.content.categoryId,
-                    schema.content.type,
-                    schema.content.xtreamId,
-                ],
-            });
+        await db.transaction(async (tx) => {
+            await tx
+                .insert(schema.content)
+                .values(chunk)
+                .onConflictDoNothing({
+                    target: [
+                        schema.content.categoryId,
+                        schema.content.type,
+                        schema.content.xtreamId,
+                    ],
+                });
+        });
         totalInserted += chunk.length;
         await reportOperationProgress(control, {
             phase: 'saving-content',
@@ -365,13 +367,19 @@ export async function clearXtreamImportCache(
         contentRows.map((row) => row.id),
         100
     )) {
-        await db.delete(schema.content).where(inArray(schema.content.id, chunk));
+        await db.transaction(async (tx) => {
+            await tx
+                .delete(schema.content)
+                .where(inArray(schema.content.id, chunk));
+        });
     }
 
     for (const chunk of chunkValues(categoryIds, 100)) {
-        await db
-            .delete(schema.categories)
-            .where(inArray(schema.categories.id, chunk));
+        await db.transaction(async (tx) => {
+            await tx
+                .delete(schema.categories)
+                .where(inArray(schema.categories.id, chunk));
+        });
     }
 
     return { success: true };

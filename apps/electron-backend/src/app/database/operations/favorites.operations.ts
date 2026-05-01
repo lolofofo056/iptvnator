@@ -171,12 +171,14 @@ export async function reorderGlobalFavorites(
     for (const chunk of chunkValues(updates, DEFAULT_BATCH_SIZE)) {
         await checkpointOperation(control);
 
-        for (const { content_id, position } of chunk) {
-            await db
-                .update(schema.favorites)
-                .set({ position })
-                .where(eq(schema.favorites.contentId, content_id));
-        }
+        await db.transaction(async (tx) => {
+            for (const { content_id, position } of chunk) {
+                await tx
+                    .update(schema.favorites)
+                    .set({ position })
+                    .where(eq(schema.favorites.contentId, content_id));
+            }
+        });
 
         current += chunk.length;
         await reportOperationProgress(control, {

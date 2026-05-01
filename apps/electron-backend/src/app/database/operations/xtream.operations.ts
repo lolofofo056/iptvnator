@@ -123,9 +123,11 @@ export async function deleteXtreamContent(
             DEFAULT_BATCH_SIZE
         )) {
             await checkpointOperation(control);
-            await db
-                .delete(schema.content)
-                .where(inArray(schema.content.id, chunk));
+            await db.transaction(async (tx) => {
+                await tx
+                    .delete(schema.content)
+                    .where(inArray(schema.content.id, chunk));
+            });
             deletedContent += chunk.length;
             await reportOperationProgress(control, {
                 phase: 'deleting-content',
@@ -141,9 +143,11 @@ export async function deleteXtreamContent(
 
     for (const chunk of chunkValues(categoryIds, DEFAULT_BATCH_SIZE)) {
         await checkpointOperation(control);
-        await db
-            .delete(schema.categories)
-            .where(inArray(schema.categories.id, chunk));
+        await db.transaction(async (tx) => {
+            await tx
+                .delete(schema.categories)
+                .where(inArray(schema.categories.id, chunk));
+        });
         deletedCategories += chunk.length;
         await reportOperationProgress(control, {
             phase: 'deleting-categories',
@@ -264,7 +268,9 @@ export async function restoreXtreamUserData(
 
     for (const chunk of chunkValues(favoriteValues, DEFAULT_BATCH_SIZE)) {
         await checkpointOperation(control);
-        await db.insert(schema.favorites).values(chunk);
+        await db.transaction(async (tx) => {
+            await tx.insert(schema.favorites).values(chunk);
+        });
         restoredFavorites += chunk.length;
         await reportOperationProgress(control, {
             phase: 'restoring-favorites',
@@ -305,7 +311,9 @@ export async function restoreXtreamUserData(
 
     for (const chunk of chunkValues(recentlyViewedValues, DEFAULT_BATCH_SIZE)) {
         await checkpointOperation(control);
-        await db.insert(schema.recentlyViewed).values(chunk);
+        await db.transaction(async (tx) => {
+            await tx.insert(schema.recentlyViewed).values(chunk);
+        });
         restoredRecentlyViewed += chunk.length;
         await reportOperationProgress(control, {
             phase: 'restoring-recently-viewed',
