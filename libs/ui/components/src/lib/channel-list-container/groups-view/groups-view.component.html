@@ -137,12 +137,26 @@
                         }
                     } @else {
                         <div class="groups-nav-empty">
-                            {{
-                                (hasSearchQuery()
-                                    ? 'CHANNELS.NO_SEARCH_RESULTS'
-                                    : 'CHANNELS.NO_VISIBLE_GROUPS'
-                                ) | translate
-                            }}
+                            <mat-icon class="groups-nav-empty__icon">
+                                {{
+                                    hasSearchQuery() ? 'search_off' : 'folder_off'
+                                }}
+                            </mat-icon>
+                            <div class="groups-nav-empty__title">
+                                {{
+                                    (hasSearchQuery()
+                                        ? 'CHANNELS.NO_GROUPS_FOUND'
+                                        : 'CHANNELS.NO_VISIBLE_GROUPS'
+                                    ) | translate
+                                }}
+                            </div>
+                            @if (hasSearchQuery()) {
+                                <div class="groups-nav-empty__hint">
+                                    {{
+                                        'CHANNELS.TRY_DIFFERENT_SEARCH' | translate
+                                    }}
+                                </div>
+                            }
                         </div>
                     }
                 </div>

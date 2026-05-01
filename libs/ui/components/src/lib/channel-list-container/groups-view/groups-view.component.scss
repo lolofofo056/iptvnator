@@ -183,10 +183,35 @@
 }
 
 .groups-nav-empty {
-    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 12px;
     color: var(--app-muted-color, var(--mat-sys-on-surface-variant));
-    font-size: 0.82rem;
-    line-height: 1.4;
+
+    &__icon {
+        width: 28px;
+        height: 28px;
+        font-size: 28px;
+        opacity: 0.5;
+        margin-bottom: 10px;
+    }
+
+    &__title {
+        font-size: 0.85rem;
+        font-weight: 520;
+        letter-spacing: -0.01em;
+        margin-bottom: 4px;
+        text-wrap: balance;
+    }
+
+    &__hint {
+        font-size: 0.78rem;
+        line-height: 1.4;
+        opacity: 0.65;
+        text-wrap: pretty;
+    }
 }
 
 .group-nav-item {
