@@ -1,7 +1,12 @@
 import { Injectable, inject } from '@angular/core';
 import { DataService } from './data.service';
 
-export type PortalStatus = 'active' | 'inactive' | 'expired' | 'unavailable';
+export type PortalStatus =
+    | 'active'
+    | 'inactive'
+    | 'expired'
+    | 'unavailable'
+    | 'checking';
 
 interface XtreamPortalStatusResponse {
     payload?: {
@@ -89,6 +94,8 @@ export class PortalStatusService {
                 return 'Portal subscription has expired.';
             case 'unavailable':
                 return 'Could not connect to the portal.';
+            case 'checking':
+                return 'Checking portal status…';
             default:
                 return '';
         }
@@ -118,6 +125,8 @@ export class PortalStatusService {
                 return 'cancel';
             case 'expired':
                 return 'warning';
+            case 'checking':
+                return 'sync';
             case 'unavailable':
             default:
                 return 'error';

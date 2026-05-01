@@ -179,6 +179,26 @@ export class PlaylistSwitcherComponent {
     );
 
     readonly portalStatuses = signal<Map<string, PortalStatus>>(new Map());
+
+    /**
+     * 30-second TTL cache so that closing and reopening the menu within the
+     * window reuses prior portal status results instead of re-firing N
+     * IPC + HTTPS round-trips. Each entry is keyed by playlistId; the
+     * timestamp gates expiry independently of the in-memory portalStatuses
+     * signal (which can be cleared without invalidating the cache).
+     */
+    private readonly portalStatusCache = new Map<
+        string,
+        { status: PortalStatus; timestamp: number }
+    >();
+    private static readonly PORTAL_STATUS_CACHE_TTL_MS = 30_000;
+
+    /**
+     * Tracks the in-flight check round so we can cancel pending writes when
+     * the menu closes (avoiding zombie writes from a slow portal landing
+     * after the user has moved on).
+     */
+    private portalStatusAbortController: AbortController | null = null;
     readonly currentLocale = computed(() => {
         this.languageTick();
         return normalizeDateLocale(
@@ -190,6 +210,7 @@ export class PlaylistSwitcherComponent {
         this.destroyRef.onDestroy(() => {
             this.clearMenuOverlayWidth();
             this.clearSearchFocusTimeout();
+            this.cancelPortalStatusChecks();
         });
     }
 
@@ -206,6 +227,7 @@ export class PlaylistSwitcherComponent {
         this.isMenuOpen.set(false);
         this.clearMenuOverlayWidth();
         this.clearSearchFocusTimeout();
+        this.cancelPortalStatusChecks();
         if (this.hasSearchToggle()) {
             this.searchExpanded.set(false);
         }
@@ -370,7 +392,13 @@ export class PlaylistSwitcherComponent {
 
     getStatusClass(playlistId: string): string {
         const status = this.portalStatuses().get(playlistId);
-        return this.portalStatusService.getStatusClass(status || 'unavailable');
+        // No entry yet means we haven't checked (or are mid-flight without a
+        // 'checking' write). Render no status class instead of misleading the
+        // user with the red 'unavailable' dot.
+        if (!status) {
+            return '';
+        }
+        return this.portalStatusService.getStatusClass(status);
     }
 
     isSelected(playlist: PlaylistMeta): boolean {
@@ -388,33 +416,82 @@ export class PlaylistSwitcherComponent {
     }
 
     private async checkPortalStatuses(playlists: PlaylistMeta[]) {
-        const statusPromises = playlists
-            .filter(
-                (playlist) =>
-                    playlist.serverUrl && playlist.username && playlist.password
-            )
-            .map(async (playlist) => {
-                try {
-                    const status =
-                        await this.portalStatusService.checkPortalStatus(
-                            playlist.serverUrl,
-                            playlist.username,
-                            playlist.password
-                        );
-                    return { id: playlist._id, status };
-                } catch {
-                    return {
-                        id: playlist._id,
-                        status: 'unavailable' as PortalStatus,
-                    };
-                }
-            });
+        // Cancel any prior in-flight round so its results can't overwrite the
+        // new round (e.g. user closes + reopens the menu rapidly).
+        this.cancelPortalStatusChecks();
+        const controller = new AbortController();
+        this.portalStatusAbortController = controller;
 
-        const results = await Promise.all(statusPromises);
-        const statusMap = new Map(
-            results.map((result) => [result.id, result.status])
+        const xtreamPlaylists = playlists.filter(
+            (playlist) =>
+                playlist.serverUrl && playlist.username && playlist.password
         );
-        this.portalStatuses.set(statusMap);
+        if (xtreamPlaylists.length === 0) {
+            return;
+        }
+
+        const now = Date.now();
+        const ttl = PlaylistSwitcherComponent.PORTAL_STATUS_CACHE_TTL_MS;
+
+        // Hydrate from cache + mark uncached portals as 'checking' in a single
+        // signal write so the UI flips from blank → cached/checking dots in
+        // one render, not one render per playlist.
+        const next = new Map(this.portalStatuses());
+        const toFetch: PlaylistMeta[] = [];
+        for (const playlist of xtreamPlaylists) {
+            const cached = this.portalStatusCache.get(playlist._id);
+            if (cached && now - cached.timestamp < ttl) {
+                next.set(playlist._id, cached.status);
+            } else {
+                next.set(playlist._id, 'checking');
+                toFetch.push(playlist);
+            }
+        }
+        this.portalStatuses.set(next);
+
+        if (toFetch.length === 0) {
+            return;
+        }
+
+        // Stream results: each portal's dot updates as soon as ITS request
+        // resolves, independent of the slowest one. Replaces the prior
+        // Promise.all that blocked all dots on the tail latency.
+        await Promise.all(
+            toFetch.map(async (playlist) => {
+                let status: PortalStatus;
+                try {
+                    status = await this.portalStatusService.checkPortalStatus(
+                        playlist.serverUrl,
+                        playlist.username,
+                        playlist.password
+                    );
+                } catch {
+                    status = 'unavailable';
+                }
+
+                if (controller.signal.aborted) {
+                    return;
+                }
+
+                this.portalStatusCache.set(playlist._id, {
+                    status,
+                    timestamp: Date.now(),
+                });
+
+                this.portalStatuses.update((current) => {
+                    const updated = new Map(current);
+                    updated.set(playlist._id, status);
+                    return updated;
+                });
+            })
+        );
+    }
+
+    private cancelPortalStatusChecks(): void {
+        if (this.portalStatusAbortController) {
+            this.portalStatusAbortController.abort();
+            this.portalStatusAbortController = null;
+        }
     }
 
     private syncMenuOverlayWidthToTrigger(): void {
