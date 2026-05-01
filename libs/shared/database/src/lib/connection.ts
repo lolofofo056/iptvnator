@@ -150,6 +150,8 @@ const CREATE_TABLE_STATEMENTS = [
     `CREATE UNIQUE INDEX IF NOT EXISTS recently_viewed_content_playlist_unique ON recently_viewed(content_id, playlist_id)`,
     `CREATE INDEX IF NOT EXISTS recently_viewed_playlist_idx ON recently_viewed(playlist_id)`,
     `CREATE INDEX IF NOT EXISTS recently_viewed_viewed_at_idx ON recently_viewed(viewed_at)`,
+    `CREATE INDEX IF NOT EXISTS recently_viewed_playlist_viewed_idx ON recently_viewed(playlist_id, viewed_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS favorites_playlist_position_idx ON favorites(playlist_id, position, added_at DESC)`,
     // EPG tables
     `CREATE TABLE IF NOT EXISTS epg_channels (
       id TEXT PRIMARY KEY,
@@ -220,6 +222,7 @@ const CREATE_TABLE_STATEMENTS = [
     `CREATE INDEX IF NOT EXISTS playback_positions_playlist_idx ON playback_positions(playlist_id)`,
     `CREATE INDEX IF NOT EXISTS playback_positions_series_idx ON playback_positions(series_xtream_id)`,
     `CREATE INDEX IF NOT EXISTS playback_positions_updated_idx ON playback_positions(updated_at)`,
+    `CREATE INDEX IF NOT EXISTS playback_positions_playlist_updated_idx ON playback_positions(playlist_id, updated_at DESC)`,
     // Downloads table
     `CREATE TABLE IF NOT EXISTS downloads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
