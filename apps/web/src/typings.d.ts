@@ -90,6 +90,9 @@ declare global {
                 skipped?: string[];
             }>;
             getChannelPrograms: (channelId: string) => Promise<EpgProgram[]>;
+            getCurrentProgramsBatch: (
+                channelIds: string[]
+            ) => Promise<Record<string, EpgProgram | null>>;
             getEpgChannelMetadata: (
                 channelIds: string[]
             ) => Promise<Record<string, EpgChannelMetadata | null>>;
