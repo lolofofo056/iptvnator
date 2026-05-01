@@ -235,12 +235,18 @@
                             (channel?.name ||
                                 ('CHANNELS.UNNAMED_CHANNEL' | translate))
                         "
-                        [logo]="channel.logo"
+                        [logo]="getLogoForChannel(channel)"
                         [showEpg]="shouldShowEpg()"
                         [showDetailsContextMenu]="true"
                         [isRadio]="channel?.radio === 'true'"
-                        [epgProgram]="channel.epgProgram"
-                        [progressPercentage]="channel.progressPercentage"
+                        [epgProgram]="
+                            epgMetadataMap().get(getChannelEpgKey(channel))
+                                ?.epgProgram
+                        "
+                        [progressPercentage]="
+                            epgMetadataMap().get(getChannelEpgKey(channel))
+                                ?.progressPercentage ?? 0
+                        "
                         [selected]="activeChannelUrl() === channel?.url"
                         [showFavoriteButton]="true"
                         [isFavorite]="

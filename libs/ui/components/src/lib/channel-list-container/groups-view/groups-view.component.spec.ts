@@ -250,9 +250,9 @@ describe('GroupsViewComponent', () => {
         );
         fixture.detectChanges();
 
-        expect(component.selectedGroupChannels()[0].logo).toBe(
-            'https://example.com/sports.png'
-        );
+        expect(
+            component.getLogoForChannel(component.selectedGroupChannels()[0])
+        ).toBe('https://example.com/sports.png');
     });
 
     it('persists sort mode changes', () => {

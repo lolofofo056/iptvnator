@@ -129,7 +129,9 @@ describe('AllChannelsViewComponent', () => {
         );
         fixture.detectChanges();
 
-        expect(component.enrichedChannels()[0].logo).toBe(playlistLogo);
+        expect(component.getLogoForChannel(component.filteredChannels()[0])).toBe(
+            playlistLogo
+        );
     });
 
     it('falls back to the EPG icon using tvg-name when tvg-id and playlist logo are missing', () => {
@@ -150,7 +152,7 @@ describe('AllChannelsViewComponent', () => {
         );
         fixture.detectChanges();
 
-        expect(component.enrichedChannels()[0].logo).toBe(
+        expect(component.getLogoForChannel(component.filteredChannels()[0])).toBe(
             'https://example.com/guide-news.png'
         );
     });

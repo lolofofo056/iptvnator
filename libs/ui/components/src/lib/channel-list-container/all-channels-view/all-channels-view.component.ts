@@ -20,10 +20,13 @@ import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
 
-/** Enriched channel with pre-computed EPG and progress data */
-export interface EnrichedChannel extends Channel {
+/**
+ * Per-channel EPG metadata stored in a side-car map keyed by EPG lookup key.
+ * Replaces the older EnrichedChannel pattern that spread-cloned every channel
+ * on every progressTick (~30 s).
+ */
+export interface ChannelEpgMetadata {
     epgProgram: EpgProgram | null | undefined;
-    logo: string;
     progressPercentage: number;
 }
 
@@ -86,37 +89,55 @@ export class AllChannelsViewComponent {
     });
 
     /**
-     * Computed signal for filtered and enriched channels.
+     * Filtered channels — just a subset reference, no cloning.
+     * Recomputes only when the source list or the search term changes.
      */
-    readonly enrichedChannels = computed(() => {
+    readonly filteredChannels = computed(() => {
         const term = this.searchTerm().trim().toLowerCase();
         const channels = this.channels();
+        if (!term) {
+            return channels;
+        }
+        return channels.filter((ch) =>
+            ch.name?.toLowerCase().includes(term)
+        );
+    });
+
+    /**
+     * Side-car EPG metadata keyed by channel EPG lookup key.
+     * Rebuilt every progressTick (~30 s) but only contains entries for channels
+     * that actually have EPG data — typically a small fraction of the playlist.
+     * Replaces the previous spread-clone-every-channel pattern that allocated
+     * ~90K objects per tick on large M3U playlists.
+     */
+    readonly epgMetadataMap = computed(() => {
         const epgMap = this.channelEpgMap();
-        const iconMap = this.channelIconMap();
         // Read progressTick to create dependency for progress refresh
         this.progressTick();
 
-        let result = channels;
-
-        // Filter if search term exists
-        if (term) {
-            result = channels.filter((ch) =>
-                ch.name?.toLowerCase().includes(term)
-            );
-        }
-
-        // Enrich with EPG data and pre-calculate progress
-        return result.map((channel) => {
-            const channelId = resolveChannelEpgLookupKey(channel);
-            const epgProgram = channelId ? epgMap.get(channelId) : null;
-            return {
-                ...channel,
-                epgProgram,
-                logo: resolveChannelLogo(channel, iconMap),
-                progressPercentage: this.calculateProgress(epgProgram),
-            } as EnrichedChannel;
+        const result = new Map<string, ChannelEpgMetadata>();
+        epgMap.forEach((program, channelId) => {
+            result.set(channelId, {
+                epgProgram: program,
+                progressPercentage: this.calculateProgress(program),
+            });
         });
+        return result;
     });
+
+    /** Resolves the EPG lookup key the side-car map is keyed by. */
+    getChannelEpgKey(channel: Channel): string {
+        return resolveChannelEpgLookupKey(channel) ?? '';
+    }
+
+    /**
+     * Resolves the channel logo. Called per visible row from the template; under
+     * OnPush + virtual scroll only ~50 rows check at a time so direct calls are
+     * cheaper than rebuilding a separate logo map per channels/iconMap change.
+     */
+    getLogoForChannel(channel: Channel): string {
+        return resolveChannelLogo(channel, this.channelIconMap());
+    }
 
     /**
      * Calculates progress percentage for an EPG program
