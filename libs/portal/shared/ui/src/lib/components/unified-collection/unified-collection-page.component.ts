@@ -21,7 +21,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { DialogService } from 'components';
+import { ChannelListSkeletonComponent, DialogService } from 'components';
 import {
     buildGlobalCollectionDetailNavigationTarget,
     buildCollectionViewState,
@@ -66,6 +66,7 @@ import {
     styleUrl: './unified-collection-page.component.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
+        ChannelListSkeletonComponent,
         EmptyStateComponent,
         NgTemplateOutlet,
         MatButtonToggleModule,

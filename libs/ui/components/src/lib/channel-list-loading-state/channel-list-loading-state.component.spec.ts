@@ -18,15 +18,14 @@ describe('ChannelListLoadingStateComponent', () => {
         component = fixture.componentInstance;
     });
 
-    it('renders channel rows for non-group views', () => {
+    it('renders the channel-list skeleton wrapper for non-group views', () => {
         fixture.componentRef.setInput('view', 'all');
         fixture.detectChanges();
 
         expect(component.isGroupsView()).toBe(false);
         expect(
-            fixture.nativeElement.querySelectorAll('.channel-loading-row')
-                .length
-        ).toBe(component.channelRows.length);
+            fixture.nativeElement.querySelector('app-channel-list-skeleton')
+        ).not.toBeNull();
         expect(
             fixture.nativeElement.querySelector('.groups-loading-layout')
         ).toBeNull();

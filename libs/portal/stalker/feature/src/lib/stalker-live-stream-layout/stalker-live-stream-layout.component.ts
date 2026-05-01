@@ -16,7 +16,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
-import { ChannelListItemComponent, ResizableDirective } from 'components';
+import {
+    ChannelListItemComponent,
+    ChannelListSkeletonComponent,
+    ResizableDirective,
+} from 'components';
 import { PlaylistsService } from 'services';
 import {
     Channel,
@@ -58,6 +62,7 @@ import {
     styleUrls: ['./stalker-live-stream-layout.component.scss'],
     imports: [
         ChannelListItemComponent,
+        ChannelListSkeletonComponent,
         EpgListComponent,
         MatProgressSpinnerModule,
         LiveEpgPanelComponent,
@@ -99,6 +104,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     });
     readonly hasMoreItems = this.stalkerStore.hasMoreChannels;
     readonly isLoadingMore = signal(false);
+    readonly isInitialChannelsLoading = computed(
+        () =>
+            !!this.stalkerStore.selectedCategoryId() &&
+            this.itvChannels().length === 0 &&
+            !this.searchTerm()
+    );
 
     readonly selectedChannelId = this.stalkerStore.selectedItvId;
     protected readonly normalizeStalkerEntityId = normalizeStalkerEntityId;

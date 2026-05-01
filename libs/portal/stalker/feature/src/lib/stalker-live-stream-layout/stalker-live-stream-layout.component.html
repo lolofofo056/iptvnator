@@ -26,7 +26,13 @@
         </div>
 
         <div #scrollContainer class="channels-list">
-            @if (searchTerm() && visibleChannels().length === 0) {
+            @if (isInitialChannelsLoading()) {
+                <app-channel-list-skeleton
+                    [count]="9"
+                    [showEpg]="false"
+                    [actionCount]="1"
+                />
+            } @else if (searchTerm() && visibleChannels().length === 0) {
                 <div class="empty-search-state">
                     <app-portal-empty-state
                         icon="search_off"
