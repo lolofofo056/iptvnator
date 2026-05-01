@@ -268,17 +268,26 @@ export function withSelection() {
                           ? storeAny.vodStreams?.() || []
                           : storeAny.serialStreams?.() || [];
 
+                if (categoryType === 'vod' || categoryType === 'series') {
+                    let filtered = categoryId
+                        ? content.filter(
+                              (item) => Number(item.category_id) === categoryId
+                          )
+                        : sortedContent();
+
+                    filtered = filterBySearchTerm(filtered, searchTerm);
+                    return categoryId
+                        ? sortByMode(filtered, sortMode, categoryType)
+                        : filtered;
+                }
+
                 if (!categoryId) {
                     return sortedContent();
                 }
 
-                let filtered = content.filter(
+                const filtered = content.filter(
                     (item) => Number(item.category_id) === categoryId
                 );
-                if (categoryType === 'vod' || categoryType === 'series') {
-                    filtered = filterBySearchTerm(filtered, searchTerm);
-                    filtered = sortByMode(filtered, sortMode, categoryType);
-                }
                 return filtered;
             });
 
