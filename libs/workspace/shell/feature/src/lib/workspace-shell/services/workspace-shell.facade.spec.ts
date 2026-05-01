@@ -25,6 +25,8 @@ import {
 import { RecentCommandsService } from '../../recent-commands';
 import { WorkspacePlayerCommandsContributor } from '../../workspace-player-commands';
 import { WorkspaceShellFacade } from './workspace-shell.facade';
+import { WorkspaceShellXtreamImportService } from './workspace-shell-xtream-import.service';
+import { WorkspaceShellCommandPaletteService } from './workspace-shell-command-palette.service';
 
 class MockXtreamStore {
     readonly recentItems = signal<unknown[]>([]);
@@ -193,6 +195,8 @@ describe('WorkspaceShellFacade', () => {
         TestBed.configureTestingModule({
             providers: [
                 WorkspaceShellFacade,
+                WorkspaceShellXtreamImportService,
+                WorkspaceShellCommandPaletteService,
                 {
                     provide: Router,
                     useValue: router,

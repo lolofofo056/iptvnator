@@ -15,6 +15,8 @@ import { WorkspaceShellContextSidebarComponent } from './components/workspace-sh
 import { WorkspaceShellHeaderComponent } from './components/workspace-shell-header/workspace-shell-header.component';
 import { WorkspaceShellRailComponent } from './components/workspace-shell-rail/workspace-shell-rail.component';
 import { WorkspaceShellFacade } from './services/workspace-shell.facade';
+import { WorkspaceShellXtreamImportService } from './services/workspace-shell-xtream-import.service';
+import { WorkspaceShellCommandPaletteService } from './services/workspace-shell-command-palette.service';
 
 @Component({
     selector: 'app-workspace-shell',
@@ -32,7 +34,11 @@ import { WorkspaceShellFacade } from './services/workspace-shell.facade';
     ],
     templateUrl: './workspace-shell.component.html',
     styleUrl: './workspace-shell.component.scss',
-    providers: [WorkspaceShellFacade],
+    providers: [
+        WorkspaceShellFacade,
+        WorkspaceShellXtreamImportService,
+        WorkspaceShellCommandPaletteService,
+    ],
 })
 export class WorkspaceShellComponent {
     readonly facade = inject(WorkspaceShellFacade);
