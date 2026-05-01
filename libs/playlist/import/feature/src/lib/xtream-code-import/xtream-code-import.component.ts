@@ -61,7 +61,6 @@ import { v4 as uuid } from 'uuid';
                 align-items: center;
                 gap: 8px;
             }
-
         `,
     ],
 })
@@ -121,7 +120,7 @@ export class XtreamCodeImportComponent {
         return this.portalStatusService.getStatusIcon(this.connectionStatus);
     }
 
-    clearForm() {
+    clearForm(): void {
         this.form.reset({
             _id: uuid(),
             title: '',

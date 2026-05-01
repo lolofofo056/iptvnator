@@ -16,10 +16,6 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { Store } from '@ngrx/store';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
 import { PlaylistType } from '@iptvnator/playlist/shared/ui';
-import {
-    M3uSubType,
-    PlaylistCategory,
-} from '@iptvnator/workspace/shell/util';
 import { PlaylistActions } from 'm3u-state';
 import { DataService } from 'services';
 import { PLAYLIST_PARSE_BY_URL } from 'shared-interfaces';
@@ -28,6 +24,9 @@ import { StalkerPortalImportComponent } from '../stalker-portal-import/stalker-p
 import { TextImportComponent } from '../text-import/text-import.component';
 import { UrlUploadComponent } from '../url-upload/url-upload.component';
 import { XtreamCodeImportComponent } from '../xtream-code-import/xtream-code-import.component';
+
+type PlaylistCategory = 'm3u' | Extract<PlaylistType, 'xtream' | 'stalker'>;
+type M3uSubType = Extract<PlaylistType, 'url' | 'file' | 'text'>;
 
 interface CategoryOption {
     value: PlaylistCategory;
@@ -139,7 +138,9 @@ export class AddPlaylistDialogComponent {
             return;
         }
 
-        const playlistName = this.normalizeOptionalValue(formValue?.playlistName);
+        const playlistName = this.normalizeOptionalValue(
+            formValue?.playlistName
+        );
 
         this.dataService.sendIpcEvent(PLAYLIST_PARSE_BY_URL, {
             url: playlistUrl,
@@ -161,6 +162,42 @@ export class AddPlaylistDialogComponent {
             })
         );
         this.closeDialog();
+    }
+
+    clearCurrentForm(): void {
+        switch (this.playlistType()) {
+            case 'url':
+                this.urlUpload()?.clearForm();
+                break;
+            case 'file':
+                this.fileUpload()?.clearSelection();
+                break;
+            case 'text':
+                this.textImport()?.clearForm();
+                break;
+            case 'xtream':
+                this.xtreamImport()?.clearForm();
+                break;
+            case 'stalker':
+                this.stalkerImport()?.clearForm();
+                break;
+        }
+    }
+
+    isClearDisabled(): boolean {
+        switch (this.playlistType()) {
+            case 'file':
+                return (
+                    !this.fileUpload()?.selectedFile() ||
+                    !!this.fileUpload()?.isImporting()
+                );
+            case 'xtream':
+                return !!this.xtreamImport()?.isTestingConnection;
+            case 'stalker':
+                return !!this.stalkerImport()?.isLoading();
+            default:
+                return false;
+        }
     }
 
     closeDialog(): void {

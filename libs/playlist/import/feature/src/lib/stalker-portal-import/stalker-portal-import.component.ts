@@ -79,6 +79,24 @@ export class StalkerPortalImportComponent {
 
     readonly isLoading = signal(false);
 
+    clearForm(): void {
+        this.form.reset({
+            _id: uuid(),
+            title: '',
+            macAddress: '',
+            serialNumber: '',
+            deviceId1: '',
+            deviceId2: '',
+            signature1: '',
+            signature2: '',
+            password: '',
+            username: '',
+            portalUrl: '',
+            importDate: new Date().toISOString(),
+            userAgent: '',
+        });
+    }
+
     async addPlaylist() {
         if (!this.form.valid || this.isLoading()) {
             return;
