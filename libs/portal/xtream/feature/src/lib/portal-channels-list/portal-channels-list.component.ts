@@ -4,6 +4,7 @@ import {
 } from '@angular/cdk/scrolling';
 import {
     AfterViewInit,
+    ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
     computed,
@@ -55,6 +56,7 @@ interface XtreamCategoryLike {
     selector: 'app-portal-channels-list',
     templateUrl: './portal-channels-list.component.html',
     styleUrls: ['./portal-channels-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         ChannelListItemComponent,
         MatIcon,
