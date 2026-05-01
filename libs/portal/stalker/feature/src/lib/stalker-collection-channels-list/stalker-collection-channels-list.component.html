@@ -32,11 +32,13 @@
         }
     } @else {
         <div class="empty-search-state">
-            <div class="empty-icon-wrapper">
-                <mat-icon>search_off</mat-icon>
-            </div>
-            <h3>{{ 'CHANNELS.NO_CHANNELS_FOUND' | translate }}</h3>
-            <p>We couldn't find anything matching "{{ searchString() }}"</p>
+            <mat-icon class="empty-state-icon">search_off</mat-icon>
+            <h3 class="empty-state-title">
+                {{ 'CHANNELS.NO_CHANNELS_FOUND' | translate }}
+            </h3>
+            <p class="empty-state-hint">
+                {{ 'CHANNELS.TRY_DIFFERENT_SEARCH' | translate }}
+            </p>
         </div>
     }
 </div>
