@@ -168,9 +168,11 @@ export async function reorderGlobalFavorites(
     let current = 0;
     const total = updates.length;
 
+    // Drizzle's .set() doesn't accept a bare Placeholder — wrap it in an
+    // sql template so the value resolves to SQL<number> at compile time.
     const updateFavoritePosition = db
         .update(schema.favorites)
-        .set({ position: sql.placeholder('position') })
+        .set({ position: sql<number>`${sql.placeholder('position')}` })
         .where(eq(schema.favorites.contentId, sql.placeholder('contentId')))
         .prepare();
 
