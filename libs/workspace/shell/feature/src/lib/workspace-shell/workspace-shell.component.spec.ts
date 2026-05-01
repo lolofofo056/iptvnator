@@ -1,11 +1,11 @@
 import {
     Component,
+    Directive,
     input,
     output,
     signal,
 } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { RouterOutlet, provideRouter } from '@angular/router';
 import {
     WorkspacePortalContext,
@@ -54,6 +54,7 @@ class MockWorkspaceShellHeaderComponent {
     readonly canRefreshPlaylist = input(false);
     readonly isRefreshingPlaylist = input(false);
     readonly isElectron = input(false);
+    readonly hasNoPlaylists = input(false);
     readonly isDownloadsView = input(false);
     readonly hasActiveDownloads = input(false);
     readonly headerBulkAction = input<WorkspaceHeaderBulkAction | null>(null);
@@ -78,6 +79,7 @@ class MockWorkspaceShellContextSidebarComponent {
     readonly variant = input<WorkspaceShellContextPanel>('none');
     readonly context = input<WorkspacePortalContext | null>(null);
     readonly section = input<string | null>(null);
+    readonly hasPlaylists = input(false);
 }
 
 @Component({
@@ -89,6 +91,31 @@ class MockExternalPlaybackDockComponent {
     readonly session = input<unknown>(null);
     readonly closeClicked = output<void>();
 }
+
+@Component({
+    selector: 'app-playlist-drop-overlay',
+    template: '',
+    standalone: true,
+})
+class MockPlaylistDropOverlayComponent {
+    readonly state = input<unknown>({ kind: 'idle' });
+}
+
+@Directive({
+    selector: '[appPlaylistDropZone]',
+    exportAs: 'playlistDropZone',
+    standalone: true,
+})
+class MockPlaylistDropZoneDirective {
+    readonly overlayState = signal({ kind: 'idle' });
+}
+
+@Component({
+    selector: 'app-workspace-shell-import-overlay',
+    template: '',
+    standalone: true,
+})
+class MockWorkspaceShellImportOverlayComponent {}
 
 class MockWorkspaceShellFacade {
     readonly brandLink = signal('/workspace/dashboard');
@@ -114,6 +141,7 @@ class MockWorkspaceShellFacade {
     readonly headerShortcut = signal(null);
     readonly canRefreshPlaylist = signal(false);
     readonly isRefreshingPlaylist = signal(false);
+    readonly hasNoPlaylists = signal(false);
     readonly isDownloadsView = signal(false);
     readonly hasActiveDownloads = signal(false);
     readonly headerBulkAction = signal<WorkspaceHeaderBulkAction | null>(null);
@@ -173,11 +201,13 @@ describe('WorkspaceShellComponent', () => {
             .overrideComponent(WorkspaceShellComponent, {
                 set: {
                     imports: [
-                        MatProgressBarModule,
                         RouterOutlet,
                         MockExternalPlaybackDockComponent,
+                        MockPlaylistDropOverlayComponent,
+                        MockPlaylistDropZoneDirective,
                         MockWorkspaceShellContextSidebarComponent,
                         MockWorkspaceShellHeaderComponent,
+                        MockWorkspaceShellImportOverlayComponent,
                         MockWorkspaceShellRailComponent,
                     ],
                     providers: [
@@ -210,7 +240,7 @@ describe('WorkspaceShellComponent', () => {
         ).not.toBeNull();
     });
 
-    it('renders type-aware xtream import progress copy in the overlay', async () => {
+    it('renders the xtream import overlay child only when the facade flag is true', async () => {
         const facade = new MockWorkspaceShellFacade();
 
         await TestBed.configureTestingModule({
@@ -220,11 +250,13 @@ describe('WorkspaceShellComponent', () => {
             .overrideComponent(WorkspaceShellComponent, {
                 set: {
                     imports: [
-                        MatProgressBarModule,
                         RouterOutlet,
                         MockExternalPlaybackDockComponent,
+                        MockPlaylistDropOverlayComponent,
+                        MockPlaylistDropZoneDirective,
                         MockWorkspaceShellContextSidebarComponent,
                         MockWorkspaceShellHeaderComponent,
+                        MockWorkspaceShellImportOverlayComponent,
                         MockWorkspaceShellRailComponent,
                     ],
                     providers: [
@@ -237,18 +269,22 @@ describe('WorkspaceShellComponent', () => {
             })
             .compileComponents();
 
-        facade.showXtreamImportOverlay.set(true);
-        facade.xtreamActiveImportCount.set(20);
-        facade.xtreamActiveItemsToImport.set(12323);
-        facade.xtreamImportProgressLabel.set('Movies imported: 20 / 12,323');
-
         const fixture = TestBed.createComponent(WorkspaceShellComponent);
         fixture.detectChanges();
 
         expect(
             fixture.nativeElement.querySelector(
-                '.workspace-loading-overlay__progress-copy'
-            )?.textContent
-        ).toContain('Movies imported: 20 / 12,323');
+                'app-workspace-shell-import-overlay'
+            )
+        ).toBeNull();
+
+        facade.showXtreamImportOverlay.set(true);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                'app-workspace-shell-import-overlay'
+            )
+        ).not.toBeNull();
     });
 });
