@@ -125,18 +125,33 @@ export function resolveGridRating(
                     </mat-card>
                 } @empty {
                     <div class="grid-empty-state">
-                        <app-playlist-error-view
-                            [title]="
-                                'PORTALS.ERROR_VIEW.EMPTY_CATEGORY.TITLE'
-                                    | translate
-                            "
-                            [description]="
-                                'PORTALS.ERROR_VIEW.EMPTY_CATEGORY.DESCRIPTION'
-                                    | translate
-                            "
-                            [showActionButtons]="false"
-                            [viewType]="'EMPTY_CATEGORY'"
-                        />
+                        @if (hasActiveSearch()) {
+                            <app-playlist-error-view
+                                [title]="
+                                    'PORTALS.SEARCH_VIEW.NO_RESULTS_FOR'
+                                        | translate: { term: searchTerm() }
+                                "
+                                [description]="
+                                    'PORTALS.EMPTY_LIST_VIEW.NO_SEARCH_RESULTS'
+                                        | translate
+                                "
+                                [showActionButtons]="false"
+                                [viewType]="'NO_SEARCH_RESULTS'"
+                            />
+                        } @else {
+                            <app-playlist-error-view
+                                [title]="
+                                    'PORTALS.ERROR_VIEW.EMPTY_CATEGORY.TITLE'
+                                        | translate
+                                "
+                                [description]="
+                                    'PORTALS.ERROR_VIEW.EMPTY_CATEGORY.DESCRIPTION'
+                                        | translate
+                                "
+                                [showActionButtons]="false"
+                                [viewType]="'EMPTY_CATEGORY'"
+                            />
+                        }
                     </div>
                 }
             }
@@ -167,6 +182,7 @@ export class GridListComponent {
     readonly items = input<GridListItem[]>();
     readonly isLoading = input<boolean>();
     readonly showPaginator = input(true);
+    readonly searchTerm = input<string>('');
     readonly itemClicked = output<GridListItem>();
     readonly pageChange = output<PageEvent>();
 
@@ -175,6 +191,9 @@ export class GridListComponent {
     readonly limit = input<number>();
     readonly pageSizeOptions = input<number[]>();
     protected readonly resolveRating = resolveGridRating;
+    protected readonly hasActiveSearch = computed(
+        () => (this.searchTerm() ?? '').trim().length > 0
+    );
 
     readonly skeletonRows = computed(() => {
         const preferredCount = this.limit() ?? 12;

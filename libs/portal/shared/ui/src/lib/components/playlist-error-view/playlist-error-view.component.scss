@@ -44,9 +44,10 @@
 }
 
 .icon {
-    font-size: 64px;
-    height: 64px;
-    width: 64px;
+    font-size: clamp(120px, 18vw, 180px);
+    height: clamp(120px, 18vw, 180px);
+    width: clamp(120px, 18vw, 180px);
+    opacity: 0.5;
 }
 
 .error-view--empty-category .error-view__illustration {
