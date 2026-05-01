@@ -100,6 +100,12 @@ export function closeWorkerDatabase(): void {
         return;
     }
 
+    try {
+        sqlite.pragma('optimize');
+    } catch {
+        // Optimize is advisory; never block close on it.
+    }
+
     sqlite.close();
 
     if (isSqlTraceEnabled()) {

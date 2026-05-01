@@ -573,6 +573,12 @@ export async function getReadOnlyDatabase(): Promise<DatabaseInstance> {
  */
 export function closeDatabase(): void {
     if (sqlite) {
+        try {
+            sqlite.pragma('optimize');
+        } catch {
+            // Optimize is advisory; never block close on it.
+        }
+
         sqlite.close();
 
         if (isSqlTraceEnabled()) {
