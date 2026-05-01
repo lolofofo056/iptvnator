@@ -17,6 +17,22 @@ interface XtreamPortalStatusResponse {
     };
 }
 
+interface PortalStatusCacheEntry {
+    status: PortalStatus;
+    timestamp: number;
+}
+
+interface CheckPortalStatusOptions {
+    /**
+     * Skip the cache and force a fresh round-trip. Use for explicit user
+     * actions like "Test Connection" buttons; default behavior (cache hit
+     * within TTL returns immediately) is correct for passive status checks.
+     */
+    skipCache?: boolean;
+}
+
+const PORTAL_STATUS_CACHE_TTL_MS = 30_000;
+
 @Injectable({
     providedIn: 'root',
 })
@@ -24,14 +40,107 @@ export class PortalStatusService {
     private readonly dataService = inject(DataService);
 
     /**
+     * Process-lifetime cache shared across all consumers (playlist switcher,
+     * recent playlists item, etc.). Same credential triple = same cache
+     * entry, so opening the homepage and then the switcher within 30 s
+     * skips redundant IPC + HTTPS round-trips.
+     */
+    private readonly cache = new Map<string, PortalStatusCacheEntry>();
+
+    /**
+     * Dedup in-flight requests so two near-simultaneous callers (homepage
+     * playlist-item + switcher menu open) share a single network round-trip
+     * instead of racing each other.
+     */
+    private readonly inFlight = new Map<string, Promise<PortalStatus>>();
+
+    /**
      * Checks the status of an Xtream Code portal
      *
      * @param serverUrl The base URL of the server
      * @param username The username for authentication
      * @param password The password for authentication
+     * @param options Pass `{ skipCache: true }` for user-initiated checks
+     *                that must bypass the cache (e.g. "Test Connection")
      * @returns A promise that resolves to the portal status
      */
     async checkPortalStatus(
+        serverUrl: string,
+        username: string,
+        password: string,
+        options?: CheckPortalStatusOptions
+    ): Promise<PortalStatus> {
+        const cacheKey = this.buildCacheKey(serverUrl, username, password);
+
+        if (!options?.skipCache) {
+            const cached = this.cache.get(cacheKey);
+            if (
+                cached &&
+                Date.now() - cached.timestamp < PORTAL_STATUS_CACHE_TTL_MS
+            ) {
+                return cached.status;
+            }
+
+            const pending = this.inFlight.get(cacheKey);
+            if (pending) {
+                return pending;
+            }
+        }
+
+        const request = this.fetchPortalStatus(serverUrl, username, password)
+            .then((status) => {
+                this.cache.set(cacheKey, {
+                    status,
+                    timestamp: Date.now(),
+                });
+                return status;
+            })
+            .finally(() => {
+                this.inFlight.delete(cacheKey);
+            });
+
+        if (!options?.skipCache) {
+            this.inFlight.set(cacheKey, request);
+        }
+
+        return request;
+    }
+
+    /**
+     * Synchronous read of the cached status for a credential triple.
+     * Returns null if no entry exists or the entry has expired.
+     */
+    getCachedStatus(
+        serverUrl: string,
+        username: string,
+        password: string
+    ): PortalStatus | null {
+        const cached = this.cache.get(
+            this.buildCacheKey(serverUrl, username, password)
+        );
+        if (!cached) {
+            return null;
+        }
+        if (Date.now() - cached.timestamp >= PORTAL_STATUS_CACHE_TTL_MS) {
+            return null;
+        }
+        return cached.status;
+    }
+
+    /** Clear the entire cache. Useful for log-out or debug flows. */
+    clearStatusCache(): void {
+        this.cache.clear();
+    }
+
+    private buildCacheKey(
+        serverUrl: string,
+        username: string,
+        password: string
+    ): string {
+        return `${serverUrl}|${username}|${password}`;
+    }
+
+    private async fetchPortalStatus(
         serverUrl: string,
         username: string,
         password: string

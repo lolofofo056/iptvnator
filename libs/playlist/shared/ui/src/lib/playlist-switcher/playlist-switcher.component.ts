@@ -181,22 +181,10 @@ export class PlaylistSwitcherComponent {
     readonly portalStatuses = signal<Map<string, PortalStatus>>(new Map());
 
     /**
-     * 30-second TTL cache so that closing and reopening the menu within the
-     * window reuses prior portal status results instead of re-firing N
-     * IPC + HTTPS round-trips. Each entry is keyed by playlistId; the
-     * timestamp gates expiry independently of the in-memory portalStatuses
-     * signal (which can be cleared without invalidating the cache).
-     */
-    private readonly portalStatusCache = new Map<
-        string,
-        { status: PortalStatus; timestamp: number }
-    >();
-    private static readonly PORTAL_STATUS_CACHE_TTL_MS = 30_000;
-
-    /**
      * Tracks the in-flight check round so we can cancel pending writes when
      * the menu closes (avoiding zombie writes from a slow portal landing
-     * after the user has moved on).
+     * after the user has moved on). Status caching itself lives in
+     * PortalStatusService so it's shared across components.
      */
     private portalStatusAbortController: AbortController | null = null;
     readonly currentLocale = computed(() => {
@@ -430,18 +418,19 @@ export class PlaylistSwitcherComponent {
             return;
         }
 
-        const now = Date.now();
-        const ttl = PlaylistSwitcherComponent.PORTAL_STATUS_CACHE_TTL_MS;
-
-        // Hydrate from cache + mark uncached portals as 'checking' in a single
-        // signal write so the UI flips from blank → cached/checking dots in
-        // one render, not one render per playlist.
+        // Hydrate from the shared service cache + mark uncached portals as
+        // 'checking' in a single signal write so the UI flips from blank →
+        // cached/checking dots in one render, not one per playlist.
         const next = new Map(this.portalStatuses());
         const toFetch: PlaylistMeta[] = [];
         for (const playlist of xtreamPlaylists) {
-            const cached = this.portalStatusCache.get(playlist._id);
-            if (cached && now - cached.timestamp < ttl) {
-                next.set(playlist._id, cached.status);
+            const cached = this.portalStatusService.getCachedStatus(
+                playlist.serverUrl,
+                playlist.username,
+                playlist.password
+            );
+            if (cached !== null) {
+                next.set(playlist._id, cached);
             } else {
                 next.set(playlist._id, 'checking');
                 toFetch.push(playlist);
@@ -472,11 +461,6 @@ export class PlaylistSwitcherComponent {
                 if (controller.signal.aborted) {
                     return;
                 }
-
-                this.portalStatusCache.set(playlist._id, {
-                    status,
-                    timestamp: Date.now(),
-                });
 
                 this.portalStatuses.update((current) => {
                     const updated = new Map(current);
