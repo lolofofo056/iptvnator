@@ -32,6 +32,34 @@ if (electronUserDataPath) {
     app.setPath('userData', electronUserDataPath);
 }
 
+let fixPathScheduled = false;
+
+/**
+ * Update process.env.PATH from the user's interactive login shell so that
+ * spawned external players (MPV/VLC) can be resolved by binary name.
+ *
+ * Runs after window creation + IPC handler registration so the 50-300 ms
+ * shell-spawn cost (bash/zsh -ilc env) doesn't block startup. Idempotent:
+ * subsequent calls are no-ops.
+ */
+function scheduleDeferredFixPath(): void {
+    if (fixPathScheduled || process.platform === 'win32') {
+        return;
+    }
+
+    fixPathScheduled = true;
+    setImmediate(() => {
+        try {
+            fixPath();
+            if (isStartupTraceEnabled()) {
+                trace('startup', 'fix-path:done');
+            }
+        } catch (error) {
+            console.warn('fix-path failed:', error);
+        }
+    });
+}
+
 export default class Main {
     static initialize() {
         if (SquirrelEvents.handleEvents()) {
@@ -89,10 +117,17 @@ export default class Main {
         if (isStartupTraceEnabled()) {
             trace('startup', 'bootstrap-events:done');
         }
+
+        // Hydrate process.env.PATH from the user's login shell now — after
+        // the window has loaded and IPC handlers are live. Fire-and-forget
+        // (setImmediate) so it doesn't gate any user-visible work. Worst
+        // case: the user clicks an external player within the ~100 ms it
+        // takes to complete; the spawn would still find MPV/VLC at any of
+        // the well-known paths checked by getDefault*Path before falling
+        // back to bare-name PATH lookup.
+        scheduleDeferredFixPath();
     }
 }
-
-fixPath();
 
 // handle setup events as quickly as possible
 Main.initialize();
