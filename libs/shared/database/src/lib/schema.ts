@@ -72,6 +72,12 @@ export const categories = sqliteTable(
         playlistTypeXtreamUnique: uniqueIndex(
             'categories_playlist_type_xtream_unique'
         ).on(table.playlistId, table.type, table.xtreamId),
+        // Partial covering index for visible categories — see connection.ts
+        // for the full rationale. SQLite can satisfy joins + hidden filter
+        // directly from this index for the dashboard / search queries.
+        visibleIdx: index('idx_categories_visible')
+            .on(table.id, table.playlistId, table.type)
+            .where(sql`hidden = 0`),
     })
 );
 

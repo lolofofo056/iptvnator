@@ -147,6 +147,13 @@ const CREATE_TABLE_STATEMENTS = [
     `CREATE INDEX IF NOT EXISTS idx_content_xtream ON content(xtream_id)`,
     `CREATE INDEX IF NOT EXISTS idx_content_type_added ON content(type, added)`,
     `CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type)`,
+    // Partial covering index for visible categories — supports the dashboard's
+    // getGlobalRecentlyAdded plus searchContent/globalSearch when excludeHidden
+    // is set. SQLite can satisfy the join (category_id PK lookup) plus the
+    // hidden = 0 filter directly from this index without touching the
+    // categories row, and hidden categories are absent so they're skipped
+    // before any row lookup.
+    `CREATE INDEX IF NOT EXISTS idx_categories_visible ON categories(id, playlist_id, type) WHERE hidden = 0`,
     `CREATE UNIQUE INDEX IF NOT EXISTS favorites_content_playlist_unique ON favorites(content_id, playlist_id)`,
     `CREATE INDEX IF NOT EXISTS favorites_playlist_idx ON favorites(playlist_id)`,
     `CREATE INDEX IF NOT EXISTS favorites_content_idx ON favorites(content_id)`,
