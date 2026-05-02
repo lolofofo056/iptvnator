@@ -106,7 +106,21 @@ export class AppComponent implements OnInit {
                     // Settings are stored in IndexedDB and loaded by the settings store
                     // Only specific Electron settings (MPV/VLC paths) are sent when changed in settings component
 
-                    this.translate.use(settings.language ?? this.DEFAULT_LANG);
+                    const resolvedLang =
+                        settings.language ?? this.DEFAULT_LANG;
+                    this.translate.use(resolvedLang);
+                    // Mirror the active language to localStorage so the next
+                    // cold start can read it synchronously in app.config.ts's
+                    // getInitialLanguage() and avoid the English-then-localized
+                    // flash for non-English users.
+                    try {
+                        localStorage.setItem(
+                            'iptvnator:preferred-language',
+                            resolvedLang
+                        );
+                    } catch {
+                        // Ignore quota / privacy mode errors.
+                    }
 
                     // Fetch EPG if URLs are configured (only fetch stale data)
                     if (
