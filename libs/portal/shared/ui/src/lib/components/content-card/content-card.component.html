@@ -17,6 +17,8 @@
                 [alt]="title()"
                 (error)="onImageError($event)"
                 class="poster"
+                loading="lazy"
+                decoding="async"
             />
         } @else if (showPlaceholder()) {
             <div class="poster-placeholder">
@@ -27,6 +29,8 @@
                 src="./assets/images/default-poster.png"
                 [alt]="title()"
                 class="poster"
+                loading="lazy"
+                decoding="async"
             />
         }
 

@@ -1,4 +1,9 @@
-import { computed, Component, inject } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+} from '@angular/core';
 import { MatIcon } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { Store } from '@ngrx/store';
@@ -25,6 +30,7 @@ const ALL_FILTERS = ['m3u', 'xtream', 'stalker'];
     imports: [MatIcon, MatListModule, TranslatePipe],
     templateUrl: './workspace-sources-filters-panel.component.html',
     styleUrl: './workspace-sources-filters-panel.component.scss',
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class WorkspaceSourcesFiltersPanelComponent {
     private readonly store = inject(Store);
