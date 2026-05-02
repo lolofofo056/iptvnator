@@ -3,46 +3,17 @@
     [class.rails-page--empty]="ready() && !hasPlaylists()"
     data-test-id="dashboard-page"
 >
-    @if (!ready()) {
-        <!-- Precise ghosts that mirror the real hero + rails so the layout
-             doesn't reflow when data arrives. -->
-        <section
-            class="rails-page__skeleton-hero"
-            aria-hidden="true"
-            aria-busy="true"
-        >
-            <div class="rails-page__skeleton-hero-poster"></div>
-            <div class="rails-page__skeleton-hero-body">
-                <div class="rails-page__skeleton-hero-title"></div>
-                <div
-                    class="rails-page__skeleton-hero-title rails-page__skeleton-hero-title--short"
-                ></div>
-                <div class="rails-page__skeleton-hero-subtitle"></div>
-                <div class="rails-page__skeleton-hero-cta"></div>
-            </div>
-        </section>
-
-        @for (_ of skeletonRails; track $index) {
-            <section
-                class="rails-page__skeleton-rail"
-                aria-hidden="true"
-                aria-busy="true"
-            >
-                <div class="rails-page__skeleton-header"></div>
-                <div class="rails-page__skeleton-track">
-                    @for (slot of skeletonSlots; track slot) {
-                        <div class="rails-page__skeleton-card"></div>
-                    }
-                </div>
-            </section>
-        }
-    } @else if (!hasPlaylists()) {
+    @if (data.playlistsLoaded() && !hasPlaylists()) {
         <app-empty-state
             [type]="'welcome-dashboard'"
             [showElectronOnlyValueProps]="isElectron"
             (addPlaylistClicked)="onAddPlaylist($event)"
         />
     } @else {
+        <!-- Hero: real card if a recent item resolved, skeleton while still
+             loading the first global recent item, nothing if no recent items
+             exist. Each block below renders as soon as ITS data is ready —
+             no longer pinned on the slowest rail's I/O. -->
         @if (hero(); as item) {
             <a
                 class="hero"
@@ -113,8 +84,25 @@
                     </span>
                 </span>
             </a>
+        } @else if (data.globalRecentLoading()) {
+            <section
+                class="rails-page__skeleton-hero"
+                aria-hidden="true"
+                aria-busy="true"
+            >
+                <div class="rails-page__skeleton-hero-poster"></div>
+                <div class="rails-page__skeleton-hero-body">
+                    <div class="rails-page__skeleton-hero-title"></div>
+                    <div
+                        class="rails-page__skeleton-hero-title rails-page__skeleton-hero-title--short"
+                    ></div>
+                    <div class="rails-page__skeleton-hero-subtitle"></div>
+                    <div class="rails-page__skeleton-hero-cta"></div>
+                </div>
+            </section>
         }
 
+        <!-- Recently watched rail -->
         @if (recentlyWatchedCards().length > 0) {
             <lib-dashboard-rail
                 [label]="'WORKSPACE.DASHBOARD.RECENTLY_WATCHED' | translate"
@@ -123,8 +111,22 @@
                 [seeAllLink]="['/workspace/global-recent']"
                 [testId]="'dashboard-recently-watched-rail'"
             />
+        } @else if (data.globalRecentLoading()) {
+            <section
+                class="rails-page__skeleton-rail"
+                aria-hidden="true"
+                aria-busy="true"
+            >
+                <div class="rails-page__skeleton-header"></div>
+                <div class="rails-page__skeleton-track">
+                    @for (slot of skeletonSlots; track slot) {
+                        <div class="rails-page__skeleton-card"></div>
+                    }
+                </div>
+            </section>
         }
 
+        <!-- Favorites rail -->
         @if (favoriteCards().length > 0) {
             <lib-dashboard-rail
                 [label]="'WORKSPACE.DASHBOARD.GLOBAL_FAVORITES' | translate"
@@ -133,8 +135,22 @@
                 [seeAllLink]="['/workspace/global-favorites']"
                 [testId]="'dashboard-global-favorites-rail'"
             />
+        } @else if (data.globalFavoritesLoading()) {
+            <section
+                class="rails-page__skeleton-rail"
+                aria-hidden="true"
+                aria-busy="true"
+            >
+                <div class="rails-page__skeleton-header"></div>
+                <div class="rails-page__skeleton-track">
+                    @for (slot of skeletonSlots; track slot) {
+                        <div class="rails-page__skeleton-card"></div>
+                    }
+                </div>
+            </section>
         }
 
+        <!-- Sources rail -->
         @if (sourceCards().length > 0) {
             <lib-dashboard-rail
                 [label]="'WORKSPACE.DASHBOARD.RECENT_SOURCES' | translate"
@@ -145,8 +161,22 @@
                 [testId]="'dashboard-recent-sources-rail'"
                 (actionSelected)="onSourceActionSelected($event)"
             />
+        } @else if (!data.playlistsLoaded()) {
+            <section
+                class="rails-page__skeleton-rail"
+                aria-hidden="true"
+                aria-busy="true"
+            >
+                <div class="rails-page__skeleton-header"></div>
+                <div class="rails-page__skeleton-track">
+                    @for (slot of skeletonSlots; track slot) {
+                        <div class="rails-page__skeleton-card"></div>
+                    }
+                </div>
+            </section>
         }
 
+        <!-- Xtream recently-added rail (only relevant if there are Xtream playlists) -->
         @if (xtreamRecentlyAddedCards().length > 0) {
             <lib-dashboard-rail
                 [label]="
@@ -156,6 +186,21 @@
                 [totalCount]="data.xtreamRecentlyAddedItems().length"
                 [testId]="'dashboard-xtream-recently-added-rail'"
             />
+        } @else if (
+            xtreamPlaylistCount() > 0 && data.xtreamRecentlyAddedLoading()
+        ) {
+            <section
+                class="rails-page__skeleton-rail"
+                aria-hidden="true"
+                aria-busy="true"
+            >
+                <div class="rails-page__skeleton-header"></div>
+                <div class="rails-page__skeleton-track">
+                    @for (slot of skeletonSlots; track slot) {
+                        <div class="rails-page__skeleton-card"></div>
+                    }
+                </div>
+            </section>
         }
     }
 </section>
