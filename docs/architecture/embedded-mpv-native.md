@@ -165,7 +165,7 @@ For tagged macOS builds, CI must:
 - set `IPTVNATOR_EMBEDDED_MPV_ARCH=${arch}` for backend build and packaging
 - set `IPTVNATOR_REQUIRE_EMBEDDED_MPV=1` for packaging and package-layout verification
 
-During the temporary macOS PR artifact test, CI also sets `IPTVNATOR_REQUIRE_EMBEDDED_MPV=1` for macOS PR backend build, packaging, and package-layout verification. After the artifact is manually validated, remove the workflow's `pull_request` condition so PR, development, Linux, and Windows packaging leave `IPTVNATOR_REQUIRE_EMBEDDED_MPV` unset or `0`. In that normal mode the package validators still reject a present but invalid Embedded MPV runtime, but they do not require the addon to exist. This keeps the native feature in-tree without making non-macOS or non-release builds depend on macOS runtime artifacts.
+During the temporary macOS artifact tests, CI also sets `IPTVNATOR_REQUIRE_EMBEDDED_MPV=1` for macOS PR and `master` push backend build, packaging, and package-layout verification. After the artifacts are manually validated, remove the workflow's temporary `pull_request` and `refs/heads/master` conditions so PR, development, Linux, and Windows packaging leave `IPTVNATOR_REQUIRE_EMBEDDED_MPV` unset or `0`. In that normal mode the package validators still reject a present but invalid Embedded MPV runtime, but they do not require the addon to exist. This keeps the native feature in-tree without making non-macOS or non-release builds depend on macOS runtime artifacts.
 
 ## Release Safety
 

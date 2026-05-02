@@ -89,9 +89,9 @@ jobs:
               run: pnpm nx build web --skip-nx-cache
 
             - name: Build embedded MPV runtime (macOS release)
-              # TEMPORARY PR TEST: remove `|| github.event_name == 'pull_request'`
-              # after the macOS Embedded MPV artifact is built and manually tested.
-              if: matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request')
+              # TEMPORARY ARTIFACT TEST: remove `|| github.event_name == 'pull_request' || github.ref == 'refs/heads/master'`
+              # after the macOS Embedded MPV artifacts are built and manually tested.
+              if: matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master')
               shell: bash
               run: |
                   set -euo pipefail
@@ -105,13 +105,13 @@ jobs:
             - name: Build backend
               env:
                   IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch || '' }}
-                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request') && '1' || '0' }}
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master') && '1' || '0' }}
               run: pnpm run build:backend
 
             - name: Verify embedded MPV build output
-              # TEMPORARY PR TEST: remove `|| github.event_name == 'pull_request'`
-              # after the macOS Embedded MPV artifact is built and manually tested.
-              if: matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request')
+              # TEMPORARY ARTIFACT TEST: remove `|| github.event_name == 'pull_request' || github.ref == 'refs/heads/master'`
+              # after the macOS Embedded MPV artifacts are built and manually tested.
+              if: matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master')
               shell: bash
               run: |
                   set -euo pipefail
@@ -249,7 +249,9 @@ jobs:
                   CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
                   DEBUG: electron-builder,electron-notarize*
                   IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch }}
-                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ startsWith(github.ref, 'refs/tags/v') && '1' || '0' }}
+                  # TEMPORARY MASTER ARTIFACT TEST: remove `|| github.ref == 'refs/heads/master'`
+                  # after the macOS Embedded MPV artifacts are built and manually tested.
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master') && '1' || '0' }}
               run: pnpm run make:app
 
             - name: Verify signed macOS app
@@ -315,9 +317,9 @@ jobs:
               env:
                   PACKAGE_OS: ${{ matrix.os }}
                   PACKAGE_ARCH: ${{ matrix.arch || '' }}
-                  # TEMPORARY PR TEST: remove the PR branch after manually
-                  # testing the macOS artifact; tagged releases should stay required.
-                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request') && '1' || '0' }}
+                  # TEMPORARY ARTIFACT TEST: remove `|| github.event_name == 'pull_request' || github.ref == 'refs/heads/master'`
+                  # after the macOS Embedded MPV artifacts are built and manually tested.
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master') && '1' || '0' }}
               run: pnpm run verify:package-layout -- "$PACKAGE_OS" "$PACKAGE_ARCH"
 
             - name: Smoke test packaged Flatpak launcher
