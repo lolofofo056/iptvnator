@@ -1,5 +1,6 @@
 <div
     class="sidebar"
+    [class.sidebar-collapsed]="isSidebarCollapsed()"
     appResizable
     [minWidth]="sidebarMinWidth"
     [maxWidth]="sidebarMaxWidth"
@@ -9,6 +10,19 @@
     (widthChange)="onSidebarWidthChange($event)"
     (resizeEnd)="onSidebarResizeEnd($event)"
 >
+    @if (activeView() !== 'groups') {
+        <button
+            mat-icon-button
+            type="button"
+            class="sidebar-collapse-toggle"
+            [attr.aria-label]="'LAYOUT.HIDE_CHANNELS_LIST' | translate"
+            [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+            [attr.aria-pressed]="isSidebarCollapsed()"
+            (click)="toggleSidebar()"
+        >
+            <mat-icon>chevron_left</mat-icon>
+        </button>
+    }
     @defer {
         <app-sidebar
             [channels]="(channels$ | async)!"
@@ -20,6 +34,7 @@
             (sidebarWidthRequestEnded)="
                 onGroupedSidebarWidthRequestEnded($event)
             "
+            (sidebarToggleRequested)="toggleSidebar()"
         />
     } @loading {
         <app-channel-list-loading-state [view]="activeView()" />
@@ -29,6 +44,19 @@
 </div>
 
 <div class="content-container">
+    @if (isSidebarCollapsed()) {
+        <button
+            mat-icon-button
+            type="button"
+            class="sidebar-restore"
+            [attr.aria-label]="'LAYOUT.SHOW_CHANNELS_LIST' | translate"
+            [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+            [attr.aria-pressed]="isSidebarCollapsed()"
+            (click)="toggleSidebar()"
+        >
+            <mat-icon>chevron_right</mat-icon>
+        </button>
+    }
     @if (activeChannel(); as activeChannel) {
         @let playbackTarget = playbackChannel();
         @if (

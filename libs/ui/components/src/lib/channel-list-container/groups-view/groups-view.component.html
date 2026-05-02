@@ -166,7 +166,7 @@
         <section class="sidebar groups-content-panel">
             @if (selectedGroup(); as group) {
                 <header class="sidebar-header groups-content-header">
-                    <div class="category-meta">
+                    <div class="category-meta category-meta--stacked">
                         <h2 class="category-title">
                             @if (group.key) {
                                 {{ group.key | titlecase }}
@@ -186,6 +186,20 @@
                         aria-label="Sort channels"
                     >
                         <mat-icon>sort_by_alpha</mat-icon>
+                    </button>
+                    <button
+                        mat-icon-button
+                        type="button"
+                        class="groups-sidebar-toggle"
+                        [attr.aria-label]="
+                            'LAYOUT.HIDE_CHANNELS_LIST' | translate
+                        "
+                        [matTooltip]="
+                            'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate
+                        "
+                        (click)="sidebarToggleRequested.emit()"
+                    >
+                        <mat-icon>chevron_left</mat-icon>
                     </button>
                     <mat-menu #channelSortMenu="matMenu">
                         <button

@@ -143,6 +143,28 @@ The shared row should be reused instead of rebuilding channel markup per view.
 - Keep the EPG content mounted while collapsed so current-program state can
   continue updating.
 
+### Collapsible Live Sidebar
+
+- M3U, Xtream, and Stalker live layouts share a single sidebar collapse toggle
+  that hides the channels rail to give the player and EPG full width.
+- Collapsed state is persisted in `live-sidebar-state` (helpers in
+  `@iptvnator/portal/shared/util`); missing or invalid values restore to
+  expanded. The state is global across all three modules so the user's choice
+  carries across portals and reloads.
+- A `mat-icon-button` with `chevron_left` lives in the sidebar header and
+  toggles state. While collapsed, a floating `chevron_right` mini-fab appears
+  at the left edge of `.content-container` to restore the rail.
+- Keyboard shortcut: `Cmd/Ctrl+B`. The handler ignores events that originate
+  inside `<input>`, `<textarea>`, `<select>`, or content-editable elements via
+  the shared `isTypingInInput` helper.
+- The CSS class `.sidebar-collapsed` overrides the inline width set by the
+  `appResizable` directive with `width: 0 !important; min-width: 0 !important`.
+  The directive's persisted width is preserved so uncollapsing restores the
+  user's previous resized width.
+- Below 600 px viewport, the M3U layout's mobile bottom-drawer rule overrides
+  the desktop collapse to `height: 0` instead of `width: 0`, and the floating
+  restore handle is hidden.
+
 ### EPG Card
 
 - Radius:

@@ -348,6 +348,11 @@
         "LIGHT_THEME": "Licht thema",
         "SYSTEM_THEME": "Systeemthema"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "Zenderlijst verbergen",
+        "SHOW_CHANNELS_LIST": "Zenderlijst tonen",
+        "TOGGLE_SIDEBAR_TOOLTIP": "Zenderlijst aan-/uitzetten (⌘/Ctrl+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "Zoek een kanaal",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "Upload of selecteer een andere afspeellijst",

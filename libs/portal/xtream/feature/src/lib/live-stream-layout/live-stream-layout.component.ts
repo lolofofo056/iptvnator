@@ -2,6 +2,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     Component,
+    HostListener,
     computed,
     effect,
     inject,
@@ -9,7 +10,7 @@ import {
     OnInit,
     signal,
 } from '@angular/core';
-import { MatIconButton } from '@angular/material/button';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -22,12 +23,16 @@ import {
     getPortalChannelSortModeLabel,
     getAdjacentChannelItem,
     getChannelItemByNumber,
+    isTypingInInput,
     isWorkspaceLayoutRoute,
     LiveEpgPanelState,
+    LiveSidebarState,
     persistLiveEpgPanelState,
+    persistLiveSidebarState,
     persistPortalChannelSortMode,
     queryParamSignal,
     restoreLiveEpgPanelState,
+    restoreLiveSidebarState,
     restorePortalChannelSortMode,
 } from '@iptvnator/portal/shared/util';
 import {
@@ -78,8 +83,8 @@ interface XtreamLiveChannelItem {
         EpgListComponent,
         EpgViewComponent,
         LiveEpgPanelComponent,
+        MatButtonModule,
         MatIcon,
-        MatIconButton,
         MatMenuModule,
         MatProgressSpinnerModule,
         MatTooltipModule,
@@ -171,6 +176,12 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveSidebarState = signal<LiveSidebarState>(
+        restoreLiveSidebarState()
+    );
+    readonly isSidebarCollapsed = computed(
+        () => this.liveSidebarState() === 'collapsed'
     );
     readonly liveEpgPanelSummary = computed(() =>
         this.toLiveEpgPanelSummary(this.currentEpgItem())
@@ -365,6 +376,26 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
         this.liveEpgPanelState.set(state);
         persistLiveEpgPanelState(state);
+    }
+
+    toggleSidebar(): void {
+        const next: LiveSidebarState = this.isSidebarCollapsed()
+            ? 'expanded'
+            : 'collapsed';
+        this.liveSidebarState.set(next);
+        persistLiveSidebarState(next);
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    handleSidebarShortcut(event: KeyboardEvent): void {
+        if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === 'b' &&
+            !isTypingInInput(event)
+        ) {
+            event.preventDefault();
+            this.toggleSidebar();
+        }
     }
 
     onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {

@@ -13,6 +13,9 @@ import {
     signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { StorageMap } from '@ngx-pwa/local-storage';
@@ -50,11 +53,15 @@ import {
 import {
     getAdjacentChannelItem,
     getChannelItemByNumber,
+    isTypingInInput,
     isWorkspaceLayoutRoute,
+    LiveEpgPanelState,
+    LiveSidebarState,
     persistLiveEpgPanelState,
+    persistLiveSidebarState,
     PORTAL_EXTERNAL_PLAYBACK,
     restoreLiveEpgPanelState,
-    LiveEpgPanelState,
+    restoreLiveSidebarState,
     WorkspaceHeaderContextService,
 } from '@iptvnator/portal/shared/util';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
@@ -100,6 +107,9 @@ const M3U_SIDEBAR_DEFAULT_WIDTH = 460;
         EpgListComponent,
         HtmlVideoPlayerComponent,
         LiveEpgPanelComponent,
+        MatButtonModule,
+        MatIconModule,
+        MatTooltipModule,
         PortalEmptyStateComponent,
         ResizableDirective,
         SidebarComponent,
@@ -199,6 +209,12 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveSidebarState = signal<LiveSidebarState>(
+        restoreLiveSidebarState()
+    );
+    readonly isSidebarCollapsed = computed(
+        () => this.liveSidebarState() === 'collapsed'
     );
 
     /** Channels list */
@@ -483,6 +499,14 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         persistLiveEpgPanelState(state);
     }
 
+    toggleSidebar(): void {
+        const next: LiveSidebarState = this.isSidebarCollapsed()
+            ? 'expanded'
+            : 'collapsed';
+        this.liveSidebarState.set(next);
+        persistLiveSidebarState(next);
+    }
+
     onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
         this.selectedLiveEpgDate.set(
             shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
@@ -659,12 +683,22 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 
     @HostListener('document:keydown', ['$event'])
     handleKeyPress(event: KeyboardEvent): void {
+        if (isTypingInInput(event)) {
+            return;
+        }
+        if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === 'b'
+        ) {
+            event.preventDefault();
+            this.toggleSidebar();
+            return;
+        }
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+            return;
+        }
         // Only handle digit keys (0-9)
         if (event.key >= '0' && event.key <= '9') {
-            // Don't trigger hotkeys when user is typing in input fields
-            if (this.isTypingInInput(event)) {
-                return;
-            }
             event.preventDefault();
             this.handleChannelNumberInput(event.key);
         }
@@ -721,19 +755,6 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
             clearTimeout(this.channelNumberTimeout);
             this.channelNumberTimeout = undefined;
         }
-    }
-
-    /**
-     * Check if the user is currently typing in an input or textarea field
-     * @param event Keyboard event
-     * @returns true if the event target is an input or textarea element
-     */
-    private isTypingInInput(event: Event): boolean {
-        const target = event.target;
-        return (
-            target instanceof HTMLInputElement ||
-            target instanceof HTMLTextAreaElement
-        );
     }
 
     private handleRemoteControlCommand(command: {

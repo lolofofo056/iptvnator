@@ -38,11 +38,14 @@ import {
     getOpenLiveCollectionItemState,
     getUnifiedCollectionNavigation,
     isWorkspaceLayoutRoute,
+    LiveSidebarState,
     OPEN_COLLECTION_DETAIL_STATE_KEY,
     OPEN_LIVE_COLLECTION_ITEM_STATE_KEY,
     persistFavoritesChannelSortMode,
+    persistLiveSidebarState,
     queryParamSignal,
     restoreFavoritesChannelSortMode,
+    restoreLiveSidebarState,
     routeParamSignal,
     ScopeToggleService,
     STALKER_RETURN_TO_STATE_KEY,
@@ -262,6 +265,15 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
             this.selectedContentType() === 'live' &&
             this.hasLive()
     );
+    readonly liveSidebarState = signal<LiveSidebarState>(
+        restoreLiveSidebarState()
+    );
+    readonly isSidebarCollapsed = computed(
+        () => this.liveSidebarState() === 'collapsed'
+    );
+    readonly showSidebarToggle = computed(
+        () => this.selectedContentType() === 'live' && this.hasLive()
+    );
     readonly favSortOptions: ReadonlyArray<{
         mode: FavoritesChannelSortMode;
         translationKey: string;
@@ -445,6 +457,14 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
 
     goToDashboard(): void {
         void this.router.navigate(['/workspace', 'dashboard']);
+    }
+
+    toggleSidebar(): void {
+        const next: LiveSidebarState = this.isSidebarCollapsed()
+            ? 'expanded'
+            : 'collapsed';
+        this.liveSidebarState.set(next);
+        persistLiveSidebarState(next);
     }
 
     setFavSortMode(mode: FavoritesChannelSortMode): void {

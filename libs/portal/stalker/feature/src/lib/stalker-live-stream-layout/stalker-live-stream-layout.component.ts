@@ -3,6 +3,7 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
+    HostListener,
     computed,
     effect,
     ElementRef,
@@ -13,8 +14,11 @@ import {
     viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
     ChannelListItemComponent,
@@ -44,9 +48,13 @@ import {
     createLogger,
     getAdjacentChannelItem,
     getChannelItemByNumber,
+    isTypingInInput,
     LiveEpgPanelState,
+    LiveSidebarState,
     persistLiveEpgPanelState,
+    persistLiveSidebarState,
     restoreLiveEpgPanelState,
+    restoreLiveSidebarState,
 } from '@iptvnator/portal/shared/util';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
@@ -64,8 +72,11 @@ import {
         ChannelListItemComponent,
         ChannelListSkeletonComponent,
         EpgListComponent,
-        MatProgressSpinnerModule,
         LiveEpgPanelComponent,
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatTooltipModule,
         NgTemplateOutlet,
         PortalEmptyStateComponent,
         ResizableDirective,
@@ -139,6 +150,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveSidebarState = signal<LiveSidebarState>(
+        restoreLiveSidebarState()
+    );
+    readonly isSidebarCollapsed = computed(
+        () => this.liveSidebarState() === 'collapsed'
     );
     readonly liveEpgPanelSummary = computed(() =>
         this.toLiveEpgPanelSummary(this.currentProgram())
@@ -378,6 +395,26 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
         this.liveEpgPanelState.set(state);
         persistLiveEpgPanelState(state);
+    }
+
+    toggleSidebar(): void {
+        const next: LiveSidebarState = this.isSidebarCollapsed()
+            ? 'expanded'
+            : 'collapsed';
+        this.liveSidebarState.set(next);
+        persistLiveSidebarState(next);
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    handleSidebarShortcut(event: KeyboardEvent): void {
+        if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === 'b' &&
+            !isTypingInInput(event)
+        ) {
+            event.preventDefault();
+            this.toggleSidebar();
+        }
     }
 
     onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {

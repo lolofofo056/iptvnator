@@ -78,6 +78,27 @@
             </mat-menu>
         }
 
+        @if (showSidebarToggle()) {
+            <button
+                type="button"
+                mat-icon-button
+                class="collection-sidebar-toggle"
+                [attr.aria-label]="
+                    (isSidebarCollapsed()
+                        ? 'LAYOUT.SHOW_CHANNELS_LIST'
+                        : 'LAYOUT.HIDE_CHANNELS_LIST'
+                    ) | translate
+                "
+                [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+                [attr.aria-pressed]="isSidebarCollapsed()"
+                (click)="toggleSidebar()"
+            >
+                <mat-icon>{{
+                    isSidebarCollapsed() ? 'chevron_right' : 'chevron_left'
+                }}</mat-icon>
+            </button>
+        }
+
         <div class="collection-header-toggles">
             @if (showContentToggle()) {
                 <mat-button-toggle-group
@@ -164,6 +185,7 @@
                     [autoOpenItem]="pendingAutoOpenLiveItem()"
                     [favoriteUids]="favoriteUidSet()"
                     [sortMode]="favSortMode()"
+                    [isSidebarCollapsed]="isSidebarCollapsed()"
                     (removeItem)="onRemoveItem($event)"
                     (favoriteToggled)="onFavoriteToggled($event)"
                     (reorderItems)="onReorder($event)"

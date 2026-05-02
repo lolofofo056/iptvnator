@@ -348,6 +348,11 @@
         "LIGHT_THEME": "Light theme",
         "SYSTEM_THEME": "System theme"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "Hide channels list",
+        "SHOW_CHANNELS_LIST": "Show channels list",
+        "TOGGLE_SIDEBAR_TOOLTIP": "Toggle channels list (⌘/Ctrl+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "Search channel",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "Upload or select other playlist",

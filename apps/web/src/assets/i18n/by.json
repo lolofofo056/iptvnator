@@ -348,6 +348,11 @@
         "LIGHT_THEME": "Светлая тэма",
         "SYSTEM_THEME": "Сістэмная тэма"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "Схаваць спіс каналаў",
+        "SHOW_CHANNELS_LIST": "Паказаць спіс каналаў",
+        "TOGGLE_SIDEBAR_TOOLTIP": "Пераключыць спіс каналаў (⌘/Ctrl+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "Пошук каналаў",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "Загрузіць або выбраць іншы плэйліст",

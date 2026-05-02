@@ -119,6 +119,9 @@ export class GroupsViewComponent {
     readonly sidebarWidthRequestEnded = output<number>();
     readonly hiddenGroupTitlesChanged = output<string[]>();
 
+    /** Emits when the user clicks the inline collapse toggle in the groups header */
+    readonly sidebarToggleRequested = output<void>();
+
     readonly isGroupSearchOpen = signal(false);
     readonly localGroupSearchTerm = signal('');
     readonly selectedGroupKey = signal<string | null>(null);

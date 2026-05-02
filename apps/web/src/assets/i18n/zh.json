@@ -348,6 +348,11 @@
         "LIGHT_THEME": "明亮模式",
         "SYSTEM_THEME": "跟随系统"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "隐藏频道列表",
+        "SHOW_CHANNELS_LIST": "显示频道列表",
+        "TOGGLE_SIDEBAR_TOOLTIP": "切换频道列表 (⌘/Ctrl+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "搜索频道",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "上传或选择其他播放列表",

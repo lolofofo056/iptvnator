@@ -53,6 +53,7 @@
                 "
                 (sidebarWidthRequested)="onSidebarWidthRequested($event)"
                 (sidebarWidthRequestEnded)="onSidebarWidthRequestEnded($event)"
+                (sidebarToggleRequested)="sidebarToggleRequested.emit()"
             />
         }
         @case ('favorites') {

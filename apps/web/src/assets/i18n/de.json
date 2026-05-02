@@ -348,6 +348,11 @@
         "LIGHT_THEME": "Hell",
         "SYSTEM_THEME": "System"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "Senderliste ausblenden",
+        "SHOW_CHANNELS_LIST": "Senderliste einblenden",
+        "TOGGLE_SIDEBAR_TOOLTIP": "Senderliste umschalten (⌘/Strg+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "Nach Sender suchen",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "Neue Playlist hochladen oder eine andere aussuchen",

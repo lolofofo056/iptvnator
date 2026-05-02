@@ -348,6 +348,11 @@
         "LIGHT_THEME": "السمة الفاتحة",
         "SYSTEM_THEME": "سمة النظام"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "إخفاء قائمة القنوات",
+        "SHOW_CHANNELS_LIST": "إظهار قائمة القنوات",
+        "TOGGLE_SIDEBAR_TOOLTIP": "تبديل قائمة القنوات (⌘/Ctrl+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "البحث عن قناة",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "تحميل أو اختيار قائمة أخرى",

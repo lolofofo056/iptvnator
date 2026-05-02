@@ -3,6 +3,7 @@
 @if (stalkerStore.selectedCategoryId()) {
     <div
         class="sidebar"
+        [class.sidebar-collapsed]="isSidebarCollapsed()"
         appResizable
         [minWidth]="250"
         [maxWidth]="600"
@@ -23,6 +24,16 @@
                     >
                 }
             </div>
+            <button
+                mat-icon-button
+                type="button"
+                [attr.aria-label]="'LAYOUT.HIDE_CHANNELS_LIST' | translate"
+                [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+                [attr.aria-pressed]="isSidebarCollapsed()"
+                (click)="toggleSidebar()"
+            >
+                <mat-icon>chevron_left</mat-icon>
+            </button>
         </div>
 
         <div #scrollContainer class="channels-list">
@@ -77,6 +88,19 @@
 }
 
 <div class="content-container">
+    @if (stalkerStore.selectedCategoryId() && isSidebarCollapsed()) {
+        <button
+            mat-icon-button
+            type="button"
+            class="sidebar-restore"
+            [attr.aria-label]="'LAYOUT.SHOW_CHANNELS_LIST' | translate"
+            [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+            [attr.aria-pressed]="isSidebarCollapsed()"
+            (click)="toggleSidebar()"
+        >
+            <mat-icon>chevron_right</mat-icon>
+        </button>
+    }
     @if (!stalkerStore.selectedCategoryId()) {
         <app-portal-empty-state
             icon="live_tv"

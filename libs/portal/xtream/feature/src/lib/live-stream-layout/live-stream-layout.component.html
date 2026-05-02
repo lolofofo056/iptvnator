@@ -4,6 +4,7 @@
 @if (selectedCategoryId()) {
     <div
         class="sidebar"
+        [class.sidebar-collapsed]="isSidebarCollapsed()"
         appResizable
         [minWidth]="250"
         [maxWidth]="600"
@@ -28,6 +29,16 @@
                 aria-label="Sort channels"
             >
                 <mat-icon>sort_by_alpha</mat-icon>
+            </button>
+            <button
+                mat-icon-button
+                type="button"
+                [attr.aria-label]="'LAYOUT.HIDE_CHANNELS_LIST' | translate"
+                [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+                [attr.aria-pressed]="isSidebarCollapsed()"
+                (click)="toggleSidebar()"
+            >
+                <mat-icon>chevron_left</mat-icon>
             </button>
             <mat-menu #channelSortMenu="matMenu">
                 <button
@@ -67,6 +78,19 @@
     </div>
 }
 <div class="content-container">
+    @if (selectedCategoryId() && isSidebarCollapsed()) {
+        <button
+            mat-icon-button
+            type="button"
+            class="sidebar-restore"
+            [attr.aria-label]="'LAYOUT.SHOW_CHANNELS_LIST' | translate"
+            [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+            [attr.aria-pressed]="isSidebarCollapsed()"
+            (click)="toggleSidebar()"
+        >
+            <mat-icon>chevron_right</mat-icon>
+        </button>
+    }
     @if (!selectedCategoryId()) {
         @if (isSelectedTypeContentLoading()) {
             <div class="live-loading-content">

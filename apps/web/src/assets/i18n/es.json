@@ -348,6 +348,11 @@
         "LIGHT_THEME": "Tema claro",
         "SYSTEM_THEME": "Tema del sistema"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "Ocultar lista de canales",
+        "SHOW_CHANNELS_LIST": "Mostrar lista de canales",
+        "TOGGLE_SIDEBAR_TOOLTIP": "Alternar lista de canales (⌘/Ctrl+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "Buscar canal",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "Carga o selecciona una lista de reproducción",

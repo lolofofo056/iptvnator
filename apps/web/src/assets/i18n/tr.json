@@ -348,6 +348,11 @@
         "LIGHT_THEME": "Açık tema",
         "SYSTEM_THEME": "Sistem teması"
     },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "Kanal listesini gizle",
+        "SHOW_CHANNELS_LIST": "Kanal listesini göster",
+        "TOGGLE_SIDEBAR_TOOLTIP": "Kanal listesini aç/kapat (⌘/Ctrl+B)"
+    },
     "CHANNELS": {
         "SEARCH_CHANNEL": "Kanal ara",
         "UPLOAD_OR_SELECT_OTHER_PLAYLIST": "Dosya yükle veya başka bir oynatma listesi seçin",

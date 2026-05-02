@@ -19,6 +19,23 @@
         min-height: 0;
         overflow: hidden;
     }
+
+    .sidebar-collapse-toggle {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        z-index: 3;
+        width: 32px;
+        height: 32px;
+        opacity: 0.7;
+        transition: opacity 0.15s ease;
+        padding: 0;
+
+        &:hover,
+        &:focus-visible {
+            opacity: 1;
+        }
+    }
 }
 
 .content-container {
@@ -104,9 +121,21 @@
         height: 50vh;
         border-right: none;
         border-top: 1px solid var(--mat-sys-outline-variant);
+
+        // Sidebar collapse uses width=0 on desktop; on mobile the rail flips
+        // to a bottom drawer so collapse it via height instead.
+        &.sidebar-collapsed {
+            width: 100% !important;
+            min-width: 100% !important;
+            height: 0 !important;
+        }
     }
 
     .content-container {
         height: 50vh;
+    }
+
+    .sidebar-restore {
+        display: none;
     }
 }
