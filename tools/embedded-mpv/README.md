@@ -70,6 +70,14 @@ The build manifest records source URLs, downloaded archive SHA-256 values where 
 
 `apps/electron-backend/build-embedded-mpv.js` links the native addon against the staged runtime, copies dylibs into `apps/electron-backend/native/build/Release/lib/`, rewrites Mach-O paths to `@loader_path`, and writes `embedded-mpv-runtime.json`.
 
+For local macOS development with Homebrew `mpv`, use:
+
+```bash
+pnpm run serve:backend:embedded-mpv
+```
+
+The script rebuilds the native addon with `IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW=1` before starting Electron with the experimental player enabled. Use this only for local testing; release packaging rejects the resulting `homebrew-dev` runtime manifest.
+
 The macOS `afterPack` hook copies `dist/apps/electron-backend/native/` into `app.asar.unpacked/electron-backend/native/` so the addon, runtime manifest, dylibs, and non-`.dylib` Mach-O runtime files are available as real files. Linux and Windows artifacts do not include that native directory.
 
 During release packaging, `tools/packaging/electron-after-pack.cjs` verifies that the packaged app uses a `vendored-lgpl` runtime and has no `/opt/homebrew` or `/usr/local` dynamic links for embedded MPV.

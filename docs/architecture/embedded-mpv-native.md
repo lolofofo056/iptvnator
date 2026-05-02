@@ -129,12 +129,10 @@ The Electron backend build consumes the staged runtime, copies Mach-O runtime fi
 For local development before the vendored runtime exists, Homebrew can be used explicitly:
 
 ```bash
-IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW=1 \
-IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT=1 \
-pnpm nx serve electron-backend
+pnpm run serve:backend:embedded-mpv
 ```
 
-This path is intentionally development-only. Packaged macOS builds reject `homebrew-dev` manifests and any `/opt/homebrew` or `/usr/local` embedded MPV links.
+That script first runs the local native build with `IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW=1`, then starts Electron with `IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT=1`. This path is intentionally development-only. Packaged macOS builds reject `homebrew-dev` manifests and any `/opt/homebrew` or `/usr/local` embedded MPV links.
 
 If the settings page does not show `Embedded MPV (Experimental, macOS)` after starting with those flags, check the native build output:
 
@@ -142,7 +140,7 @@ If the settings page does not show `Embedded MPV (Experimental, macOS)` after st
 ls apps/electron-backend/native/build/Release/embedded_mpv.node
 ```
 
-If only `embedded-mpv-unavailable.txt` exists, the dev app started from a build where no runtime was available. Stop the Electron dev process and restart it with the flags. The native MPV build target is intentionally uncached because it depends on local runtime files and environment variables such as `IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW` and `IPTVNATOR_EMBEDDED_MPV_ARCH`.
+If only `embedded-mpv-unavailable.txt` exists, the dev app started from a build where no runtime was available. Stop the Electron dev process and rerun `pnpm run serve:backend:embedded-mpv` so the native target is rebuilt before Electron starts. The native MPV build target is intentionally uncached because it depends on local runtime files and environment variables such as `IPTVNATOR_EMBEDDED_MPV_ALLOW_HOMEBREW` and `IPTVNATOR_EMBEDDED_MPV_ARCH`.
 
 If opening Settings hard-crashes Electron on macOS and the crash report says `Code Signature Invalid`, one of the copied runtime binaries was modified by `install_name_tool` without being re-signed. Rebuild the native target and verify the copied addon/runtime files:
 
