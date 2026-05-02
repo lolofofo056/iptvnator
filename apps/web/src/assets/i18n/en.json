@@ -583,6 +583,7 @@
             "DESELECT_ALL": "Deselect All",
             "SEARCH_PLACEHOLDER": "Search categories...",
             "NO_RESULTS": "No matching categories found",
+            "NO_CATEGORIES": "No categories available",
             "SAVE": "Save"
         }
     },
