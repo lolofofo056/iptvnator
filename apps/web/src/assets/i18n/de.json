@@ -37,6 +37,7 @@
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Versuchen Sie bitte die TV-Guide Einstellungen zu ändern.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Ups, leider ist das TV-Programm nicht verfügbar.",
         "EPG_NOT_AVAILABLE_DATE": "Ups, leider ist das TV-Programm für das ausgewählte Datum nicht verfügbar",
+        "NO_GUIDE_HINT": "Versuchen Sie ein anderes Datum oder aktualisieren Sie die Playlist.",
         "LIVE_NOW": "Live jetzt",
         "LIVE_STREAM": "Live stream",
         "NEXT_DAY": "Zum nächsten Tag",
@@ -54,7 +55,10 @@
             "DESCRIPTION": "Beschreibung",
             "LANGUAGE": "Sprache",
             "SHOW_PROGRAM_DETAILS": "Details anzeigen"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "HOME": {
         "SUBTITLE": "Wählen Sie eine Playlist aus oder laden Sie eine neue Playlist hoch",
@@ -111,7 +115,7 @@
             "REFRESH_XTREAM": "Xtream-Playlist vom Server aktualisieren",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Xtream-Playlist aktualisieren",
-                "MESSAGE": "Dadurch werden lokal zwischengespeicherte Kategorien und Streams gelöscht und alles vom Remote-Server erneut importiert. Ihre Favoriten und kürzlich angesehenen Elemente bleiben erhalten. Möchten Sie wirklich fortfahren?",
+                "MESSAGE": "Dadurch wird der lokale Xtream-Cache gelöscht und Kategorien sowie Streams werden vom Remote-Server erneut importiert. Favoriten, kürzlich angesehene Elemente, ausgeblendete Kategorien und Wiedergabefortschritt werden nach einem erfolgreichen Re-Import wiederhergestellt, sofern die passenden Inhalte noch vorhanden sind. Wenn der Server nicht erreichbar ist, bleibt die Wiederherstellung bis zu einer späteren erfolgreichen Aktualisierung ausstehend. Fortfahren?",
                 "STARTED": "Aktualisierung gestartet. Navigation zur Playlist...",
                 "ERROR": "Playlist-Aktualisierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
                 "IN_PROGRESS": "Playlist wird aktualisiert...",

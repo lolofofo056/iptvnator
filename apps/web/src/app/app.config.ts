@@ -69,18 +69,12 @@ export const appConfig: ApplicationConfig = {
         }),
         provideEffects([PlaylistEffects]),
         provideRouterStore(),
-        provideStoreDevtools({
-            maxAge: 25,
-            logOnly: AppConfig.production,
-        }),
+        ...(AppConfig.production ? [] : [provideStoreDevtools({ maxAge: 25 })]),
         provideServiceWorker('ngsw-worker.js', {
             enabled: AppConfig.production && !!window.electron,
             registrationStrategy: 'registerWhenStable:30000',
         }),
         importProvidersFrom(
-            AppConfig.environment === 'WEB'
-                ? NgxIndexedDBModule.forRoot(dbConfig)
-                : [],
             NgxIndexedDBModule.forRoot(dbConfig),
             NgxSkeletonLoaderModule.forRoot({
                 animation: 'pulse',

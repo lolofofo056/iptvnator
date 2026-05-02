@@ -493,6 +493,30 @@
     background-color: #666666;
 }
 
+.status-checking {
+    background-color: #9e9e9e;
+    animation: switcher-status-checking 1.4s ease-in-out infinite;
+}
+
+@keyframes switcher-status-checking {
+    0%,
+    100% {
+        opacity: 0.4;
+        box-shadow: 0 0 0 0 rgba(158, 158, 158, 0);
+    }
+    50% {
+        opacity: 1;
+        box-shadow: 0 0 4px 1px rgba(158, 158, 158, 0.6);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .status-checking {
+        animation: none;
+        opacity: 0.7;
+    }
+}
+
 .auto-refresh-indicator {
     position: absolute;
     right: -2px;

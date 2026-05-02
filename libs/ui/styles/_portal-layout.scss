@@ -65,6 +65,21 @@
         flex: 1 1 0;
         min-height: 0;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition:
+            flex-basis 0.18s ease,
+            min-height 0.18s ease;
+
+        &.epg-collapsed {
+            flex: 0 0 56px;
+            min-height: 56px;
+        }
+
+        > app-live-epg-panel {
+            flex: 1;
+            min-height: 0;
+        }
     }
 
     .epg-content {
@@ -74,7 +89,8 @@
         display: flex;
         flex-direction: column;
 
-        > app-epg-view {
+        > app-epg-view,
+        > app-live-epg-panel {
             flex: 1;
             min-height: 0;
         }

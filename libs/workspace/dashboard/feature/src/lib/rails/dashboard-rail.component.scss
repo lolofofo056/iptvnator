@@ -1,7 +1,7 @@
 :host {
     display: block;
-    --rail-card-width: 172px;
-    --rail-gap: 14px;
+    --rail-card-width: var(--cover-rail-width, 172px);
+    --rail-gap: var(--cover-gap, 14px);
     --rail-radius: 12px;
 }
 
@@ -31,24 +31,6 @@
     line-height: 1.2;
     letter-spacing: -0.012em;
     color: var(--app-heading-color, #1a1d23);
-}
-
-// Muted count badge, tabular numerals for alignment, sits just after label.
-.rail__count {
-    font-size: 0.78rem;
-    font-weight: 500;
-    line-height: 1;
-    color: var(--app-muted-color, #8891a4);
-    font-variant-numeric: tabular-nums;
-    // Tiny capsule to read as a "count chip", not a number-in-text
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: color-mix(
-        in srgb,
-        var(--app-muted-color, #8891a4) 18%,
-        transparent
-    );
-    letter-spacing: 0;
 }
 
 .rail__see-all {
@@ -252,6 +234,34 @@
     }
 }
 
+// Live TV channel logos are typically small (100–256px square) and look terrible
+// when stretched to fill a 2:3 portrait card with `object-fit: cover`. The
+// `--live` modifier centers the contained logo over a soft blurred wash sampled
+// from the logo itself — same pattern as Apple Podcasts / Plex Live TV tiles.
+.rail__art--live {
+    img {
+        box-sizing: border-box;
+        object-fit: contain;
+        padding: 26% 18%;
+        position: relative;
+        z-index: 1;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+    }
+}
+
+.rail__art-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: blur(28px) saturate(1.4);
+    transform: scale(1.4);
+    opacity: 0.55;
+    z-index: 0;
+    pointer-events: none;
+}
+
 .rail__action-trigger {
     position: absolute;
     top: 8px;
@@ -416,6 +426,6 @@
 
 @media (max-width: 720px) {
     :host {
-        --rail-card-width: 140px;
+        --rail-card-width: min(var(--cover-rail-width, 172px), 140px);
     }
 }

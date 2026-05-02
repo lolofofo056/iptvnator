@@ -1,5 +1,6 @@
 import { Location, SlicePipe } from '@angular/common';
 import {
+    ChangeDetectionStrategy,
     Component,
     OnDestroy,
     OnInit,
@@ -44,6 +45,7 @@ import {
         '../../../../../../ui/components/src/lib/styles/detail-view.scss',
         './vod-details-route.component.scss',
     ],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         ContentHeroComponent,
         MatIcon,

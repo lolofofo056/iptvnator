@@ -25,10 +25,10 @@ import {
 import { EmptyStateComponent } from '@iptvnator/playlist/shared/ui';
 import { queryParamSignal } from '@iptvnator/portal/shared/util';
 import { createPortalCollectionContext } from '@iptvnator/portal/shared/util';
-import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
 import {
     buildStandardCollectionCategories,
     filterCollectionBucket,
+    PORTAL_SHELL_ACTIONS,
 } from '@iptvnator/portal/shared/util';
 import { PortalCollectionContextService } from '@iptvnator/portal/shared/util';
 import { Playlist } from 'shared-interfaces';
@@ -67,13 +67,14 @@ export class DownloadsComponent {
     private readonly dialogService = inject(DialogService);
     private readonly translate = inject(TranslateService);
     private readonly snackBar = inject(MatSnackBar);
-    private readonly shellActions = inject(WORKSPACE_SHELL_ACTIONS);
+    private readonly shellActions = inject(PORTAL_SHELL_ACTIONS);
     readonly downloadsService = inject(DownloadsService);
 
     readonly downloads = this.downloadsService.downloads;
     readonly downloadFolder = this.downloadsService.downloadFolder;
     readonly isAvailable = this.downloadsService.isAvailable;
-    readonly hasDownloads = this.downloadsService.hasDownloads;
+    readonly isLoadingDownloads = this.downloadsService.isLoadingDownloads;
+    readonly hasLoadedDownloads = this.downloadsService.hasLoadedDownloads;
     readonly activeCount = this.downloadsService.activeCount;
     readonly playlistId = toSignal(
         this.route.paramMap.pipe(map((params) => params.get('id') ?? '')),
@@ -83,9 +84,15 @@ export class DownloadsComponent {
         (value ?? '').trim().toLowerCase()
     );
     readonly playlists = toSignal(this.playlistsService.getAllPlaylists(), {
-        initialValue: [] as Playlist[],
+        initialValue: null as Playlist[] | null,
     });
-    readonly hasNoPlaylists = computed(() => this.playlists().length === 0);
+    readonly playlistsLoaded = computed(() => this.playlists() !== null);
+    readonly playlistItems = computed(() => this.playlists() ?? []);
+    readonly hasNoPlaylists = computed(
+        () => this.playlistsLoaded() && this.playlistItems().length === 0
+    );
+    readonly skeletonItems = Array.from({ length: 6 }, (_, index) => index);
+    readonly skeletonActionSlots = Array.from({ length: 4 }, (_, index) => index);
 
     addPlaylist(): void {
         this.shellActions.openAddPlaylistDialog();
@@ -106,6 +113,14 @@ export class DownloadsComponent {
             ? downloads.filter((item) => item.playlistId === playlistId)
             : downloads;
     });
+    readonly hasScopedDownloads = computed(
+        () => this.scopedDownloads().length > 0
+    );
+    readonly showDownloadSkeleton = computed(
+        () =>
+            !this.hasScopedDownloads() &&
+            (!this.hasLoadedDownloads() || this.isLoadingDownloads())
+    );
 
     readonly categories = computed(() => {
         const downloads = this.scopedDownloads();
@@ -165,7 +180,7 @@ export class DownloadsComponent {
         )
     );
     readonly availablePlaylistIds = computed(
-        () => new Set(this.playlists().map((playlist) => playlist._id))
+        () => new Set(this.playlistItems().map((playlist) => playlist._id))
     );
 
     constructor() {

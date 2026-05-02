@@ -73,6 +73,7 @@ import {
     getRecentItems,
     getRecentlyViewed,
     removeRecentItem,
+    removeRecentItemsBatch,
 } from '../database/operations/recently-viewed.operations';
 import {
     deleteXtreamContent,
@@ -759,6 +760,13 @@ async function executeRequest(message: DbWorkerRequestMessage) {
                 playlistId: string;
             };
             return removeRecentItem(db, payload.contentId, payload.playlistId);
+        }
+
+        case 'DB_REMOVE_RECENT_ITEMS_BATCH': {
+            const payload = message.payload as {
+                items: { contentId: number; playlistId: string }[];
+            };
+            return removeRecentItemsBatch(db, payload.items);
         }
 
         case 'DB_SAVE_PLAYBACK_POSITION': {

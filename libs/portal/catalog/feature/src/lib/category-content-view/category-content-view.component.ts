@@ -1,5 +1,6 @@
 import { NgComponentOutlet } from '@angular/common';
 import {
+    ChangeDetectionStrategy,
     Component,
     computed,
     DestroyRef,
@@ -7,7 +8,8 @@ import {
     inject,
     OnInit,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs/operators';
 import { MatIconButton } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
@@ -43,6 +45,7 @@ interface CategoryContentItem {
     selector: 'app-category-content-view',
     templateUrl: './category-content-view.component.html',
     styleUrls: ['./category-content-view.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         GridListComponent,
         MatIcon,
@@ -98,6 +101,10 @@ export class CategoryContentViewComponent implements OnInit {
         return `${itemCount} ${itemCount === 1 ? 'item' : 'items'}`;
     });
     readonly canSortContent = computed(() => this.contentSortMode() !== null);
+    readonly searchTerm = toSignal(
+        this.activatedRoute.queryParamMap.pipe(map((p) => p.get('q') ?? '')),
+        { initialValue: '' }
+    );
     readonly selectedDetailComponent = computed(() =>
         this.selectedItem() ? this.detailComponent : null
     );

@@ -1,4 +1,4 @@
-:host {
+.settings-page-host {
     display: block;
 }
 
@@ -745,11 +745,7 @@
             var(--mat-sys-on-surface) 12%,
             transparent
         );
-        color: color-mix(
-            in srgb,
-            var(--mat-sys-on-surface) 38%,
-            transparent
-        );
+        color: color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent);
         box-shadow: none;
     }
 }

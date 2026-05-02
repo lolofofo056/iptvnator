@@ -81,7 +81,7 @@
 }
 
 .items-grid {
-    @include grid.content-grid(140px, 20px);
+    @include grid.content-grid;
     padding: 16px;
     width: 100%;
     box-sizing: border-box;

@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS: Settings = {
     remoteControlPort: 8765,
     epgUrl: [],
     downloadFolder: '',
+    coverSize: 'medium',
 };
 
 let embeddedMpvPrepareScheduled = false;
@@ -136,6 +137,7 @@ export const SettingsStore = signalStore(
                 remoteControlPort: store.remoteControlPort(),
                 epgUrl: store.epgUrl(),
                 downloadFolder: store.downloadFolder!(),
+                coverSize: store.coverSize!(),
             };
         },
 

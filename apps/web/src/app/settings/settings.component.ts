@@ -2,44 +2,32 @@ import { CommonModule } from '@angular/common';
 import {
     Component,
     computed,
-    effect,
-    ElementRef,
     inject,
-    Injector,
     Input,
     OnDestroy,
     OnInit,
     signal,
+    ViewEncapsulation,
 } from '@angular/core';
 import {
     FormArray,
     FormBuilder,
-    FormControl,
-    FormsModule,
     ReactiveFormsModule,
     Validators,
 } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
-import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
     MAT_DIALOG_DATA,
     MatDialog,
     MatDialogModule,
 } from '@angular/material/dialog';
-import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
-import { MatInputModule } from '@angular/material/input';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarConfig } from '@angular/material/snack-bar';
-import { MatTooltipModule } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { EpgService } from '@iptvnator/epg/data-access';
-import { EpgSourceStatusComponent } from '@iptvnator/ui/epg';
 import { SettingsContextService } from '@iptvnator/workspace/shell/util';
 import { Store } from '@ngrx/store';
 import { TranslateModule, TranslateService } from '@ngx-translate/core';
-import { QRCodeComponent } from 'angularx-qrcode';
 import { DialogService } from 'components';
 import {
     PlaylistActions,
@@ -57,6 +45,7 @@ import {
 } from 'services';
 import {
     EmbeddedMpvSupport,
+    CoverSize,
     Language,
     StartupBehavior,
     StreamFormat,
@@ -65,63 +54,57 @@ import {
 } from 'shared-interfaces';
 import { SettingsStore } from '../services/settings-store.service';
 import { SettingsService } from './../services/settings.service';
+import { SettingsAboutSectionComponent } from './settings-about-section.component';
+import { SettingsBackupSectionComponent } from './settings-backup-section.component';
 import {
     SettingsDeleteAllPlaylistsDialogComponent,
     SettingsDeleteAllPlaylistsDialogData,
 } from './settings-delete-all-playlists-dialog.component';
-
-interface SettingsSection {
-    id: string;
-    label: string;
-    icon: string;
-    visible: boolean;
-}
-
-interface ObservedSettingsSection {
-    id: string;
-    element: HTMLElement;
-}
-
-interface ThemeOption {
-    value: Theme;
-    icon: string;
-    labelKey: string;
-}
-
-interface StartupBehaviorOption {
-    value: StartupBehavior;
-    labelKey: string;
-}
-
-type SettingsPlaylistDeleteSummary =
-    SettingsDeleteAllPlaylistsDialogData['summary'];
+import { SettingsEpgSectionComponent } from './settings-epg-section.component';
+import { createEpgUrlControl } from './settings-form.utils';
+import { SettingsGeneralSectionComponent } from './settings-general-section.component';
+import {
+    SettingsPlaylistDeleteSummary,
+    SettingsSection,
+} from './settings.models';
+import {
+    buildSettingsSectionNavItems,
+    SETTINGS_COVER_SIZE_OPTIONS,
+    SETTINGS_EMBEDDED_PLAYER_OPTIONS,
+    SETTINGS_OS_PLAYER_OPTIONS,
+    SETTINGS_STARTUP_BEHAVIOR_OPTIONS,
+    SETTINGS_THEME_OPTIONS,
+} from './settings-options';
+import { SettingsPlaybackSectionComponent } from './settings-playback-section.component';
+import { SettingsRemoteControlSectionComponent } from './settings-remote-control-section.component';
+import { SettingsResetSectionComponent } from './settings-reset-section.component';
+import { SettingsSectionScrollDirective } from './settings-section-scroll.directive';
 
 @Component({
     templateUrl: './settings.component.html',
     styleUrls: ['./settings.component.scss'],
+    host: {
+        class: 'settings-page-host',
+    },
+    encapsulation: ViewEncapsulation.None,
     imports: [
         CommonModule,
-        EpgSourceStatusComponent,
-        FormsModule,
         MatButtonModule,
-        MatCheckboxModule,
-        MatDividerModule,
         MatIconModule,
-        MatInputModule,
-        MatProgressSpinnerModule,
-        MatSelectModule,
-        MatTooltipModule,
         ReactiveFormsModule,
         TranslateModule,
         MatDialogModule,
-        QRCodeComponent,
+        SettingsAboutSectionComponent,
+        SettingsBackupSectionComponent,
+        SettingsEpgSectionComponent,
+        SettingsGeneralSectionComponent,
+        SettingsPlaybackSectionComponent,
+        SettingsRemoteControlSectionComponent,
+        SettingsResetSectionComponent,
+        SettingsSectionScrollDirective,
     ],
 })
 export class SettingsComponent implements OnInit, OnDestroy {
-    private static readonly SECTION_SCROLL_TOP_GUTTER = 112;
-    private static readonly SECTION_SCROLL_BOTTOM_GUTTER = 124;
-    private static readonly PENDING_SCROLL_CLEAR_DELAY_MS = 600;
-
     private dialogService = inject(DialogService);
     public dataService = inject(DataService);
     private epgService = inject(EpgService);
@@ -134,8 +117,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     private translate = inject(TranslateService);
     private matDialog = inject(MatDialog);
     private playlistBackupService = inject(PlaylistBackupService);
-    private readonly elementRef = inject(ElementRef<HTMLElement>);
-    private readonly injector = inject(Injector);
     private readonly databaseService = inject(DatabaseService);
     private readonly dialogData = inject<{ isDialog: boolean } | null>(
         MAT_DIALOG_DATA,
@@ -170,30 +151,12 @@ export class SettingsComponent implements OnInit, OnDestroy {
                   },
               ]
             : []),
-        {
-            id: VideoPlayer.MPV,
-            labelKey: 'SETTINGS.PLAYER_MPV',
-        },
-        {
-            id: VideoPlayer.VLC,
-            labelKey: 'SETTINGS.PLAYER_VLC',
-        },
+        ...SETTINGS_OS_PLAYER_OPTIONS,
     ]);
 
     /** Player options */
     readonly players = computed(() => [
-        {
-            id: VideoPlayer.Html5Player,
-            labelKey: 'SETTINGS.PLAYER_HTML5',
-        },
-        {
-            id: VideoPlayer.VideoJs,
-            labelKey: 'SETTINGS.PLAYER_VIDEOJS',
-        },
-        {
-            id: VideoPlayer.ArtPlayer,
-            labelKey: 'SETTINGS.PLAYER_ARTPLAYER',
-        },
+        ...SETTINGS_EMBEDDED_PLAYER_OPTIONS,
         ...(this.isDesktop ? this.osPlayers() : []),
     ]);
 
@@ -207,34 +170,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     epgAvailable$ = this.store.select(selectIsEpgAvailable);
     readonly playlists = this.store.selectSignal(selectAllPlaylistsMeta);
 
-    readonly themeOptions: ThemeOption[] = [
-        {
-            value: Theme.LightTheme,
-            icon: 'light_mode',
-            labelKey: 'THEMES.LIGHT_THEME',
-        },
-        {
-            value: Theme.DarkTheme,
-            icon: 'dark_mode',
-            labelKey: 'THEMES.DARK_THEME',
-        },
-        {
-            value: Theme.SystemTheme,
-            icon: 'desktop_windows',
-            labelKey: 'THEMES.SYSTEM_THEME',
-        },
-    ];
-
-    readonly startupBehaviorOptions: StartupBehaviorOption[] = [
-        {
-            value: StartupBehavior.FirstView,
-            labelKey: 'SETTINGS.STARTUP_BEHAVIOR_FIRST_VIEW',
-        },
-        {
-            value: StartupBehavior.RestoreLastView,
-            labelKey: 'SETTINGS.STARTUP_BEHAVIOR_RESTORE_LAST_VIEW',
-        },
-    ];
+    readonly themeOptions = SETTINGS_THEME_OPTIONS;
+    readonly coverSizeOptions = SETTINGS_COVER_SIZE_OPTIONS;
+    readonly startupBehaviorOptions = SETTINGS_STARTUP_BEHAVIOR_OPTIONS;
 
     /** Settings form object */
     settingsForm = this.formBuilder.group({
@@ -260,6 +198,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
                 Validators.pattern(/^\d+$/),
             ],
         ],
+        coverSize: 'medium' as CoverSize,
     });
 
     /** Form array with epg sources */
@@ -276,57 +215,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
     readonly removeAllProgress = signal<DbOperationEvent | null>(null);
 
     private settingsStore = inject(SettingsStore);
-    private sectionObserver?: IntersectionObserver;
-    private pendingScrollClearTimer: ReturnType<
-        typeof window.setTimeout
-    > | null = null;
-    private pendingScrollClearRoot: HTMLElement | null = null;
-    private pendingScrollEndListener: (() => void) | null = null;
-
-    readonly sectionNavItems: SettingsSection[] = [
-        {
-            id: 'general',
-            label: 'SETTINGS.NAV_GENERAL',
-            icon: 'tune',
-            visible: true,
-        },
-        {
-            id: 'playback',
-            label: 'SETTINGS.NAV_PLAYBACK',
-            icon: 'play_circle',
-            visible: true,
-        },
-        {
-            id: 'epg',
-            label: 'SETTINGS.NAV_EPG',
-            icon: 'calendar_month',
-            visible: this.isDesktop,
-        },
-        {
-            id: 'remote-control',
-            label: 'SETTINGS.NAV_REMOTE',
-            icon: 'smartphone',
-            visible: this.isDesktop,
-        },
-        {
-            id: 'backup',
-            label: 'SETTINGS.NAV_BACKUP',
-            icon: 'backup',
-            visible: true,
-        },
-        {
-            id: 'reset',
-            label: 'SETTINGS.NAV_RESET',
-            icon: 'delete_sweep',
-            visible: true,
-        },
-        {
-            id: 'about',
-            label: 'SETTINGS.NAV_ABOUT',
-            icon: 'info',
-            visible: true,
-        },
-    ];
+    readonly sectionNavItems: SettingsSection[] = buildSettingsSectionNavItems(
+        this.isDesktop
+    );
 
     readonly playlistDeleteSummary = computed<SettingsPlaylistDeleteSummary>(
         () => {
@@ -372,59 +263,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
         return this.translate.instant('SETTINGS.REMOVE_ALL_IN_PROGRESS');
     });
 
-    constructor() {
-        effect(
-            () => {
-                const sectionId = this.settingsCtx.pendingScrollTarget();
-                if (!sectionId || typeof document === 'undefined') {
-                    return;
-                }
-
-                const scrollRoot = this.scrollToSection(sectionId);
-                this.schedulePendingScrollTargetClear(scrollRoot);
-            },
-            { injector: this.injector }
-        );
-
-        effect(
-            (onCleanup) => {
-                const activeSectionId = this.activeSection();
-                const activeSectionElement =
-                    this.elementRef.nativeElement.querySelector(
-                        `#${activeSectionId}`
-                    ) as HTMLElement | null;
-
-                if (!activeSectionElement) {
-                    return;
-                }
-
-                const animation = activeSectionElement.animate(
-                    [
-                        {
-                            boxShadow:
-                                'inset 0 0 0 1px var(--settings-group-active-ring), 0 8px 18px -24px var(--settings-group-active-glow)',
-                        },
-                        {
-                            boxShadow:
-                                'inset 0 0 0 1px var(--settings-group-active-ring), 0 12px 22px -24px var(--settings-group-active-glow)',
-                        },
-                        {
-                            boxShadow:
-                                'inset 0 0 0 1px var(--settings-group-active-ring), 0 8px 18px -24px var(--settings-group-active-glow)',
-                        },
-                    ],
-                    {
-                        duration: 260,
-                        easing: 'ease-out',
-                    }
-                );
-
-                onCleanup(() => animation.cancel());
-            },
-            { injector: this.injector }
-        );
-    }
-
     get sectionNav(): SettingsSection[] {
         return this.sectionNavItems.filter((section) => section.visible);
     }
@@ -444,8 +282,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
         if (!this.isDialog) {
             this.settingsCtx.setSections(this.sectionNav);
         }
-
-        requestAnimationFrame(() => this.setupSectionObserver());
     }
 
     private async loadEmbeddedMpvSupport(): Promise<void> {
@@ -481,8 +317,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
     }
 
     ngOnDestroy(): void {
-        this.cancelPendingScrollTargetClear();
-        this.sectionObserver?.disconnect();
         this.settingsCtx.reset();
     }
 
@@ -531,22 +365,29 @@ export class SettingsComponent implements OnInit, OnDestroy {
         this.settingsService.changeTheme(theme);
     }
 
+    selectCoverSize(size: CoverSize): void {
+        if (this.settingsForm.value.coverSize === size) {
+            return;
+        }
+
+        this.settingsForm.patchValue({ coverSize: size });
+        this.settingsForm.get('coverSize')?.markAsDirty();
+        this.settingsForm.markAsDirty();
+        this.settingsStore.updateSettings({ coverSize: size });
+    }
+
     /**
      * Sets the epg urls to the form array
      * @param epgUrls urls of the EPG sources
      */
     setEpgUrls(epgUrls: string[] | string): void {
-        const URL_REGEX = /^(http|https|file):\/\/[^ "]+$/;
-
         const urls = Array.isArray(epgUrls) ? epgUrls : [epgUrls];
         const filteredUrls = urls
             .map((url) => url.trim())
             .filter((url) => url !== '');
 
         filteredUrls.forEach((url) => {
-            this.epgUrl.push(
-                new FormControl(url, [Validators.pattern(URL_REGEX)])
-            );
+            this.epgUrl.push(createEpgUrlControl(url));
         });
     }
 
@@ -692,14 +533,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
      * Initializes new entry in form array for EPG URL
      */
     addEpgSource(): void {
-        this.epgUrl.insert(
-            this.epgUrl.length,
-            new FormControl('', {
-                validators: [
-                    Validators.pattern(/^(http|https|file):\/\/[^ "]+$/),
-                ],
-            })
-        );
+        this.epgUrl.insert(this.epgUrl.length, createEpgUrlControl());
     }
 
     /**
@@ -948,179 +782,6 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     private handleDeleteAllPlaylistsEvent(event: DbOperationEvent): void {
         this.removeAllProgress.set(event);
-    }
-
-    private setupSectionObserver(): void {
-        if (typeof IntersectionObserver === 'undefined') {
-            return;
-        }
-
-        const scrollRoot = this.getScrollRoot();
-        const contentSections = Array.from(
-            this.elementRef.nativeElement.querySelectorAll(
-                '.settings-group[id]'
-            )
-        ) as HTMLElement[];
-        const sections: ObservedSettingsSection[] = contentSections.map(
-            (section) => ({
-                id: section.id,
-                element: section,
-            })
-        );
-
-        if (sections.length === 0) {
-            return;
-        }
-
-        this.sectionObserver?.disconnect();
-        this.sectionObserver = new IntersectionObserver(
-            () => {
-                if (this.settingsCtx.pendingScrollTarget()) {
-                    return;
-                }
-
-                const activeSection = this.resolveActiveSection(sections);
-                if (activeSection) {
-                    this.settingsCtx.setActiveSection(activeSection);
-                }
-            },
-            {
-                root: scrollRoot,
-                threshold: [0.12, 0.24, 0.4, 0.6],
-                rootMargin: '-18% 0px -52% 0px',
-            }
-        );
-
-        sections.forEach((section) =>
-            this.sectionObserver?.observe(section.element)
-        );
-
-        const initialSection = this.resolveActiveSection(sections);
-        if (initialSection) {
-            this.settingsCtx.setActiveSection(initialSection);
-        }
-    }
-
-    private resolveActiveSection(
-        sections: ObservedSettingsSection[]
-    ): string | null {
-        const scrollRoot = this.getScrollRoot();
-        const rootTop = scrollRoot?.getBoundingClientRect().top ?? 0;
-        const rootHeight = scrollRoot?.clientHeight ?? window.innerHeight;
-        const activationLine = rootTop + Math.min(rootHeight * 0.28, 220);
-        const sectionAtActivationLine = sections.find((section) => {
-            const rect = section.element.getBoundingClientRect();
-            return rect.top <= activationLine && rect.bottom >= activationLine;
-        });
-
-        if (sectionAtActivationLine) {
-            return sectionAtActivationLine.id;
-        }
-
-        const nearestSection = sections
-            .map((section) => ({
-                id: section.id,
-                distance: Math.abs(
-                    section.element.getBoundingClientRect().top - activationLine
-                ),
-            }))
-            .sort((a, b) => a.distance - b.distance)[0];
-
-        return nearestSection?.id ?? null;
-    }
-
-    private getScrollRoot(): HTMLElement | null {
-        return this.elementRef.nativeElement.closest(
-            'main.workspace-content'
-        ) as HTMLElement | null;
-    }
-
-    private schedulePendingScrollTargetClear(
-        scrollRoot: HTMLElement | null
-    ): void {
-        const clearPendingScrollTarget = () => {
-            this.cancelPendingScrollTargetClear();
-            this.settingsCtx.clearPendingScrollTarget();
-        };
-
-        this.cancelPendingScrollTargetClear();
-        this.pendingScrollClearTimer = window.setTimeout(
-            clearPendingScrollTarget,
-            SettingsComponent.PENDING_SCROLL_CLEAR_DELAY_MS
-        );
-        this.pendingScrollClearRoot = scrollRoot;
-        this.pendingScrollEndListener = clearPendingScrollTarget;
-        scrollRoot?.addEventListener?.('scrollend', clearPendingScrollTarget, {
-            once: true,
-        });
-    }
-
-    private cancelPendingScrollTargetClear(): void {
-        if (this.pendingScrollClearTimer) {
-            clearTimeout(this.pendingScrollClearTimer);
-            this.pendingScrollClearTimer = null;
-        }
-
-        if (this.pendingScrollClearRoot && this.pendingScrollEndListener) {
-            this.pendingScrollClearRoot.removeEventListener?.(
-                'scrollend',
-                this.pendingScrollEndListener
-            );
-        }
-
-        this.pendingScrollClearRoot = null;
-        this.pendingScrollEndListener = null;
-    }
-
-    private scrollToSection(sectionId: string): HTMLElement | null {
-        const sectionElement = document.getElementById(sectionId);
-        if (!sectionElement) {
-            return null;
-        }
-
-        const scrollRoot = this.getScrollRoot();
-        if (!scrollRoot) {
-            sectionElement.scrollIntoView({
-                behavior: 'smooth',
-                block: 'start',
-            });
-            return null;
-        }
-
-        const rootRect = scrollRoot.getBoundingClientRect();
-        const sectionRect = sectionElement.getBoundingClientRect();
-        const sectionTop =
-            scrollRoot.scrollTop + (sectionRect.top - rootRect.top);
-        const sectionBottom = sectionTop + sectionRect.height;
-        const visibleTop =
-            scrollRoot.scrollTop + SettingsComponent.SECTION_SCROLL_TOP_GUTTER;
-        const visibleBottom =
-            scrollRoot.scrollTop +
-            scrollRoot.clientHeight -
-            SettingsComponent.SECTION_SCROLL_BOTTOM_GUTTER;
-        let nextScrollTop = scrollRoot.scrollTop;
-
-        if (sectionTop < visibleTop) {
-            nextScrollTop =
-                sectionTop - SettingsComponent.SECTION_SCROLL_TOP_GUTTER;
-        } else if (sectionBottom > visibleBottom) {
-            nextScrollTop =
-                sectionBottom -
-                scrollRoot.clientHeight +
-                SettingsComponent.SECTION_SCROLL_BOTTOM_GUTTER;
-        }
-
-        const maxScrollTop = Math.max(
-            0,
-            scrollRoot.scrollHeight - scrollRoot.clientHeight
-        );
-
-        scrollRoot.scrollTo({
-            top: Math.min(Math.max(nextScrollTop, 0), maxScrollTop),
-            behavior: 'smooth',
-        });
-
-        return scrollRoot;
     }
 
     private openSettingsSnackbar(

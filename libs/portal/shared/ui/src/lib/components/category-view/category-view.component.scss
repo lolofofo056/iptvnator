@@ -13,17 +13,17 @@
 .category-item {
     cursor: pointer;
     width: auto;
-
-    .item-count {
-        opacity: 0.6;
-        font-size: 0.85em;
-        margin-left: 4px;
-    }
 }
 
-.category-item--selected .item-count {
-    color: var(--app-selection-color) !important;
-    opacity: 0.95;
+// Selected row: tint the badge surface with the selection accent. Text colour
+// is already swapped to --app-selection-color by the parent `.nav-item.selected
+// *` rule in nav-list.scss, so we only need to override the background here.
+.category-item--selected .item-count.app-count-badge {
+    background: color-mix(
+        in srgb,
+        var(--app-selection-color) 18%,
+        transparent
+    );
 }
 
 mat-card-content {

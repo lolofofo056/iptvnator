@@ -7,14 +7,12 @@
                 </div>
             </div>
 
-            <div class="channels-loading-state__list" aria-hidden="true">
-                @for (row of loadingRows; track row) {
-                    <div class="channel-skeleton">
-                        <span class="channel-skeleton__logo"></span>
-                        <span class="channel-skeleton__title"></span>
-                        <span class="channel-skeleton__meta"></span>
-                    </div>
-                }
+            <div class="channels-loading-state__list">
+                <app-channel-list-skeleton
+                    [count]="9"
+                    [showEpg]="true"
+                    [actionCount]="1"
+                />
             </div>
         </div>
     } @else if (filteredChannels().length > 0) {
@@ -46,12 +44,12 @@
         </cdk-virtual-scroll-viewport>
     } @else {
         <div class="empty-search-state">
-            <div class="empty-icon-wrapper">
-                <mat-icon>search_off</mat-icon>
-            </div>
-            <h3>{{ 'CHANNELS.NO_CHANNELS_FOUND' | translate }}</h3>
+            <mat-icon class="empty-state-icon">search_off</mat-icon>
+            <h3 class="empty-state-title">
+                {{ 'CHANNELS.NO_CHANNELS_FOUND' | translate }}
+            </h3>
             @if (searchTermInput()) {
-                <p>
+                <p class="empty-state-hint">
                     {{ 'CHANNELS.TRY_DIFFERENT_SEARCH' | translate }}
                 </p>
             }

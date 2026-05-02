@@ -30,6 +30,7 @@ class MockGridListComponent {
     readonly limit = input<number>();
     readonly pageSizeOptions = input<number[]>();
     readonly showPaginator = input(true);
+    readonly searchTerm = input<string>('');
     readonly itemClicked = output<unknown>();
     readonly pageChange = output<unknown>();
 }

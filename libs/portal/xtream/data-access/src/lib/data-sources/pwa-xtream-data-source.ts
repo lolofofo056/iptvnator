@@ -171,6 +171,15 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         return [];
     }
 
+    async getCachedCategories(
+        playlistId: string,
+        type: CategoryType
+    ): Promise<XtreamCategoryFromDb[]> {
+        void playlistId;
+        void type;
+        return [];
+    }
+
     async saveCategories(
         playlistId: string,
         categories: XtreamCategory[],
@@ -238,6 +247,15 @@ export class PwaXtreamDataSource implements IXtreamDataSource {
         this.contentCache.set(cacheKey, content);
 
         return content;
+    }
+
+    async getCachedContent(
+        playlistId: string,
+        type: StreamType
+    ): Promise<XtreamContentItem[]> {
+        void playlistId;
+        void type;
+        return [];
     }
 
     async saveContent(

@@ -1,39 +1,41 @@
 @let items = filteredItems();
 @let timeshiftLimit = timeshiftUntil();
 
-<!-- channel info panel -->
-<div id="channel-header" color="primary">
-    <div id="date-navigator">
-        <button
-            class="previous-day"
-            mat-icon-button
-            (click)="changeDate('prev')"
-            [matTooltip]="'EPG.PREVIOUS_DAY' | translate"
-        >
-            <mat-icon>chevron_left</mat-icon>
-        </button>
-        <span class="selected-date">
-            {{
-                selectedDate()
-                    | date: 'MMMM d, EEEE' : undefined : currentLocale()
-            }}</span
-        >
-        <button
-            class="next-day"
-            mat-icon-button
-            (click)="changeDate('next')"
-            [matTooltip]="'EPG.NEXT_DAY' | translate"
-        >
-            <mat-icon>chevron_right</mat-icon>
-        </button>
+@if (showDateNavigator()) {
+    <!-- channel info panel -->
+    <div id="channel-header" color="primary">
+        <div id="date-navigator">
+            <button
+                class="previous-day"
+                mat-icon-button
+                (click)="changeDate('prev')"
+                [matTooltip]="'EPG.PREVIOUS_DAY' | translate"
+            >
+                <mat-icon>chevron_left</mat-icon>
+            </button>
+            <span class="selected-date">
+                {{
+                    selectedDateKey()
+                        | date: 'MMMM d, EEEE' : undefined : currentLocale()
+                }}</span
+            >
+            <button
+                class="next-day"
+                mat-icon-button
+                (click)="changeDate('next')"
+                [matTooltip]="'EPG.NEXT_DAY' | translate"
+            >
+                <mat-icon>chevron_right</mat-icon>
+            </button>
+        </div>
     </div>
-</div>
+}
 
 @if (timeshiftLimit) {
     <!-- program list -->
-    <div id="program-list" #programList>
+    <div id="program-list" class="app-scrollbar" #programList>
         @if (items.length > 0) {
-            @for (program of items; track $index) {
+            @for (program of items; track program.start) {
                 @if (!canActivateProgram(program)) {
                     <div
                         class="program-item"
@@ -103,8 +105,14 @@
                 }
             }
         } @else {
-            <div class="epg-not-available">
-                {{ 'EPG.EPG_NOT_AVAILABLE_DATE' | translate }}
+            <div class="epg-empty-state">
+                <mat-icon class="empty-state-icon">event_busy</mat-icon>
+                <div class="empty-state-title">
+                    {{ 'EPG.EPG_NOT_AVAILABLE_DATE' | translate }}
+                </div>
+                <div class="empty-state-hint">
+                    {{ 'EPG.NO_GUIDE_HINT' | translate }}
+                </div>
             </div>
         }
     </div>

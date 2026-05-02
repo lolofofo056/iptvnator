@@ -19,21 +19,11 @@
     </div>
     @if (selectedContentType() === 'live') {
         <div class="skeleton-list">
-            @for (row of skeletonRows; track row) {
-                <div class="list-skeleton-row" aria-hidden="true">
-                    <span class="list-skeleton-handle"></span>
-                    <span class="list-skeleton-avatar"></span>
-                    <div class="list-skeleton-text">
-                        <span
-                            class="grid-skeleton-line grid-skeleton-line--primary"
-                        ></span>
-                        <span
-                            class="grid-skeleton-line grid-skeleton-line--secondary"
-                        ></span>
-                    </div>
-                    <span class="list-skeleton-star"></span>
-                </div>
-            }
+            <app-channel-list-skeleton
+                [count]="12"
+                [showEpg]="true"
+                [actionCount]="1"
+            />
         </div>
     } @else {
         <div class="skeleton-grid">
@@ -172,8 +162,10 @@
                     [mode]="mode()"
                     [searchTerm]="workspaceSearchTerm()"
                     [autoOpenItem]="pendingAutoOpenLiveItem()"
+                    [favoriteUids]="favoriteUidSet()"
                     [sortMode]="favSortMode()"
                     (removeItem)="onRemoveItem($event)"
+                    (favoriteToggled)="onFavoriteToggled($event)"
                     (reorderItems)="onReorder($event)"
                     (itemPlayed)="onItemPlayed($event)"
                     (autoOpenHandled)="onLiveAutoOpenHandled()"

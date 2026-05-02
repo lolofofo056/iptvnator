@@ -235,6 +235,7 @@
         "LIVE_STREAM": "ライブストリーム",
         "TIMESHIFT_AVAILABLE": "タイムシフトが利用可能です。クリックして再生",
         "EPG_NOT_AVAILABLE_DATE": "申し訳ありません。選択した日付のEPGは利用できません",
+        "NO_GUIDE_HINT": "別の日付を試すか、プレイリストを更新してください。",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "申し訳ありません。このチャンネルのEPGは利用できません。",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "アプリの設定でEPGリストのURLを追加/変更してください。",
         "FETCH_EPG": "EPGデータを取得中...",
@@ -249,7 +250,10 @@
             "LANGUAGE": "言語",
             "SHOW_PROGRAM_DETAILS": "この番組の詳細を表示"
         },
-        "FETCH_SUCCESS": "EPGの取得に成功しました"
+        "FETCH_SUCCESS": "EPGの取得に成功しました",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

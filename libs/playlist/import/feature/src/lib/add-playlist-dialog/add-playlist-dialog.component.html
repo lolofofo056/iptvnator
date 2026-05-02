@@ -4,7 +4,11 @@
     </h2>
 
     <mat-dialog-content>
-        <div class="apd-segmented" role="tablist" aria-label="Playlist category">
+        <div
+            class="apd-segmented"
+            role="tablist"
+            aria-label="Playlist category"
+        >
             @for (opt of categoryOptions; track opt.value) {
                 <button
                     type="button"
@@ -65,81 +69,112 @@
         </div>
     </mat-dialog-content>
 
-    <mat-dialog-actions align="end">
-        <button mat-button type="button" (click)="closeDialog()">
-            {{ 'CANCEL' | translate }}
-        </button>
+    <mat-dialog-actions class="apd-actions">
+        <div class="apd-actions__reset">
+            <button
+                mat-button
+                type="button"
+                [disabled]="isClearDisabled()"
+                (click)="clearCurrentForm()"
+            >
+                {{ 'CLEAR' | translate }}
+            </button>
+        </div>
 
-        @switch (playlistType()) {
-            @case ('url') {
-                <button
-                    mat-flat-button
-                    color="accent"
-                    type="button"
-                    [disabled]="!urlUpload()?.form?.valid"
-                    (click)="submitUrlPlaylist()"
-                >
-                    {{ 'HOME.URL_UPLOAD.ADD_PLAYLIST' | translate }}
-                </button>
-            }
-            @case ('file') {
-                <button
-                    mat-flat-button
-                    color="accent"
-                    type="button"
-                    [disabled]="!fileUpload()?.selectedFile()"
-                    (click)="fileUpload()?.confirm()"
-                >
-                    {{ 'HOME.URL_UPLOAD.ADD_PLAYLIST' | translate }}
-                </button>
-            }
-            @case ('text') {
-                <button
-                    mat-flat-button
-                    color="accent"
-                    type="button"
-                    [disabled]="!textImport()?.textForm?.valid"
-                    (click)="textImport()?.textAdded?.emit(textImport()?.textForm?.value?.text)"
-                >
-                    {{ 'HOME.TEXT_IMPORT.BUTTON_LABEL' | translate }}
-                </button>
-            }
-            @case ('xtream') {
-                <button
-                    mat-stroked-button
-                    type="button"
-                    [disabled]="!xtreamImport()?.form?.valid || xtreamImport()?.isTestingConnection"
-                    (click)="xtreamImport()?.testConnection()"
-                >
-                    {{ xtreamImport()?.isTestingConnection ? 'Testing...' : 'Test Connection' }}
-                </button>
-                <button
-                    mat-flat-button
-                    color="accent"
-                    type="button"
-                    [disabled]="!xtreamImport()?.form?.valid"
-                    (click)="xtreamImport()?.addPlaylist()"
-                >
-                    {{ 'HOME.XTREAM_PLAYLIST.ADD' | translate }}
-                </button>
-            }
-            @case ('stalker') {
-                @if (stalkerImport()?.isLoading()) {
-                    <button mat-flat-button color="accent" type="button" disabled>
-                        {{ 'HOME.STALKER_PORTAL.VALIDATING' | translate }}...
-                    </button>
-                } @else {
+        <div class="apd-actions__decision">
+            <button mat-button type="button" (click)="closeDialog()">
+                {{ 'CANCEL' | translate }}
+            </button>
+
+            @switch (playlistType()) {
+                @case ('url') {
                     <button
                         mat-flat-button
                         color="accent"
                         type="button"
-                        [disabled]="!stalkerImport()?.form?.valid"
-                        (click)="stalkerImport()?.addPlaylist()"
+                        [disabled]="!urlUpload()?.form?.valid"
+                        (click)="submitUrlPlaylist()"
                     >
-                        {{ 'HOME.STALKER_PORTAL.ADD' | translate }}
+                        {{ 'HOME.URL_UPLOAD.ADD_PLAYLIST' | translate }}
                     </button>
                 }
+                @case ('file') {
+                    <button
+                        mat-flat-button
+                        color="accent"
+                        type="button"
+                        [disabled]="!fileUpload()?.selectedFile()"
+                        (click)="fileUpload()?.confirm()"
+                    >
+                        {{ 'HOME.URL_UPLOAD.ADD_PLAYLIST' | translate }}
+                    </button>
+                }
+                @case ('text') {
+                    <button
+                        mat-flat-button
+                        color="accent"
+                        type="button"
+                        [disabled]="!textImport()?.textForm?.valid"
+                        (click)="
+                            textImport()?.textAdded?.emit(
+                                textImport()?.textForm?.value?.text
+                            )
+                        "
+                    >
+                        {{ 'HOME.TEXT_IMPORT.BUTTON_LABEL' | translate }}
+                    </button>
+                }
+                @case ('xtream') {
+                    <button
+                        mat-stroked-button
+                        type="button"
+                        [disabled]="
+                            !xtreamImport()?.form?.valid ||
+                            xtreamImport()?.isTestingConnection
+                        "
+                        (click)="xtreamImport()?.testConnection()"
+                    >
+                        {{
+                            xtreamImport()?.isTestingConnection
+                                ? 'Testing...'
+                                : 'Test Connection'
+                        }}
+                    </button>
+                    <button
+                        mat-flat-button
+                        color="accent"
+                        type="button"
+                        [disabled]="!xtreamImport()?.form?.valid"
+                        (click)="xtreamImport()?.addPlaylist()"
+                    >
+                        {{ 'HOME.XTREAM_PLAYLIST.ADD' | translate }}
+                    </button>
+                }
+                @case ('stalker') {
+                    @if (stalkerImport()?.isLoading()) {
+                        <button
+                            mat-flat-button
+                            color="accent"
+                            type="button"
+                            disabled
+                        >
+                            {{
+                                'HOME.STALKER_PORTAL.VALIDATING' | translate
+                            }}...
+                        </button>
+                    } @else {
+                        <button
+                            mat-flat-button
+                            color="accent"
+                            type="button"
+                            [disabled]="!stalkerImport()?.form?.valid"
+                            (click)="stalkerImport()?.addPlaylist()"
+                        >
+                            {{ 'HOME.STALKER_PORTAL.ADD' | translate }}
+                        </button>
+                    }
+                }
             }
-        }
+        </div>
     </mat-dialog-actions>
 </div>

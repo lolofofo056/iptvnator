@@ -17,16 +17,24 @@ import { isM3uCatchupPlaybackSupported } from 'm3u-utils';
 import {
     DEFAULT_FAVORITES_CHANNEL_SORT_MODE,
     FavoritesChannelSortMode,
+    LiveEpgPanelState,
     matchesOpenLiveCollectionItem,
     OpenLiveCollectionItemState,
     PORTAL_PLAYER,
+    persistLiveEpgPanelState,
     ResolvedLiveCollectionDetail,
+    restoreLiveEpgPanelState,
     StreamResolverService,
     UnifiedCollectionItem,
     UnifiedFavoriteChannel,
     UnifiedRecentDataService,
 } from '@iptvnator/portal/shared/util';
-import { EpgListComponent } from '@iptvnator/ui/epg';
+import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
 import { GlobalFavoritesListComponent } from '../global-favorites-list/global-favorites-list.component';
 import { PortalEmptyStateComponent } from '../portal-empty-state/portal-empty-state.component';
 import {
@@ -37,8 +45,13 @@ import {
 } from '@iptvnator/ui/playback';
 import { ResizableDirective } from 'components';
 import { SettingsStore } from 'services';
-import { Channel, EpgProgram } from 'shared-interfaces';
-import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
+import { Channel, EpgItem, EpgProgram } from 'shared-interfaces';
+import {
+    EpgViewComponent,
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 
 @Component({
     selector: 'app-unified-live-tab',
@@ -52,6 +65,7 @@ import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
         EpgViewComponent,
         GlobalFavoritesListComponent,
         HtmlVideoPlayerComponent,
+        LiveEpgPanelComponent,
         MatButtonModule,
         MatIconModule,
         MatProgressSpinnerModule,
@@ -67,11 +81,13 @@ export class UnifiedLiveTabComponent {
     readonly mode = input<'favorites' | 'recent'>('favorites');
     readonly searchTerm = input('');
     readonly autoOpenItem = input<OpenLiveCollectionItemState | null>(null);
+    readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly sortMode = input<FavoritesChannelSortMode>(
         DEFAULT_FAVORITES_CHANNEL_SORT_MODE
     );
 
     readonly removeItem = output<UnifiedCollectionItem>();
+    readonly favoriteToggled = output<UnifiedCollectionItem>();
     readonly reorderItems = output<UnifiedCollectionItem[]>();
     readonly itemPlayed = output<UnifiedCollectionItem>();
     readonly autoOpenHandled = output<void>();
@@ -92,6 +108,10 @@ export class UnifiedLiveTabComponent {
     readonly isSelecting = signal(false);
     readonly epgMap = signal<Map<string, EpgProgram | null>>(new Map());
     readonly progressTick = signal(0);
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
     readonly currentStreamUrl = computed(
         () => this.activeDetail()?.playback.streamUrl ?? ''
     );
@@ -124,9 +144,18 @@ export class UnifiedLiveTabComponent {
         const channel = this.currentM3uChannel();
         return channel?.radio === 'true' ? channel : null;
     });
-    readonly isRadioSelection = computed(() => this.activeRadioChannel() !== null);
+    readonly isRadioSelection = computed(
+        () => this.activeRadioChannel() !== null
+    );
     readonly shouldUseInlinePlayer = computed(() => {
         return this.isRadioSelection() || this.isEmbeddedPlayer();
+    });
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveEpgPanelSummary = computed(() => {
+        this.progressTick();
+        return this.getLiveEpgPanelSummary(this.activeDetail());
     });
 
     readonly activeChannelForOverlay = computed((): Channel | undefined => {
@@ -243,7 +272,11 @@ export class UnifiedLiveTabComponent {
             (candidate) => candidate.uid === channel.uid
         );
         if (item) {
-            this.removeItem.emit(item);
+            if (this.mode() === 'favorites') {
+                this.removeItem.emit(item);
+            } else {
+                this.favoriteToggled.emit(item);
+            }
         }
     }
 
@@ -254,6 +287,22 @@ export class UnifiedLiveTabComponent {
             )
             .filter(Boolean) as UnifiedCollectionItem[];
         this.reorderItems.emit(reordered);
+    }
+
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
     }
 
     onClose(): void {
@@ -331,7 +380,9 @@ export class UnifiedLiveTabComponent {
     private shouldOpenExternalPlayback(
         detail: ResolvedLiveCollectionDetail
     ): boolean {
-        return !this.isRadioDetail(detail) && !this.portalPlayer.isEmbeddedPlayer();
+        return (
+            !this.isRadioDetail(detail) && !this.portalPlayer.isEmbeddedPlayer()
+        );
     }
 
     private isRadioDetail(
@@ -367,5 +418,100 @@ export class UnifiedLiveTabComponent {
                 epgPrograms,
             };
         });
+    }
+
+    private getLiveEpgPanelSummary(
+        detail: ResolvedLiveCollectionDetail | null
+    ): LiveEpgPanelSummary | null {
+        if (!detail) {
+            return null;
+        }
+
+        if (detail.epgMode === 'm3u') {
+            return this.toLiveEpgPanelSummary(
+                this.findCurrentM3uProgram(detail.epgPrograms ?? [])
+            );
+        }
+
+        return this.toLiveEpgPanelSummary(
+            this.findCurrentPortalProgram(detail.epgItems ?? [])
+        );
+    }
+
+    private findCurrentM3uProgram(
+        programs: readonly EpgProgram[]
+    ): EpgProgram | null {
+        const now = Date.now();
+        return (
+            programs.find((program) => {
+                const start = this.getProgramTimeMs(
+                    program.start,
+                    program.startTimestamp
+                );
+                const stop = this.getProgramTimeMs(
+                    program.stop,
+                    program.stopTimestamp
+                );
+
+                return (
+                    start !== null &&
+                    stop !== null &&
+                    now >= start &&
+                    now < stop
+                );
+            }) ?? null
+        );
+    }
+
+    private findCurrentPortalProgram(
+        programs: readonly EpgItem[]
+    ): EpgItem | null {
+        const now = Date.now();
+        return (
+            programs.find((program) => {
+                const start = this.getProgramTimeMs(
+                    program.start,
+                    program.start_timestamp
+                );
+                const stop = this.getProgramTimeMs(
+                    program.stop ?? program.end,
+                    program.stop_timestamp
+                );
+
+                return (
+                    start !== null &&
+                    stop !== null &&
+                    now >= start &&
+                    now < stop
+                );
+            }) ?? null
+        );
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgItem | EpgProgram | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop ?? ('end' in program ? program.end : null),
+        };
+    }
+
+    private getProgramTimeMs(
+        rawDate: string | null | undefined,
+        rawTimestamp?: number | string | null
+    ): number | null {
+        const timestamp = Number.parseInt(String(rawTimestamp ?? ''), 10);
+        if (Number.isFinite(timestamp) && timestamp > 0) {
+            return timestamp * 1000;
+        }
+
+        const parsedDate = Date.parse(rawDate ?? '');
+        return Number.isFinite(parsedDate) ? parsedDate : null;
     }
 }

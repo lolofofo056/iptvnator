@@ -22,7 +22,11 @@ import {
     WorkspaceStartupPreferencesService,
     WORKSPACE_SHELL_ACTIONS,
 } from '@iptvnator/workspace/shell/util';
+import { RecentCommandsService } from '../../recent-commands';
+import { WorkspacePlayerCommandsContributor } from '../../workspace-player-commands';
 import { WorkspaceShellFacade } from './workspace-shell.facade';
+import { WorkspaceShellXtreamImportService } from './workspace-shell-xtream-import.service';
+import { WorkspaceShellCommandPaletteService } from './workspace-shell-command-palette.service';
 
 class MockXtreamStore {
     readonly recentItems = signal<unknown[]>([]);
@@ -90,6 +94,11 @@ describe('WorkspaceShellFacade', () => {
     };
 
     let facade: WorkspaceShellFacade;
+    let recentCommands: {
+        entries: jest.Mock;
+        record: jest.Mock;
+        prune: jest.Mock;
+    };
     let router: {
         url: string;
         events: ReturnType<typeof of>;
@@ -175,12 +184,19 @@ describe('WorkspaceShellFacade', () => {
         };
         storeDispatch = jest.fn();
         stalkerStore = new MockStalkerStore();
+        recentCommands = {
+            entries: jest.fn().mockReturnValue([]),
+            record: jest.fn(),
+            prune: jest.fn(),
+        };
 
         const selectSignal = jest.fn().mockReturnValue(playlistsSignal);
 
         TestBed.configureTestingModule({
             providers: [
                 WorkspaceShellFacade,
+                WorkspaceShellXtreamImportService,
+                WorkspaceShellCommandPaletteService,
                 {
                     provide: Router,
                     useValue: router,
@@ -265,6 +281,14 @@ describe('WorkspaceShellFacade', () => {
                         defaultLang: 'en',
                     },
                 },
+                {
+                    provide: RecentCommandsService,
+                    useValue: recentCommands,
+                },
+                {
+                    provide: WorkspacePlayerCommandsContributor,
+                    useValue: {},
+                },
             ],
         });
 
@@ -290,51 +314,53 @@ describe('WorkspaceShellFacade', () => {
 
     it('uses a loading label for remote Xtream fetch phases', () => {
         const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamImport = TestBed.inject(WorkspaceShellXtreamImportService);
 
         xtreamStore.currentImportPhase.set('loading-categories');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_LOADING'
         );
 
         xtreamStore.currentImportPhase.set('loading-live');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_LOADING'
         );
-        expect(facade.xtreamImportSourceLabel()).toBe(
+        expect(xtreamImport.xtreamImportSourceLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_REMOTE_BADGE'
         );
-        expect(facade.xtreamImportDetailLabel()).toBe(
+        expect(xtreamImport.xtreamImportDetailLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_DETAIL_REMOTE'
         );
 
         xtreamStore.currentImportPhase.set('saving-categories');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_SAVING'
         );
 
         xtreamStore.currentImportPhase.set('saving-content');
-        expect(facade.xtreamImportPhaseLabel()).toBe(
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_SAVING'
         );
-        expect(facade.xtreamImportSourceLabel()).toBe(
+        expect(xtreamImport.xtreamImportSourceLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_LOCAL_BADGE'
         );
-        expect(facade.xtreamImportDetailLabel()).toBe(
+        expect(xtreamImport.xtreamImportDetailLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_DETAIL_LOCAL'
         );
     });
 
     it('builds a type-aware xtream import progress label', () => {
         const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamImport = TestBed.inject(WorkspaceShellXtreamImportService);
 
         xtreamStore.activeImportContentType.set('vod');
         xtreamStore.activeImportCurrentCount.set(20);
         xtreamStore.activeImportTotalCount.set(12323);
 
-        expect(facade.xtreamImportTypeLabel()).toBe(
+        expect(xtreamImport.xtreamImportTypeLabel()).toBe(
             'WORKSPACE.SHELL.RAIL_MOVIES'
         );
-        expect(facade.xtreamImportProgressLabel()).toBe(
+        expect(xtreamImport.xtreamImportProgressLabel()).toBe(
             'WORKSPACE.SHELL.RAIL_MOVIES imported: 20 / 12,323'
         );
     });
@@ -449,7 +475,7 @@ describe('WorkspaceShellFacade', () => {
             },
             {
                 icon: 'favorite',
-                tooltip: 'WORKSPACE.SHELL.RAIL_GLOBAL_FAVORITES',
+                tooltip: 'HOME.PLAYLISTS.GLOBAL_FAVORITES',
                 path: ['/workspace/global-favorites'],
                 exact: true,
             },
@@ -489,6 +515,9 @@ describe('WorkspaceShellFacade', () => {
             'open-downloads',
             'open-settings',
             'open-sources',
+            'add-playlist-stalker',
+            'add-playlist-xtream',
+            'add-playlist-m3u',
             'add-playlist',
         ]);
         expect(commands.every((command) => command.group === 'global')).toBe(
@@ -569,5 +598,45 @@ describe('WorkspaceShellFacade', () => {
         );
 
         unregister();
+    });
+
+    it('records the executed command id after the palette closes with a selection', () => {
+        const dialog = TestBed.inject(MatDialog) as unknown as {
+            open: jest.Mock;
+        };
+        dialog.open.mockReturnValueOnce({
+            afterClosed: () =>
+                of({ commandId: 'open-settings', query: '' }),
+        });
+
+        facade.openCommandPalette();
+
+        expect(recentCommands.record).toHaveBeenCalledWith('open-settings');
+    });
+
+    it('does not record when the palette closes without a selection', () => {
+        const dialog = TestBed.inject(MatDialog) as unknown as {
+            open: jest.Mock;
+        };
+        dialog.open.mockReturnValueOnce({
+            afterClosed: () => of(undefined),
+        });
+
+        facade.openCommandPalette();
+
+        expect(recentCommands.record).not.toHaveBeenCalled();
+    });
+
+    it('does not prune recent ids whose commands are temporarily invisible (e.g. on the same route)', () => {
+        const dialog = TestBed.inject(MatDialog) as unknown as {
+            open: jest.Mock;
+        };
+        dialog.open.mockReturnValueOnce({
+            afterClosed: () => of(undefined),
+        });
+
+        facade.openCommandPalette();
+
+        expect(recentCommands.prune).not.toHaveBeenCalled();
     });
 });

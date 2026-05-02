@@ -250,9 +250,9 @@ describe('GroupsViewComponent', () => {
         );
         fixture.detectChanges();
 
-        expect(component.selectedGroupChannels()[0].logo).toBe(
-            'https://example.com/sports.png'
-        );
+        expect(
+            component.getLogoForChannel(component.selectedGroupChannels()[0])
+        ).toBe('https://example.com/sports.png');
     });
 
     it('persists sort mode changes', () => {
@@ -312,6 +312,32 @@ describe('GroupsViewComponent', () => {
 
         expect(component.selectedGroupKey()).toBe('News');
         expect(component.selectedGroup()?.key).toBe('News');
+    });
+
+    it('keeps the first grouped-channel match for duplicate active channel URLs', () => {
+        const movieMirror = createChannel(
+            'mirror-1',
+            'Movie Mirror',
+            'http://example.com/shared-stream.m3u8',
+            'Movies'
+        );
+        const sportsMirror = createChannel(
+            'mirror-2',
+            'Sports Mirror',
+            'http://example.com/shared-stream.m3u8',
+            'Sports'
+        );
+
+        setInputs({
+            activeChannelUrl: 'http://example.com/shared-stream.m3u8',
+            groupedChannels: {
+                Movies: [movieMirror],
+                Sports: [sportsMirror],
+            },
+        });
+
+        expect(component.activeChannelGroupKey()).toBe('Movies');
+        expect(component.selectedGroupKey()).toBe('Movies');
     });
 
     it('retains a visible manual selection and falls back to the first visible group', () => {

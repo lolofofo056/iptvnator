@@ -35,12 +35,6 @@
     font: inherit;
     cursor: pointer;
     width: auto;
-
-    .item-count {
-        opacity: 0.6;
-        font-size: 0.85em;
-        margin-left: 4px;
-    }
 }
 
 .category-item--disabled,
@@ -82,9 +76,14 @@
     }
 }
 
-.category-item--selected .item-count {
-    color: var(--app-selection-color) !important;
-    opacity: 0.95;
+// Selected row: tint badge surface with selection accent. Text colour comes
+// from the parent `.nav-item.selected *` rule in nav-list.scss.
+.category-item--selected .item-count.app-count-badge {
+    background: color-mix(
+        in srgb,
+        var(--app-selection-color) 18%,
+        transparent
+    );
 }
 
 mat-card-content {

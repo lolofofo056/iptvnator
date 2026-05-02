@@ -1,6 +1,7 @@
 import { Page } from '@playwright/test';
 import {
     addXtreamPortal,
+    channelItemByTitle,
     clickCategoryByNameExact,
     clickFirstGridListCard,
     closeElectronApp,
@@ -94,8 +95,15 @@ test.describe('Dashboard Activation', () => {
                 /\/workspace\/xtreams\/[^/]+\/favorites$/
             );
             await expect(
-                app.mainWindow.locator('.player-toolbar .close-btn').first()
+                app.mainWindow
+                    .locator(
+                        'app-unified-live-tab .content-container .video-player'
+                    )
+                    .first()
             ).toBeVisible({ timeout: 20000 });
+            await expect(
+                channelItemByTitle(app.mainWindow, liveTitle).first()
+            ).toHaveClass(/(^|\s)active(\s|$)/);
 
             await app.mainWindow.goBack();
             await app.mainWindow.waitForURL(/\/workspace\/dashboard$/);

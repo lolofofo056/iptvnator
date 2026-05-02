@@ -4,6 +4,7 @@ import {
 } from '@angular/cdk/scrolling';
 import {
     AfterViewInit,
+    ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
     computed,
@@ -25,7 +26,10 @@ import {
     XtreamCategory,
     XtreamItem,
 } from 'shared-interfaces';
-import { ChannelListItemComponent } from 'components';
+import {
+    ChannelListItemComponent,
+    ChannelListSkeletonComponent,
+} from 'components';
 import {
     PortalChannelSortMode,
     sortPortalChannelItems,
@@ -55,8 +59,10 @@ interface XtreamCategoryLike {
     selector: 'app-portal-channels-list',
     templateUrl: './portal-channels-list.component.html',
     styleUrls: ['./portal-channels-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         ChannelListItemComponent,
+        ChannelListSkeletonComponent,
         MatIcon,
         ScrollingModule,
         TranslatePipe,
@@ -74,7 +80,6 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     readonly isSelectedTypeContentLoading =
         this.xtreamStore.selectedTypeContentLoading;
-    readonly loadingRows = Array.from({ length: 9 }, (_, index) => index);
     readonly channels = computed(() => {
         const override = this.channelsOverride();
         if (Array.isArray(override)) {

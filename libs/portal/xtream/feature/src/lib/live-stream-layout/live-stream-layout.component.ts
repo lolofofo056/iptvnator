@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     Component,
@@ -22,8 +23,11 @@ import {
     getAdjacentChannelItem,
     getChannelItemByNumber,
     isWorkspaceLayoutRoute,
+    LiveEpgPanelState,
+    persistLiveEpgPanelState,
     persistPortalChannelSortMode,
     queryParamSignal,
+    restoreLiveEpgPanelState,
     restorePortalChannelSortMode,
 } from '@iptvnator/portal/shared/util';
 import {
@@ -32,9 +36,20 @@ import {
     XtreamUrlService,
     XtreamStore,
 } from '@iptvnator/portal/xtream/data-access';
-import { EpgListComponent, EpgProgramActivationEvent } from '@iptvnator/ui/epg';
+import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    EpgProgramActivationEvent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
+import {
+    EpgViewComponent,
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 import {
     EpgItem,
     EpgProgram,
@@ -62,11 +77,13 @@ interface XtreamLiveChannelItem {
     imports: [
         EpgListComponent,
         EpgViewComponent,
+        LiveEpgPanelComponent,
         MatIcon,
         MatIconButton,
         MatMenuModule,
         MatProgressSpinnerModule,
         MatTooltipModule,
+        NgTemplateOutlet,
         PortalChannelsListComponent,
         PortalEmptyStateComponent,
         ResizableDirective,
@@ -86,6 +103,8 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     readonly categoryItemCounts = this.xtreamStore.getCategoryItemCounts;
     readonly epgItems = this.xtreamStore.epgItems;
     readonly currentEpgItem = this.xtreamStore.currentEpgItem;
+    readonly isSelectedTypeContentLoading =
+        this.xtreamStore.selectedTypeContentLoading;
     readonly isLoadingEpg = this.xtreamStore.isLoadingEpg;
     readonly selectedCategoryId = this.xtreamStore.selectedCategoryId;
     readonly liveChannelSortMode = signal<PortalChannelSortMode>('server');
@@ -145,6 +164,16 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             this.controlledEpgPrograms().length > 0 &&
             this.hasPastPrograms() &&
             !this.archivePlaybackAvailable()
+    );
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveEpgPanelSummary = computed(() =>
+        this.toLiveEpgPanelSummary(this.currentEpgItem())
     );
     readonly liveChannelSortLabel = computed(() =>
         getPortalChannelSortModeLabel(this.liveChannelSortMode())
@@ -332,6 +361,22 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         persistPortalChannelSortMode(LIVE_CHANNEL_SORT_STORAGE_KEY, mode);
     }
 
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
+    }
+
     ngOnDestroy(): void {
         this.unsubscribeRemoteChannelChange?.();
         this.unsubscribeRemoteCommand?.();
@@ -449,6 +494,20 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
                 program.stop ?? program.end,
                 program.stop_timestamp
             ),
+        };
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgItem | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop ?? program.end,
         };
     }
 

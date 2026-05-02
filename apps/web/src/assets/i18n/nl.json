@@ -247,6 +247,7 @@
         "LIVE_STREAM": "Live stream",
         "TIMESHIFT_AVAILABLE": "Doorspoelen is beschikbaar, klik om af te spelen",
         "EPG_NOT_AVAILABLE_DATE": "De TV-Gids is niet beschikbaar voor de geselecteerde datum",
+        "NO_GUIDE_HINT": "Probeer een andere datum of vernieuw de afspeellijst.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "De TV-Gids is niet beschikbaar voor dit kanaal.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Voeg een TV-Gids URL toe of wijzig deze in de instellingen van de app.",
         "FETCH_EPG": "Ophalen TV-Gids...",
@@ -261,7 +262,10 @@
             "LANGUAGE": "Taal",
             "SHOW_PROGRAM_DETAILS": "Toon details over dit programma"
         },
-        "FETCH_SUCCESS": "TV-Gids bijgewerkt"
+        "FETCH_SUCCESS": "TV-Gids bijgewerkt",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

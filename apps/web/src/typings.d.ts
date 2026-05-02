@@ -94,6 +94,9 @@ declare global {
                 skipped?: string[];
             }>;
             getChannelPrograms: (channelId: string) => Promise<EpgProgram[]>;
+            getCurrentProgramsBatch: (
+                channelIds: string[]
+            ) => Promise<Record<string, EpgProgram | null>>;
             getEpgChannelMetadata: (
                 channelIds: string[]
             ) => Promise<Record<string, EpgChannelMetadata | null>>;
@@ -277,6 +280,9 @@ declare global {
                 contentId: number,
                 playlistId: string
             ) => Promise<{ success: boolean }>;
+            dbRemoveRecentItemsBatch: (
+                items: { contentId: number; playlistId: string }[]
+            ) => Promise<{ success: boolean; count: number }>;
             dbGetContentByXtreamId: (
                 xtreamId: number,
                 playlistId: string,

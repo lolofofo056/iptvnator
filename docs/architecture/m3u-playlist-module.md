@@ -5,6 +5,7 @@ This document describes the M3U playlist module architecture, which handles trad
 ## Overview
 
 The M3U playlist module provides:
+
 - Channel list display with virtual scrolling (90,000+ channels support)
 - EPG (Electronic Program Guide) integration
 - Favorites management with drag-and-drop reordering
@@ -80,32 +81,32 @@ used by the groups view to remember which group titles the user has hidden.
 
 ### Actions
 
-| Action Group | Actions | Purpose |
-|--------------|---------|---------|
-| **PlaylistActions** | `loadPlaylists`, `addPlaylist`, `removePlaylist`, `parsePlaylist`, `setActivePlaylist` | Playlist CRUD |
-| **ChannelActions** | `setChannels`, `setActiveChannel`, `setAdjacentChannelAsActive` | Channel selection & navigation |
-| **EpgActions** | `setActiveEpgProgram`, `setCurrentEpgProgram`, `setEpgAvailableFlag` | EPG state |
-| **FavoritesActions** | `updateFavorites`, `setFavorites` | Favorites management |
-| **FilterActions** | `setSelectedFilters` | Playlist type filtering |
+| Action Group         | Actions                                                                                | Purpose                        |
+| -------------------- | -------------------------------------------------------------------------------------- | ------------------------------ |
+| **PlaylistActions**  | `loadPlaylists`, `addPlaylist`, `removePlaylist`, `parsePlaylist`, `setActivePlaylist` | Playlist CRUD                  |
+| **ChannelActions**   | `setChannels`, `setActiveChannel`, `setAdjacentChannelAsActive`                        | Channel selection & navigation |
+| **EpgActions**       | `setActiveEpgProgram`, `setCurrentEpgProgram`, `setEpgAvailableFlag`                   | EPG state                      |
+| **FavoritesActions** | `updateFavorites`, `setFavorites`                                                      | Favorites management           |
+| **FilterActions**    | `setSelectedFilters`                                                                   | Playlist type filtering        |
 
 ### Key Selectors
 
 ```typescript
 // Channel selectors
-selectActive          // Current playing channel
-selectChannelsLoading // Channel list loading flag
-selectChannels        // All channels array
-selectFavorites       // Favorite channel URLs
+selectActive; // Current playing channel
+selectChannelsLoading; // Channel list loading flag
+selectChannels; // All channels array
+selectFavorites; // Favorite channel URLs
 
 // Playlist selectors
-selectAllPlaylistsMeta    // All playlists
-selectActivePlaylistId    // Selected playlist ID
-selectCurrentPlaylist     // Active playlist object
-selectPlaylistTitle       // Title with "Global favorites" fallback
+selectAllPlaylistsMeta; // All playlists
+selectActivePlaylistId; // Selected playlist ID
+selectCurrentPlaylist; // Active playlist object
+selectPlaylistTitle; // Title with "Global favorites" fallback
 
 // EPG selectors
-selectIsEpgAvailable      // EPG data available flag
-selectCurrentEpgProgram   // Current playing program
+selectIsEpgAvailable; // EPG data available flag
+selectCurrentEpgProgram; // Current playing program
 ```
 
 ## Channel List Container
@@ -182,9 +183,9 @@ channel-list-container/
 - `ChannelListContainerComponent` no longer clears `channels` on destroy; route/session code is the single owner of shared list lifecycle during navigation.
 - The dedicated `/workspace/playlists/:id/favorites` and `/workspace/playlists/:id/recent` collection routes do not drive the shared sidebar channel list; they default to the `playlist` scope so rail links always open the current playlist view, not the last persisted global scope.
 - Empty playlists and empty search results are no longer conflated:
-  - loading: skeletons
-  - empty source: no channels in the playlist after loading completes
-  - empty search: no matches within an already loaded playlist
+    - loading: skeletons
+    - empty source: no channels in the playlist after loading completes
+    - empty search: no matches within an already loaded playlist
 
 ### Group Visibility Management
 
@@ -213,8 +214,8 @@ For performance optimization, channels are pre-enriched with EPG data:
 ```typescript
 interface EnrichedChannel extends Channel {
     epgProgram: EpgProgram | null | undefined;
-    logo: string;                // Playlist tvg-logo first, XMLTV icon fallback second
-    progressPercentage: number;  // Pre-computed by parent
+    logo: string; // Playlist tvg-logo first, XMLTV icon fallback second
+    progressPercentage: number; // Pre-computed by parent
 }
 ```
 
@@ -237,29 +238,32 @@ EPG lookup keys use the same precedence in both program and icon paths:
 
 ### Performance Optimizations
 
-| Optimization | Implementation |
-|--------------|----------------|
-| **Virtual Scroll** | CDK virtual scroll for 90,000+ channels |
-| **Computed Signals** | `enrichedChannels` computed signal replaces template pipe |
-| **Debounced Search** | 300ms debounce on search input |
-| **Global Progress Tick** | Single 30s interval instead of per-item intervals |
-| **OnPush Change Detection** | All components use OnPush |
-| **Infinite Scroll in Groups** | IntersectionObserver loads 50 channels at a time |
-| **Memoized Group Enrichment** | `enrichedGroupChannelsMap` computed signal |
+| Optimization                  | Implementation                                            |
+| ----------------------------- | --------------------------------------------------------- |
+| **Virtual Scroll**            | CDK virtual scroll for 90,000+ channels                   |
+| **Computed Signals**          | `enrichedChannels` computed signal replaces template pipe |
+| **Debounced Search**          | 300ms debounce on search input                            |
+| **Global Progress Tick**      | Single 30s interval instead of per-item intervals         |
+| **OnPush Change Detection**   | All components use OnPush                                 |
+| **Infinite Scroll in Groups** | IntersectionObserver loads 50 channels at a time          |
+| **Memoized Group Enrichment** | `enrichedGroupChannelsMap` computed signal                |
 
 ### Tab Components
 
 #### AllChannelsTabComponent
+
 - **Inputs**: `channels`, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `itemSize`, `activeChannelUrl`, `favoriteIds`
 - **Outputs**: `channelSelected`, `favoriteToggled`
 - **Features**: Search with 300ms debounce, virtual scrolling, no-results placeholder
 
 #### GroupsTabComponent
+
 - **Inputs**: Same as AllChannelsTab + `groupedChannels`
 - **Outputs**: `channelSelected`, `favoriteToggled`
 - **Features**: Expansion panels, infinite scroll with IntersectionObserver, lazy loading
 
 #### FavoritesTabComponent
+
 - **Inputs**: `favorites`, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
 - **Outputs**: `channelSelected`, `favoriteToggled`, `favoritesReordered`
 - **Features**: Drag-and-drop reordering with CDK DragDrop
@@ -277,10 +281,14 @@ class EpgService {
     getChannelPrograms(channelId: string): void;
 
     // Batch fetch current programs
-    getCurrentProgramsForChannels(channelIds: string[]): Observable<Map<string, EpgProgram>>;
+    getCurrentProgramsForChannels(
+        channelIds: string[]
+    ): Observable<Map<string, EpgProgram>>;
 
     // Batch fetch XMLTV channel metadata for logo fallback
-    getChannelMetadataForChannels(channelIds: string[]): Observable<Map<string, EpgChannelMetadata | null>>;
+    getChannelMetadataForChannels(
+        channelIds: string[]
+    ): Observable<Map<string, EpgChannelMetadata | null>>;
 
     // Observables
     epgAvailable$: Observable<boolean>;
@@ -290,27 +298,31 @@ class EpgService {
 
 ### EPG Components
 
-| Component | Purpose |
-|-----------|---------|
-| `EpgListComponent` | Timeline view for single channel |
-| `EpgListItemComponent` | Individual program in timeline |
-| `EpgItemDescriptionComponent` | Program details dialog |
-| `MultiEpgContainerComponent` | Grid view of all channels' schedules |
+| Component                     | Purpose                              |
+| ----------------------------- | ------------------------------------ |
+| `EpgListComponent`            | Timeline view for single channel     |
+| `EpgListItemComponent`        | Individual program in timeline       |
+| `EpgItemDescriptionComponent` | Program details dialog               |
+| `MultiEpgContainerComponent`  | Grid view of all channels' schedules |
 
 ## Video Player
 
 **Location**: `libs/playlist/m3u/feature-player/src/lib/video-player/`
 
 ### Supported Players
+
 - **ArtPlayer** (default) - Modern player with plugins
 - **Video.js** - Fallback with HLS support
 - **HTML5** - Basic video element
 - **Audio** - For radio streams
 
 ### Player Features
+
 - Channel navigation (prev/next)
 - Favorites toggle
 - EPG sidebar
+- Collapsible inline EPG panel for internal players, persisted through the
+  shared `live-epg-panel-state` preference
 - Multi-EPG modal view
 - Channel info overlay
 - External player support (MPV, VLC) in Electron
@@ -324,16 +336,16 @@ class EpgService {
 - M3U catch-up support is resolved in `m3u-utils` from channel metadata and
   the archived program start time.
 - Supported replay precedence:
-  1. `catchup.source` if it is an HTTP(S) URL. IPTVNator rewrites or appends
-     standard `utc` and `lutc` query params on that URL.
-  2. Legacy same-stream shift playback when `catchup.type === 'shift'`. In
-     that case IPTVNator rewrites or appends `utc` and `lutc` on `channel.url`.
-  3. Legacy same-stream shift fallback when no explicit catch-up mode is
-     declared, archive-day metadata exists (`tvg.rec`, `timeshift`, or
-     `catchup.days`), and `channel.url` itself is an HTTP(S) stream URL. This
-     covers providers that only advertise archive retention such as
-     `tvg-rec="7"` but still expect standard `utc` and `lutc` query params on
-     the live URL.
+    1. `catchup.source` if it is an HTTP(S) URL. IPTVNator rewrites or appends
+       standard `utc` and `lutc` query params on that URL.
+    2. Legacy same-stream shift playback when `catchup.type === 'shift'`. In
+       that case IPTVNator rewrites or appends `utc` and `lutc` on `channel.url`.
+    3. Legacy same-stream shift fallback when no explicit catch-up mode is
+       declared, archive-day metadata exists (`tvg.rec`, `timeshift`, or
+       `catchup.days`), and `channel.url` itself is an HTTP(S) stream URL. This
+       covers providers that only advertise archive retention such as
+       `tvg-rec="7"` but still expect standard `utc` and `lutc` query params on
+       the live URL.
 - `tvg.rec`, `timeshift`, and `catchup.days` still define the archive window
   shown in the EPG, but replay remains unavailable when the provider declares a
   different explicit catch-up scheme that IPTVNator does not understand or when
@@ -346,6 +358,7 @@ class EpgService {
 ## Interfaces
 
 ### Channel Interface
+
 ```typescript
 interface Channel {
     id: string;
@@ -353,7 +366,7 @@ interface Channel {
     name: string;
     group: { title: string };
     tvg: {
-        id: string;      // For EPG matching
+        id: string; // For EPG matching
         name: string;
         url: string;
         logo: string;
@@ -384,11 +397,12 @@ interface PlaylistState {
 ```
 
 ### EpgProgram Interface
+
 ```typescript
 interface EpgProgram {
-    start: string;      // ISO string
-    stop: string;       // ISO string
-    channel: string;    // TVG ID
+    start: string; // ISO string
+    stop: string; // ISO string
+    channel: string; // TVG ID
     title: string;
     desc: string | null;
     category: string | null;
@@ -408,17 +422,20 @@ interface EpgProgram {
 ## Adding New Features
 
 ### To add a new tab to channel list:
+
 1. Create component in `channel-list-container/new-tab/`
 2. Accept inputs: `channels`, `channelEpgMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
 3. Emit `channelSelected` output
 4. Add to parent template and imports
 
 ### To add EPG-related features:
+
 1. Use `EpgService` for data fetching
 2. Subscribe to `channelEpgMap` signal for current programs
 3. Dispatch `EpgActions` for state updates
 
 ### To modify favorites behavior:
+
 1. Dispatch `FavoritesActions.updateFavorites` for toggle
 2. Dispatch `FavoritesActions.setFavorites` for reordering
 3. Effects automatically persist to database

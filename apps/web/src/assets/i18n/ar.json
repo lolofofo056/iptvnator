@@ -255,6 +255,7 @@
         "LIVE_STREAM": "بث مباشر",
         "TIMESHIFT_AVAILABLE": "التحريك الزمني متاح، انقر للتشغيل",
         "EPG_NOT_AVAILABLE_DATE": "عذراً، الدليل غير متاح لهذا التاريخ",
+        "NO_GUIDE_HINT": "جرب تاريخاً آخر أو حدّث قائمة التشغيل.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "عذراً، الدليل غير متاح لهذه القناة",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "يرجى إضافة/تعديل رابط EPG في إعدادات التطبيق.",
         "FETCH_EPG": "جارٍ جلب بيانات EPG...",
@@ -269,7 +270,10 @@
             "LANGUAGE": "اللغة",
             "SHOW_PROGRAM_DETAILS": "عرض تفاصيل البرنامج"
         },
-        "FETCH_SUCCESS": "تم جلب الدليل بنجاح."
+        "FETCH_SUCCESS": "تم جلب الدليل بنجاح.",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

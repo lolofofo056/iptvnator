@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
@@ -17,6 +18,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
     ChannelListItemComponent,
+    ChannelListSkeletonComponent,
     ResizableDirective,
 } from 'components';
 import { PlaylistsService } from 'services';
@@ -26,13 +28,25 @@ import {
     EpgProgram,
     ResolvedPortalPlayback,
 } from 'shared-interfaces';
-import { EpgListComponent } from '@iptvnator/ui/epg';
-import { WebPlayerViewComponent } from 'shared-portals';
+import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
+import {
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 import {
     PORTAL_PLAYER,
     createLogger,
     getAdjacentChannelItem,
     getChannelItemByNumber,
+    LiveEpgPanelState,
+    persistLiveEpgPanelState,
+    restoreLiveEpgPanelState,
 } from '@iptvnator/portal/shared/util';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
@@ -48,8 +62,11 @@ import {
     styleUrls: ['./stalker-live-stream-layout.component.scss'],
     imports: [
         ChannelListItemComponent,
+        ChannelListSkeletonComponent,
         EpgListComponent,
         MatProgressSpinnerModule,
+        LiveEpgPanelComponent,
+        NgTemplateOutlet,
         PortalEmptyStateComponent,
         ResizableDirective,
         TranslatePipe,
@@ -87,6 +104,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     });
     readonly hasMoreItems = this.stalkerStore.hasMoreChannels;
     readonly isLoadingMore = signal(false);
+    readonly isInitialChannelsLoading = computed(
+        () =>
+            !!this.stalkerStore.selectedCategoryId() &&
+            this.itvChannels().length === 0 &&
+            !this.searchTerm()
+    );
 
     readonly selectedChannelId = this.stalkerStore.selectedItvId;
     protected readonly normalizeStalkerEntityId = normalizeStalkerEntityId;
@@ -96,9 +119,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         this.portalPlayer.isEmbeddedPlayer()
     );
     readonly activePlayback = signal<ResolvedPortalPlayback | null>(null);
-    readonly streamUrl = computed(
-        () => this.activePlayback()?.streamUrl ?? ''
-    );
+    readonly streamUrl = computed(() => this.activePlayback()?.streamUrl ?? '');
 
     /** EPG */
     readonly fallbackEpgPrograms = signal<EpgProgram[]>([]);
@@ -111,6 +132,16 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     });
     readonly currentProgram = computed(() =>
         this.findCurrentProgram(this.activeEpgPrograms())
+    );
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveEpgPanelSummary = computed(() =>
+        this.toLiveEpgPanelSummary(this.currentProgram())
     );
     readonly controlledChannel = computed<Channel | null>(() => {
         const selectedType = this.stalkerStore.selectedContentType();
@@ -343,6 +374,22 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         this.stalkerStore.setPage(nextPage);
     }
 
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
+    }
+
     private async loadEpgForChannel(item: StalkerItvChannel) {
         const requestId = ++this.epgLoadRequestId;
         const normalizedChannelId = normalizeStalkerEntityId(item.id);
@@ -358,12 +405,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         try {
             if (shouldEnsureBulk) {
                 await this.stalkerStore.ensureBulkItvEpg(168);
-                if (
-                    !this.isCurrentEpgRequest(
-                        requestId,
-                        normalizedChannelId
-                    )
-                ) {
+                if (!this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                     return;
                 }
             }
@@ -376,9 +418,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             const fallbackItems = await this.stalkerStore.fetchChannelEpg(
                 item.id
             );
-            if (
-                !this.isCurrentEpgRequest(requestId, normalizedChannelId)
-            ) {
+            if (!this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                 return;
             }
 
@@ -389,15 +429,11 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             );
         } catch (error) {
             this.logger.warn('Failed to load Stalker live EPG', error);
-            if (
-                this.isCurrentEpgRequest(requestId, normalizedChannelId)
-            ) {
+            if (this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                 this.fallbackEpgPrograms.set([]);
             }
         } finally {
-            if (
-                this.isCurrentEpgRequest(requestId, normalizedChannelId)
-            ) {
+            if (this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                 this.isLoadingFallbackEpg.set(false);
             }
         }
@@ -508,10 +544,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         }
     }
 
-    private toProgram(
-        item: EpgItem,
-        channelId: string | number
-    ): EpgProgram {
+    private toProgram(item: EpgItem, channelId: string | number): EpgProgram {
         return {
             start: item.start,
             stop: item.stop || item.end,
@@ -524,6 +557,20 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                 item.stop_timestamp,
                 item.stop || item.end
             ),
+        };
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgProgram | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop,
         };
     }
 
@@ -554,7 +601,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                     program.stop,
                     program.stopTimestamp
                 );
-                return start !== null && stop !== null && now >= start && now < stop;
+                return (
+                    start !== null &&
+                    stop !== null &&
+                    now >= start &&
+                    now < stop
+                );
             }) ?? null
         );
     }

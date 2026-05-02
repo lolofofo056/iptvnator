@@ -402,6 +402,8 @@ const electronApi = {
         ipcRenderer.invoke('FETCH_EPG', { url: urls }),
     getChannelPrograms: (channelId: string) =>
         ipcRenderer.invoke('GET_CHANNEL_PROGRAMS', { channelId }),
+    getCurrentProgramsBatch: (channelIds: string[]) =>
+        ipcRenderer.invoke('GET_CURRENT_PROGRAMS_BATCH', { channelIds }),
     getEpgChannelMetadata: (channelIds: string[]) =>
         ipcRenderer.invoke('EPG_GET_CHANNEL_METADATA', { channelIds }),
     getEpgChannels: () => ipcRenderer.invoke('EPG_GET_CHANNELS'),
@@ -604,6 +606,9 @@ const electronApi = {
         ipcRenderer.invoke('DB_CLEAR_PLAYLIST_RECENT_ITEMS', playlistId),
     dbRemoveRecentItem: (contentId: number, playlistId: string) =>
         ipcRenderer.invoke('DB_REMOVE_RECENT_ITEM', contentId, playlistId),
+    dbRemoveRecentItemsBatch: (
+        items: { contentId: number; playlistId: string }[]
+    ) => ipcRenderer.invoke('DB_REMOVE_RECENT_ITEMS_BATCH', items),
     dbGetContentByXtreamId: (
         xtreamId: number,
         playlistId: string,

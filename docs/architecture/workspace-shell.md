@@ -54,7 +54,12 @@ Provider route integration:
 3. Xtream and Stalker parent routes attach route-scoped session providers that
    bootstrap the active playlist, sync provider section state, and clean up
    provider-local state when the route is destroyed.
-4. Workspace routes no longer rely on nested provider shell components for
+4. Xtream route bootstrap is DB-first for already imported Electron playlists:
+   if the requested section has persisted categories and content, the route
+   hydrates from SQLite even when the portal status probe reports unavailable,
+   expired, or inactive. Fresh/no-cache Xtream routes still use the status probe
+   to block remote imports before the loading overlay starts.
+5. Workspace routes no longer rely on nested provider shell components for
    hidden local chrome.
 
 ## Shell Structure
@@ -126,6 +131,18 @@ Command palette behavior is shell-owned but view-extensible:
    metadata through `WorkspaceHeaderContextService`.
 5. Filtering matches command labels, descriptions, and keywords, and keyboard
    selection always lands on the first enabled command.
+6. A "Recently used" section is rendered above the standard groups when the
+   query is empty and at least one stored id resolves to a visible+enabled
+   command; ids are persisted via `RecentCommandsService` (capped at 5,
+   stored at `STORE_KEY.RecentCommands`). Storage is **not** pruned by route
+   visibility — a navigation command like `Open sources` is invisible while
+   the user is on `/workspace/sources` but the id stays in storage so it
+   reappears in the recent section after navigating away.
+7. Five "Switch player to X" commands are registered globally by
+   `WorkspacePlayerCommandsContributor`. The MPV/VLC entries are visible only
+   in Electron, and the entry matching the current `SettingsStore.player()`
+   value is disabled. The new player setting applies to the next playback
+   session; an existing stream is not re-mounted.
 
 ## Maintenance Guidance
 

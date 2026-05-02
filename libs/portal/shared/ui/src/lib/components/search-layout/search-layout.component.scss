@@ -151,7 +151,7 @@
 
 // Results grid mixin for consumers
 ::ng-deep .results-grid {
-    @include grid.content-grid(140px, 20px);
+    @include grid.content-grid;
     padding-bottom: 1rem;
 }
 

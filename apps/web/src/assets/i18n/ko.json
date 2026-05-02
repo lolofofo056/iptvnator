@@ -201,6 +201,7 @@
         "LIVE_STREAM": "Live stream",
         "TIMESHIFT_AVAILABLE": "Timeshift를 사용할 수 있습니다, 클릭하여 재생합니다",
         "EPG_NOT_AVAILABLE_DATE": "선택한 날짜에는 EPG를 사용할 수 없습니다.",
+        "NO_GUIDE_HINT": "다른 날짜를 시도하거나 재생 목록을 새로 고치세요.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "이 채널에는 EPG를 사용할 수 없습니다.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "설정에서 EPG의 URL을 추가/변경하십시오.",
         "FETCH_EPG": "EPG 데이터 가져 오기...",
@@ -214,7 +215,10 @@
             "DESCRIPTION": "설명",
             "LANGUAGE": "언어",
             "SHOW_PROGRAM_DETAILS": "이 프로그램에 대한 세부 정보 표시"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

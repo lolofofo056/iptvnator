@@ -30,7 +30,7 @@
             />
         }
 
-        @if (type()) {
+        @if (type() && showTypeBadge()) {
             <span class="type-badge" [class]="type()">
                 {{ type() }}
             </span>

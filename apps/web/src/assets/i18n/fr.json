@@ -68,7 +68,7 @@
             "REFRESH_XTREAM": "Actualiser la liste Xtream depuis le serveur",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Actualiser la liste Xtream",
-                "MESSAGE": "Cela supprimera les catégories et flux mis en cache localement et réimportera tout depuis le serveur distant. Vos favoris et éléments récemment consultés seront conservés. Voulez-vous continuer ?",
+                "MESSAGE": "Cela supprimera le cache Xtream local et réimportera les catégories et les flux depuis le serveur distant. Les favoris, les éléments récemment consultés, la visibilité des catégories masquées et la progression de lecture seront restaurés après une réimportation réussie si le contenu correspondant existe toujours. Si le serveur est inaccessible, la restauration restera en attente jusqu'à une prochaine actualisation réussie. Continuer ?",
                 "STARTED": "Actualisation démarrée. Navigation vers la liste de lecture...",
                 "ERROR": "Échec de l'actualisation de la liste de lecture. Veuillez réessayer."
             },
@@ -269,6 +269,7 @@
         "LIVE_STREAM": "Diffusion en direct",
         "TIMESHIFT_AVAILABLE": "Contrôle du direct disponible, cliquez pour lire",
         "EPG_NOT_AVAILABLE_DATE": "L'EPG n'est pas disponible pour la date sélectionnée",
+        "NO_GUIDE_HINT": "Essayez une autre date ou actualisez la playlist.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "L'EPG n'est pas disponible pour cette chaîne.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Veuillez ajouter/modifier l'URL de la liste EPG dans les réglages de l'application.",
         "FETCH_EPG": "Récupération des données EPG...",
@@ -283,7 +284,10 @@
             "LANGUAGE": "Langue",
             "SHOW_PROGRAM_DETAILS": "Afficher les détails de ce programme"
         },
-        "FETCH_SUCCESS": "L'EPG a été récupéré avec succès"
+        "FETCH_SUCCESS": "L'EPG a été récupéré avec succès",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

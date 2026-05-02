@@ -75,6 +75,19 @@
                 <mat-icon>{{ action.icon }}</mat-icon>
             </button>
         }
+        @if (headerBulkAction(); as bulk) {
+            <button
+                type="button"
+                class="header-shortcut header-bulk-action"
+                mat-icon-button
+                [disabled]="bulk.disabled"
+                (click)="onHeaderBulkActionRequested()"
+                [matTooltip]="bulk.tooltip"
+                [attr.aria-label]="bulk.ariaLabel"
+            >
+                <mat-icon>{{ bulk.icon }}</mat-icon>
+            </button>
+        }
     </div>
 
     @if (isElectron()) {

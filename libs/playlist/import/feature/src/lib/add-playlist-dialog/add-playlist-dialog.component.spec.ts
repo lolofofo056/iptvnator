@@ -6,6 +6,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { PlaylistActions } from 'm3u-state';
 import { DataService } from 'services';
 import { PLAYLIST_PARSE_BY_URL } from 'shared-interfaces';
+import { PlaylistType } from '@iptvnator/playlist/shared/ui';
 import { AddPlaylistDialogComponent } from './add-playlist-dialog.component';
 
 describe('AddPlaylistDialogComponent', () => {
@@ -106,27 +107,89 @@ describe('AddPlaylistDialogComponent', () => {
         expect(dialogRef.close).toHaveBeenCalled();
     });
 
-    it('strips playlist extensions from uploaded file titles', () => {
-        component.handlePlaylist({
-            uploadEvent: {
-                target: {
-                    result: '#EXTM3U',
-                },
-            } as unknown as Event,
-            file: {
-                name: 'Local Source.m3u',
-                path: '/tmp/Local Source.m3u',
-            } as File,
-        });
+    it('dispatches imported text and closes the dialog', () => {
+        component.uploadAsText('#EXTM3U');
 
         expect(store.dispatch).toHaveBeenCalledWith(
             PlaylistActions.parsePlaylist({
-                uploadType: 'FILE',
+                uploadType: 'TEXT',
                 playlist: '#EXTM3U',
-                title: 'Local Source',
-                path: '/tmp/Local Source.m3u',
+                title: 'HOME.IMPORTED_AS_TEXT',
             })
         );
         expect(dialogRef.close).toHaveBeenCalled();
     });
+
+    it('closes the dialog after a successful file import', () => {
+        component.onFileImported();
+
+        expect(dialogRef.close).toHaveBeenCalled();
+    });
+
+    it.each([
+        {
+            type: 'url',
+            childAccessor: 'urlUpload',
+            clearMethod: 'clearForm',
+        },
+        {
+            type: 'file',
+            childAccessor: 'fileUpload',
+            clearMethod: 'clearSelection',
+        },
+        {
+            type: 'text',
+            childAccessor: 'textImport',
+            clearMethod: 'clearForm',
+        },
+        {
+            type: 'xtream',
+            childAccessor: 'xtreamImport',
+            clearMethod: 'clearForm',
+        },
+        {
+            type: 'stalker',
+            childAccessor: 'stalkerImport',
+            clearMethod: 'clearForm',
+        },
+    ] as const)(
+        'clears the current $type import surface',
+        ({ type, childAccessor, clearMethod }) => {
+            const clear = jest.fn();
+            (component as unknown as Record<string, jest.Mock>)[childAccessor] =
+                jest.fn(() => ({
+                    [clearMethod]: clear,
+                }));
+            selectType(type);
+
+            component.clearCurrentForm();
+
+            expect(clear).toHaveBeenCalledTimes(1);
+        }
+    );
+
+    it('disables clear when a file upload has no selection', () => {
+        (component as { fileUpload: jest.Mock }).fileUpload = jest.fn(() => ({
+            isImporting: () => false,
+            selectedFile: () => null,
+        }));
+        selectType('file');
+
+        expect(component.isClearDisabled()).toBeTruthy();
+    });
+
+    function selectType(type: PlaylistType): void {
+        if (type === 'xtream') {
+            component.category.set('xtream');
+            return;
+        }
+
+        if (type === 'stalker') {
+            component.category.set('stalker');
+            return;
+        }
+
+        component.category.set('m3u');
+        component.m3uSubType.set(type);
+    }
 });

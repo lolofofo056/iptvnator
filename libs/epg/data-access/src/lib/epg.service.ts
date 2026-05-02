@@ -205,16 +205,45 @@ export class EpgService {
             return of(resultMap);
         }
 
-        // Fetch uncached channels with timeout and error handling per request
+        // Single batched IPC + SQL query when the backend supports it.
+        // Replaces the legacy N+1 forkJoin where each channel fired its own
+        // GET_CHANNEL_PROGRAMS round-trip.
+        const batchApi = window.electron as Window['electron'] & {
+            getCurrentProgramsBatch?: (
+                channelIds: string[]
+            ) => Promise<Record<string, EpgProgram | null>>;
+        };
+        if (typeof batchApi?.getCurrentProgramsBatch === 'function') {
+            return from(batchApi.getCurrentProgramsBatch(channelsToFetch)).pipe(
+                timeout(5000),
+                map((batchResult) => {
+                    const cacheTimestamp = Date.now();
+                    channelsToFetch.forEach((channelId) => {
+                        const program = batchResult?.[channelId] ?? null;
+                        resultMap.set(channelId, program);
+                        this.programCache.set(channelId, {
+                            program,
+                            timestamp: cacheTimestamp,
+                        });
+                    });
+                    return resultMap;
+                }),
+                catchError((err) => {
+                    console.error('EPG batch current programs error:', err);
+                    return of(resultMap);
+                })
+            );
+        }
+
+        // Fallback for older preload bundles without the batch endpoint.
         const fetchObservables = channelsToFetch.map((channelId) =>
             this.getCurrentProgramForChannel(channelId).pipe(
-                timeout(5000), // 5 second timeout per request
+                timeout(5000),
                 map((program) => ({ channelId, program })),
                 catchError(() => of({ channelId, program: null }))
             )
         );
 
-        // Combine all fetches using forkJoin
         return forkJoin(fetchObservables).pipe(
             map((results) => {
                 results.forEach((result) => {

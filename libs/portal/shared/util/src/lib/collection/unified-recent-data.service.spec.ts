@@ -26,6 +26,7 @@ describe('UnifiedRecentDataService', () => {
         getGlobalRecentlyViewed: jest.Mock;
         getRecentItems: jest.Mock;
         removeRecentItem: jest.Mock;
+        removeRecentItemsBatch: jest.Mock;
         clearPlaylistRecentItems: jest.Mock;
         clearGlobalRecentlyViewed: jest.Mock;
         addRecentItem: jest.Mock;
@@ -119,6 +120,7 @@ describe('UnifiedRecentDataService', () => {
             getGlobalRecentlyViewed: jest.fn().mockResolvedValue([]),
             getRecentItems: jest.fn().mockResolvedValue([]),
             removeRecentItem: jest.fn().mockResolvedValue(true),
+            removeRecentItemsBatch: jest.fn().mockResolvedValue(true),
             clearPlaylistRecentItems: jest.fn().mockResolvedValue(true),
             clearGlobalRecentlyViewed: jest.fn().mockResolvedValue(undefined),
             addRecentItem: jest.fn().mockResolvedValue(true),

@@ -7,6 +7,7 @@ import {
     ViewChild,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
@@ -40,9 +41,11 @@ class StubUnifiedLiveTabComponent {
     readonly mode = input<'favorites' | 'recent'>('favorites');
     readonly searchTerm = input('');
     readonly autoOpenItem = input<unknown>(null);
+    readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly sortMode = input<FavoritesChannelSortMode>('custom');
 
     readonly removeItem = output<UnifiedCollectionItem>();
+    readonly favoriteToggled = output<UnifiedCollectionItem>();
     readonly reorderItems = output<UnifiedCollectionItem[]>();
     readonly itemPlayed = output<UnifiedCollectionItem>();
     readonly autoOpenHandled = output<void>();
@@ -120,14 +123,16 @@ describe('UnifiedCollectionPageComponent', () => {
     const playlistsLoaded = signal(false);
     const playlists = signal<PlaylistMeta[]>([]);
     const favoritesData = {
+        addFavorite: jest.fn().mockResolvedValue(undefined),
         getFavorites: jest.fn().mockResolvedValue([]),
         clearFavorites: jest.fn().mockResolvedValue(undefined),
-        removeFavorite: jest.fn(),
-        reorder: jest.fn(),
+        removeFavorite: jest.fn().mockResolvedValue(undefined),
+        reorder: jest.fn().mockResolvedValue(undefined),
     };
     const recentData = {
         getRecentItems: jest.fn().mockResolvedValue([]),
         removeRecentItem: jest.fn(),
+        removeRecentItemsBatch: jest.fn(),
         clearRecentItems: jest.fn(),
     };
     const dialogService = {
@@ -432,6 +437,55 @@ describe('UnifiedCollectionPageComponent', () => {
             'playlist-2',
             'm3u'
         );
+    });
+
+    it('passes favorite state to recent live rows and toggles favorites without removing the row', async () => {
+        const recentItem = {
+            uid: 'm3u::playlist-1::https://example.com/one.m3u8',
+            name: 'Recent One',
+            contentType: 'live',
+            sourceType: 'm3u',
+            playlistId: 'playlist-1',
+            playlistName: 'Playlist One',
+            streamUrl: 'https://example.com/one.m3u8',
+        } satisfies UnifiedCollectionItem;
+        recentData.getRecentItems.mockResolvedValueOnce([recentItem]);
+        favoritesData.getFavorites.mockResolvedValueOnce([recentItem]);
+
+        fixture.componentRef.setInput('mode', 'recent');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+        fixture.componentInstance.isLoading.set(false);
+        fixture.componentInstance.selectedContentType.set('live');
+        fixture.componentInstance.allItems.set([recentItem]);
+        fixture.componentInstance.favoriteUidSet.set(
+            new Set<string>([recentItem.uid])
+        );
+        fixture.detectChanges();
+
+        const liveTab = fixture.debugElement.query(
+            By.directive(StubUnifiedLiveTabComponent)
+        ).componentInstance as StubUnifiedLiveTabComponent;
+
+        expect(liveTab.favoriteUids().has(recentItem.uid)).toBe(true);
+
+        liveTab.favoriteToggled.emit(recentItem);
+        await fixture.whenStable();
+
+        expect(favoritesData.removeFavorite).toHaveBeenCalledWith(recentItem);
+        expect(fixture.componentInstance.favoriteUidSet().has(recentItem.uid))
+            .toBe(false);
+        expect(fixture.componentInstance.allItems()).toEqual([recentItem]);
+
+        liveTab.favoriteToggled.emit(recentItem);
+        await fixture.whenStable();
+
+        expect(favoritesData.addFavorite).toHaveBeenCalledWith(recentItem);
+        expect(fixture.componentInstance.favoriteUidSet().has(recentItem.uid))
+            .toBe(true);
+        expect(fixture.componentInstance.allItems()).toEqual([recentItem]);
     });
 
     it('clears current favorites through the bulk clear service path', async () => {

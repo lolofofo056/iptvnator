@@ -272,6 +272,7 @@
         "LIVE_STREAM": "Transmisión en vivo",
         "TIMESHIFT_AVAILABLE": "Timeshift está disponible, clic para reproducir",
         "EPG_NOT_AVAILABLE_DATE": "Vaya, no está disponible la EPG de esa fecha",
+        "NO_GUIDE_HINT": "Prueba otra fecha o actualiza la lista de reproducción.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Vaya, no está disponible la EPG del canal.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Por favor añada/cargue la url de la lista EPG en los ajustes de la app.",
         "FETCH_EPG": "Obteniendo datos de EPG...",
@@ -285,7 +286,10 @@
             "DESCRIPTION": "Descripción",
             "LANGUAGE": "Idioma",
             "SHOW_PROGRAM_DETAILS": "Mostrar detalles del programa"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

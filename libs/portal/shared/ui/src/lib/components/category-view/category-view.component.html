@@ -17,11 +17,11 @@
                     }}
                 </span>
                 @if (showCounts()) {
-                    <div class="nav-item-meta item-count">
+                    <div class="item-count app-count-badge">
                         {{ getItemCount(item) }}
                     </div>
                 } @else if ($any(item).count !== undefined) {
-                    <div class="nav-item-meta item-count">
+                    <div class="item-count app-count-badge">
                         {{ $any(item).count }}
                     </div>
                 }

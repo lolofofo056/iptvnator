@@ -20,4 +20,10 @@ export class TextImportComponent {
     textForm = new FormGroup({
         text: new FormControl('', Validators.required),
     });
+
+    clearForm(): void {
+        this.textForm.reset({
+            text: '',
+        });
+    }
 }

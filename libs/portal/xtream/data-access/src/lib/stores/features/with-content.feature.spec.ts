@@ -36,6 +36,7 @@ const TestContentStore = signalStore(
         playlistId: PLAYLIST.id,
         currentPlaylist: PLAYLIST,
         portalStatus: 'active' as PortalStatusType,
+        selectedContentType: 'vod' as const,
     }),
     withMethods((store) => ({
         async checkPortalStatus(): Promise<PortalStatusType> {
@@ -84,7 +85,9 @@ describe('withContent import state', () => {
     let store: InstanceType<typeof TestContentStore>;
     let dataSource: {
         getCategories: jest.Mock;
+        getCachedCategories: jest.Mock;
         getContent: jest.Mock;
+        getCachedContent: jest.Mock;
         hasCategories: jest.Mock;
         hasContent: jest.Mock;
         restoreUserData: jest.Mock;
@@ -107,9 +110,11 @@ describe('withContent import state', () => {
         let operationCounter = 0;
         dataSource = {
             getCategories: jest.fn().mockResolvedValue([]),
+            getCachedCategories: jest.fn().mockResolvedValue([]),
             getContent: jest.fn(),
+            getCachedContent: jest.fn().mockResolvedValue([]),
             hasCategories: jest.fn().mockResolvedValue(true),
-            hasContent: jest.fn().mockResolvedValue(true),
+            hasContent: jest.fn().mockResolvedValue(false),
             restoreUserData: jest.fn().mockResolvedValue(undefined),
         };
         databaseService = {
@@ -456,54 +461,283 @@ describe('withContent import state', () => {
         );
     });
 
-    it('reports offline cache availability only when every import type is completed and cached', async () => {
-        databaseService.getXtreamImportStatus
-            .mockResolvedValueOnce('completed')
-            .mockResolvedValueOnce('completed')
-            .mockResolvedValueOnce('completed');
-        dataSource.hasCategories
-            .mockResolvedValueOnce(true)
-            .mockResolvedValueOnce(true)
-            .mockResolvedValueOnce(true);
-        dataSource.hasContent
-            .mockResolvedValueOnce(true)
-            .mockResolvedValueOnce(true)
-            .mockResolvedValueOnce(true);
+    it('reports section cache availability from persisted categories and content', async () => {
+        dataSource.hasCategories.mockResolvedValueOnce(true);
+        dataSource.hasContent.mockResolvedValueOnce(true);
 
-        await expect(store.hasUsableOfflineCache()).resolves.toBe(true);
+        await expect(store.hasUsableOfflineCache('vod')).resolves.toBe(true);
 
-        expect(databaseService.getXtreamImportStatus).toHaveBeenNthCalledWith(
-            1,
+        expect(dataSource.hasCategories).toHaveBeenCalledWith(
             PLAYLIST.id,
-            'live'
+            'movies'
         );
-        expect(databaseService.getXtreamImportStatus).toHaveBeenNthCalledWith(
-            2,
+        expect(dataSource.hasContent).toHaveBeenCalledWith(
             PLAYLIST.id,
             'movie'
         );
-        expect(databaseService.getXtreamImportStatus).toHaveBeenNthCalledWith(
-            3,
-            PLAYLIST.id,
-            'series'
-        );
+        expect(databaseService.getXtreamImportStatus).not.toHaveBeenCalled();
     });
 
-    it('treats partial cache as unusable for offline initialization', async () => {
-        databaseService.getXtreamImportStatus
-            .mockResolvedValueOnce('completed')
-            .mockResolvedValueOnce('completed')
-            .mockResolvedValueOnce('completed');
-        dataSource.hasCategories
-            .mockResolvedValueOnce(true)
-            .mockResolvedValueOnce(true)
-            .mockResolvedValueOnce(true);
+    it('does not require every content type for aggregate cached sections', async () => {
         dataSource.hasContent
-            .mockResolvedValueOnce(true)
             .mockResolvedValueOnce(false)
-            .mockResolvedValueOnce(true);
+            .mockResolvedValueOnce(true)
+            .mockResolvedValueOnce(false);
 
-        await expect(store.hasUsableOfflineCache()).resolves.toBe(false);
+        await expect(
+            store.hasUsableOfflineCache('recently-added')
+        ).resolves.toBe(true);
+
+        expect(dataSource.hasCategories).not.toHaveBeenCalled();
+    });
+
+    it('treats missing category or content cache as unusable for a concrete section', async () => {
+        dataSource.hasCategories.mockResolvedValueOnce(true);
+        dataSource.hasContent.mockResolvedValueOnce(false);
+
+        await expect(store.hasUsableOfflineCache('live')).resolves.toBe(false);
+    });
+
+    it('hydrates persisted section content without remote API loading', async () => {
+        dataSource.getCachedCategories.mockResolvedValueOnce([
+            {
+                id: 1,
+                name: 'Movies',
+                playlist_id: PLAYLIST.id,
+                type: 'movies',
+                xtream_id: 10,
+                hidden: false,
+            },
+        ]);
+        dataSource.getCachedContent.mockResolvedValueOnce([
+            {
+                id: 100,
+                category_id: 1,
+                title: 'Cached Movie',
+                rating: '',
+                added: '1',
+                poster_url: '',
+                xtream_id: 1000,
+                type: 'movie',
+            },
+        ]);
+
+        await store.hydrateCachedContent('vod');
+
+        expect(dataSource.getCachedCategories).toHaveBeenCalledWith(
+            PLAYLIST.id,
+            'vod'
+        );
+        expect(dataSource.getCachedContent).toHaveBeenCalledWith(
+            PLAYLIST.id,
+            'movie'
+        );
+        expect(dataSource.getCategories).not.toHaveBeenCalled();
+        expect(dataSource.getContent).not.toHaveBeenCalled();
+        expect(store.vodCategories()).toHaveLength(1);
+        expect(store.vodStreams()).toHaveLength(1);
+        expect(store.contentLoadStateByType().vod).toBe('ready');
+        expect(store.isCachedContentScopeReady('vod')).toBe(true);
+        expect(store.isContentInitialized()).toBe(true);
+        expect(store.contentInitBlockReason()).toBeNull();
+    });
+
+    it('exposes loading state while cached section content is hydrating', async () => {
+        const cachedCategories = createDeferred<any[]>();
+        const cachedContent = createDeferred<any[]>();
+        dataSource.getCachedCategories.mockReturnValueOnce(
+            cachedCategories.promise
+        );
+        dataSource.getCachedContent.mockReturnValueOnce(cachedContent.promise);
+
+        const hydration = store.hydrateCachedContent('vod');
+        await Promise.resolve();
+
+        expect(store.isLoadingCategories()).toBe(true);
+        expect(store.isLoadingContent()).toBe(true);
+        expect(store.contentLoadStateByType().vod).toBe('loading');
+        expect(store.isContentInitialized()).toBe(false);
+
+        cachedCategories.resolve([
+            {
+                id: 1,
+                name: 'Movies',
+                playlist_id: PLAYLIST.id,
+                type: 'movies',
+                xtream_id: 10,
+                hidden: false,
+            },
+        ]);
+        cachedContent.resolve([
+            {
+                id: 100,
+                category_id: 1,
+                title: 'Cached Movie',
+                rating: '',
+                added: '1',
+                poster_url: '',
+                xtream_id: 1000,
+                type: 'movie',
+            },
+        ]);
+
+        await hydration;
+
+        expect(store.isLoadingCategories()).toBe(false);
+        expect(store.isLoadingContent()).toBe(false);
+        expect(store.contentLoadStateByType().vod).toBe('ready');
+        expect(store.vodStreams()).toHaveLength(1);
+    });
+
+    it('coalesces concurrent cached hydration calls for the same scope', async () => {
+        const cachedCategories = createDeferred<any[]>();
+        const cachedContent = createDeferred<any[]>();
+        dataSource.getCachedCategories.mockReturnValueOnce(
+            cachedCategories.promise
+        );
+        dataSource.getCachedContent.mockReturnValueOnce(cachedContent.promise);
+
+        const firstHydration = store.hydrateCachedContent('vod');
+        await Promise.resolve();
+        const secondHydration = store.hydrateCachedContent('vod');
+
+        expect(dataSource.getCachedCategories).toHaveBeenCalledTimes(1);
+        expect(dataSource.getCachedContent).toHaveBeenCalledTimes(1);
+
+        cachedCategories.resolve([
+            {
+                id: 1,
+                name: 'Movies',
+                playlist_id: PLAYLIST.id,
+                type: 'movies',
+                xtream_id: 10,
+                hidden: false,
+            },
+        ]);
+        cachedContent.resolve([
+            {
+                id: 100,
+                category_id: 1,
+                title: 'Cached Movie',
+                rating: '',
+                added: '1',
+                poster_url: '',
+                xtream_id: 1000,
+                type: 'movie',
+            },
+        ]);
+
+        await Promise.all([firstHydration, secondHydration]);
+
+        expect(store.contentLoadStateByType().vod).toBe('ready');
+        expect(store.vodStreams()).toHaveLength(1);
+    });
+
+    it('keeps initialized offline content visible while hydrating another cached type', async () => {
+        dataSource.getCachedCategories.mockResolvedValueOnce([
+            {
+                id: 1,
+                name: 'Movies',
+                playlist_id: PLAYLIST.id,
+                type: 'movies',
+                xtream_id: 10,
+                hidden: false,
+            },
+        ]);
+        dataSource.getCachedContent.mockResolvedValueOnce([
+            {
+                id: 100,
+                category_id: 1,
+                title: 'Cached Movie',
+                rating: '',
+                added: '1',
+                poster_url: '',
+                xtream_id: 1000,
+                type: 'movie',
+            },
+        ]);
+
+        await store.hydrateCachedContent('vod');
+        expect(store.isContentInitialized()).toBe(true);
+
+        dataSource.getCachedCategories.mockClear();
+        dataSource.getCachedContent.mockClear();
+
+        const cachedSeriesCategories = createDeferred<any[]>();
+        const cachedSeriesContent = createDeferred<any[]>();
+        dataSource.getCachedCategories.mockReturnValueOnce(
+            cachedSeriesCategories.promise
+        );
+        dataSource.getCachedContent.mockReturnValueOnce(
+            cachedSeriesContent.promise
+        );
+
+        const hydration = store.hydrateCachedContent('series');
+        await Promise.resolve();
+
+        expect(store.isContentInitialized()).toBe(true);
+        expect(store.contentLoadStateByType()).toEqual({
+            live: 'idle',
+            vod: 'ready',
+            series: 'loading',
+        });
+
+        cachedSeriesCategories.resolve([
+            {
+                id: 2,
+                name: 'Series',
+                playlist_id: PLAYLIST.id,
+                type: 'series',
+                xtream_id: 20,
+                hidden: false,
+            },
+        ]);
+        cachedSeriesContent.resolve([
+            {
+                id: 200,
+                category_id: 2,
+                title: 'Cached Series',
+                rating: '',
+                added: '1',
+                poster_url: '',
+                xtream_id: 2000,
+                type: 'series',
+            },
+        ]);
+
+        await hydration;
+
+        expect(store.isContentInitialized()).toBe(true);
+        expect(store.contentLoadStateByType().series).toBe('ready');
+        expect(store.serialStreams()).toHaveLength(1);
+    });
+
+    it('marks aggregate cached hydration scopes ready even when some types are empty', async () => {
+        await store.hydrateCachedContent('recently-added');
+
+        expect(dataSource.getCachedCategories).toHaveBeenCalledTimes(3);
+        expect(dataSource.getCachedContent).toHaveBeenCalledTimes(3);
+        expect(store.contentLoadStateByType()).toEqual({
+            live: 'ready',
+            vod: 'ready',
+            series: 'ready',
+        });
+        expect(store.isCachedContentScopeReady('recently-added')).toBe(true);
+        expect(store.isContentInitialized()).toBe(true);
+    });
+
+    it('can mark a routed section as loading before async bootstrap starts', () => {
+        store.prepareContentLoading('series');
+
+        expect(store.isLoadingCategories()).toBe(true);
+        expect(store.isLoadingContent()).toBe(true);
+        expect(store.isContentInitialized()).toBe(false);
+        expect(store.contentInitBlockReason()).toBeNull();
+        expect(store.contentLoadStateByType()).toEqual({
+            live: 'idle',
+            vod: 'idle',
+            series: 'loading',
+        });
     });
 
     it('ignores concurrent initializeContent calls while an import is already running', async () => {
@@ -642,6 +876,46 @@ describe('withContent import state', () => {
         expect(store.contentInitBlockReason()).toBe('expired');
         expect(store.isContentInitialized()).toBe(false);
         expect(dataSource.getCategories).not.toHaveBeenCalled();
+        expect(dataSource.getContent).not.toHaveBeenCalled();
+    });
+
+    it('hydrates cached content on retry when status remains unavailable', async () => {
+        checkPortalStatusMock.mockResolvedValue('unavailable');
+        dataSource.hasCategories.mockResolvedValueOnce(true);
+        dataSource.hasContent.mockResolvedValueOnce(true);
+        dataSource.getCachedCategories.mockResolvedValueOnce([
+            {
+                id: 1,
+                name: 'Movies',
+                playlist_id: PLAYLIST.id,
+                type: 'movies',
+                xtream_id: 10,
+                hidden: false,
+            },
+        ]);
+        dataSource.getCachedContent.mockResolvedValueOnce([
+            {
+                id: 100,
+                category_id: 1,
+                title: 'Cached Movie',
+                rating: '',
+                added: '1',
+                poster_url: '',
+                xtream_id: 1000,
+                type: 'movie',
+            },
+        ]);
+        store.setContentInitBlockReason('unavailable');
+
+        await store.retryContentInitialization();
+
+        expect(checkPortalStatusMock).toHaveBeenCalledTimes(1);
+        expect(dataSource.getCachedContent).toHaveBeenCalledWith(
+            PLAYLIST.id,
+            'movie'
+        );
+        expect(store.contentInitBlockReason()).toBeNull();
+        expect(store.vodStreams()).toHaveLength(1);
         expect(dataSource.getContent).not.toHaveBeenCalled();
     });
 

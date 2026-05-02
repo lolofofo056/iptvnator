@@ -137,12 +137,26 @@
                         }
                     } @else {
                         <div class="groups-nav-empty">
-                            {{
-                                (hasSearchQuery()
-                                    ? 'CHANNELS.NO_SEARCH_RESULTS'
-                                    : 'CHANNELS.NO_VISIBLE_GROUPS'
-                                ) | translate
-                            }}
+                            <mat-icon class="groups-nav-empty__icon">
+                                {{
+                                    hasSearchQuery() ? 'search_off' : 'folder_off'
+                                }}
+                            </mat-icon>
+                            <div class="groups-nav-empty__title">
+                                {{
+                                    (hasSearchQuery()
+                                        ? 'CHANNELS.NO_GROUPS_FOUND'
+                                        : 'CHANNELS.NO_VISIBLE_GROUPS'
+                                    ) | translate
+                                }}
+                            </div>
+                            @if (hasSearchQuery()) {
+                                <div class="groups-nav-empty__hint">
+                                    {{
+                                        'CHANNELS.TRY_DIFFERENT_SEARCH' | translate
+                                    }}
+                                </div>
+                            }
                         </div>
                     }
                 </div>
@@ -206,7 +220,7 @@
 
                 <cdk-virtual-scroll-viewport
                     [itemSize]="itemSize()"
-                    class="groups-channels-viewport"
+                    class="groups-channels-viewport app-scrollbar"
                 >
                     <app-channel-list-item
                         *cdkVirtualFor="
@@ -221,12 +235,18 @@
                             (channel?.name ||
                                 ('CHANNELS.UNNAMED_CHANNEL' | translate))
                         "
-                        [logo]="channel.logo"
+                        [logo]="getLogoForChannel(channel)"
                         [showEpg]="shouldShowEpg()"
                         [showDetailsContextMenu]="true"
                         [isRadio]="channel?.radio === 'true'"
-                        [epgProgram]="channel.epgProgram"
-                        [progressPercentage]="channel.progressPercentage"
+                        [epgProgram]="
+                            epgMetadataMap().get(getChannelEpgKey(channel))
+                                ?.epgProgram
+                        "
+                        [progressPercentage]="
+                            epgMetadataMap().get(getChannelEpgKey(channel))
+                                ?.progressPercentage ?? 0
+                        "
                         [selected]="activeChannelUrl() === channel?.url"
                         [showFavoriteButton]="true"
                         [isFavorite]="

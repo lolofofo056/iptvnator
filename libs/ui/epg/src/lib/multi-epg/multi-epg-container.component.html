@@ -83,7 +83,7 @@
       </div>
       @if (programSearchResults().length > 0) {
         <div class="program-search-results">
-          @for (program of programSearchResults(); track $index) {
+          @for (program of programSearchResults(); track program.start) {
             <button class="search-result-item" (click)="showProgramDetails(program)">
               <div class="result-info">
                 <span class="result-title">{{ program.title }}</span>

@@ -81,6 +81,7 @@ export class WorkspaceContextPanelComponent {
         this.xtreamStore.selectedTypeContentReady;
     readonly xtreamSelectedTypeCountsReady =
         this.xtreamStore.selectedTypeCountsReady;
+    readonly isXtreamImporting = this.xtreamStore.isImporting;
     readonly xtreamImportPhase = this.xtreamStore.currentImportPhase;
     readonly isXtreamCategoryLoading = computed(
         () =>
@@ -106,6 +107,7 @@ export class WorkspaceContextPanelComponent {
         if (
             !this.isXtreamCategories() ||
             this.isXtreamCategoryLoading() ||
+            !this.isXtreamImporting() ||
             this.xtreamSelectedTypeContentState() !== 'loading'
         ) {
             return '';

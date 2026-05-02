@@ -244,6 +244,7 @@
         "LIVE_STREAM": "Прамая трансляцыя",
         "TIMESHIFT_AVAILABLE": "Даступная функцыя архіва (timeshift). Націсніце на перадачу для прайгравання.",
         "EPG_NOT_AVAILABLE_DATE": "Ой, праграма на гэты дзень, на жаль, адсутнічае.",
+        "NO_GUIDE_HINT": "Паспрабуйце іншую дату або абнавіце плэйліст.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Праграма для гэтага канала недаступная.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Паспрабуйце змяніць або абнавіць спасылку на EPG у наладах праграмы.",
         "FETCH_EPG": "Загружаю праграму ТБ-перадач (EPG)...",
@@ -257,7 +258,10 @@
             "DESCRIPTION": "Апісанне",
             "LANGUAGE": "Мова",
             "SHOW_PROGRAM_DETAILS": "Паказаць падрабязнасці"
-        }
+        },
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "NO": "Не",
     "YES": "Так",

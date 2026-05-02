@@ -35,3 +35,10 @@ handleWorkerRequest(
         playlistId,
     })
 );
+
+handleWorkerRequest(
+    'DB_REMOVE_RECENT_ITEMS_BATCH',
+    (items: { contentId: number; playlistId: string }[]) => ({
+        items,
+    })
+);

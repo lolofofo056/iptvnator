@@ -67,7 +67,7 @@
             "REFRESH_XTREAM": "Xtream oynatma listesini uzaktan yenile",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Xtream Oynatma Listesini Yenile",
-                "MESSAGE": "Bu işlem yerel olarak önbelleğe alınmış kategorileri ve yayınları silecek ve her şeyi uzaktan sunucudan yeniden içe aktaracaktır. Favorileriniz ve son izlenen öğeleriniz korunacaktır. Devam etmek istediğinizden emin misiniz?",
+                "MESSAGE": "Bu işlem yerel Xtream önbelleğini siler ve kategoriler ile yayınları uzak sunucudan yeniden içe aktarır. Favoriler, son izlenen öğeler, gizli kategori görünürlüğü ve oynatma ilerlemesi, eşleşen içerik hâlâ varsa başarılı bir yeniden içe aktarmadan sonra geri yüklenir. Sunucuya ulaşılamazsa geri yükleme, daha sonraki başarılı bir yenilemeye kadar beklemede kalır. Devam edilsin mi?",
                 "STARTED": "Yenileme başladı. Oynatma listesine gidiliyor...",
                 "ERROR": "Oynatma listesi yenilenemedi. Lütfen tekrar deneyin."
             },
@@ -309,6 +309,7 @@
         "LIVE_STREAM": "Canlı yayın",
         "TIMESHIFT_AVAILABLE": "Zaman kaydırma mevcut, tıklayarak oynat",
         "EPG_NOT_AVAILABLE_DATE": "Üzgünüz, seçilen tarih için EPG mevcut değil",
+        "NO_GUIDE_HINT": "Başka bir tarih deneyin veya oynatma listesini yenileyin.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Üzgünüz, bu kanal için EPG mevcut değil.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Lütfen uygulamanın ayarlarında EPG listesi URL'sini ekleyin veya değiştirin.",
         "FETCH_EPG": "EPG verileri alınıyor...",
@@ -335,7 +336,10 @@
         "TOTAL_CHANNELS": "Toplam kanal",
         "TOTAL_PROGRAMS": "Toplam program",
         "UP_TO_DATE": "EPG güncel, senkronizasyona gerek yok",
-        "RETRY": "Tekrar Dene"
+        "RETRY": "Tekrar Dene",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

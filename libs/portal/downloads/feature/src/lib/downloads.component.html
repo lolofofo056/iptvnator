@@ -54,6 +54,45 @@
                 <p>{{ 'DOWNLOADS.NOT_AVAILABLE' | translate }}</p>
                 <span>{{ 'DOWNLOADS.DESKTOP_ONLY' | translate }}</span>
             </div>
+        } @else if (!playlistsLoaded()) {
+            <div
+                class="downloads__list-wrapper downloads__list-wrapper--loading"
+                aria-live="polite"
+                aria-busy="true"
+            >
+                <p class="downloads__loading-label">
+                    {{ 'CHANNELS.LOADING' | translate }}
+                </p>
+                <div
+                    class="downloads__list downloads__list--skeleton"
+                    aria-hidden="true"
+                >
+                    @for (slot of skeletonItems; track slot) {
+                        <div class="downloads__skeleton-item">
+                            <div class="downloads__skeleton-poster"></div>
+                            <div class="downloads__skeleton-info">
+                                <div class="downloads__skeleton-title"></div>
+                                <div
+                                    class="downloads__skeleton-title downloads__skeleton-title--short"
+                                ></div>
+                                <div class="downloads__skeleton-meta">
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <div class="downloads__skeleton-progress"></div>
+                                <div class="downloads__skeleton-actions">
+                                    @for (
+                                        actionSlot of skeletonActionSlots;
+                                        track actionSlot
+                                    ) {
+                                        <span></span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
         } @else if (hasNoPlaylists()) {
             <app-empty-state
                 type="no-data"
@@ -65,7 +104,46 @@
                 (primaryActionClicked)="addPlaylist()"
                 (secondaryActionClicked)="goToSources()"
             />
-        } @else if (!hasDownloads()) {
+        } @else if (showDownloadSkeleton()) {
+            <div
+                class="downloads__list-wrapper downloads__list-wrapper--loading"
+                aria-live="polite"
+                aria-busy="true"
+            >
+                <p class="downloads__loading-label">
+                    {{ 'CHANNELS.LOADING' | translate }}
+                </p>
+                <div
+                    class="downloads__list downloads__list--skeleton"
+                    aria-hidden="true"
+                >
+                    @for (slot of skeletonItems; track slot) {
+                        <div class="downloads__skeleton-item">
+                            <div class="downloads__skeleton-poster"></div>
+                            <div class="downloads__skeleton-info">
+                                <div class="downloads__skeleton-title"></div>
+                                <div
+                                    class="downloads__skeleton-title downloads__skeleton-title--short"
+                                ></div>
+                                <div class="downloads__skeleton-meta">
+                                    <span></span>
+                                    <span></span>
+                                </div>
+                                <div class="downloads__skeleton-progress"></div>
+                                <div class="downloads__skeleton-actions">
+                                    @for (
+                                        actionSlot of skeletonActionSlots;
+                                        track actionSlot
+                                    ) {
+                                        <span></span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        } @else if (!hasScopedDownloads()) {
             <app-empty-state
                 type="no-data"
                 icon="download_for_offline"

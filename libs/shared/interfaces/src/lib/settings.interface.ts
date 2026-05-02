@@ -19,6 +19,8 @@ export enum StartupBehavior {
     RestoreLastView = 'restore-last-view',
 }
 
+export type CoverSize = 'small' | 'medium' | 'large';
+
 /**
  * Describes all available settings options of the application
  */
@@ -40,4 +42,6 @@ export interface Settings {
     remoteControlPort: number;
     /** Custom download folder path (uses system Downloads folder if not set) */
     downloadFolder?: string;
+    /** Cover/poster sizing preset applied across grids and rails */
+    coverSize?: CoverSize;
 }

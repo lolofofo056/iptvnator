@@ -1,4 +1,11 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    OnInit,
+    signal,
+} from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import {
@@ -35,6 +42,7 @@ interface CategoryWithSelection extends XCategoryFromDb {
     ],
     templateUrl: './category-management-dialog.component.html',
     styleUrl: './category-management-dialog.component.scss',
+    changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryManagementDialogComponent implements OnInit {
     private readonly dbService = inject(DatabaseService);

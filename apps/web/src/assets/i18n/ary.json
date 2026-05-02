@@ -247,6 +247,7 @@
         "LIVE_STREAM": "بث مباشر",
         "TIMESHIFT_AVAILABLE": "التأجيل الزمني متوفر، ضغط باش تلعب",
         "EPG_NOT_AVAILABLE_DATE": "أوه، EPG ما متوفرش للتاريخ اللي اختاريتيه",
+        "NO_GUIDE_HINT": "جرب تاريخ آخر أو حدّث اللائحة.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "أوه، EPG ما متوفرش لهاد القناة.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "عفاك زيد/بدل رابط قائمة EPG في إعدادات التطبيق.",
         "FETCH_EPG": "جاري جلب بيانات EPG...",
@@ -261,7 +262,10 @@
             "LANGUAGE": "اللغة",
             "SHOW_PROGRAM_DETAILS": "وري تفاصيل حول هاد البرنامج"
         },
-        "FETCH_SUCCESS": "EPG تجلب بنجاح"
+        "FETCH_SUCCESS": "EPG تجلب بنجاح",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",

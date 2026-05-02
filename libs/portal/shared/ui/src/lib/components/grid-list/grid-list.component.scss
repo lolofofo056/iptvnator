@@ -16,7 +16,14 @@ mat-card:hover {
 }
 
 // ─── Grid layout ─────────────────────────────────────────────────────────────
-.grid {
+.grid-list__grid {
+    display: grid;
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(var(--cover-grid-min-width, 148px), 1fr)
+    );
+    gap: var(--cover-gap, 16px);
+
     mat-card {
         cursor: pointer;
         width: 100%;

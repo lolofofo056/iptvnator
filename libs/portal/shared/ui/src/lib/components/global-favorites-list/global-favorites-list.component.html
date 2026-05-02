@@ -1,5 +1,5 @@
 <div
-    class="nav-list"
+    class="nav-list app-scrollbar"
     cdkDropList
     [cdkDropListDisabled]="!canDragDrop()"
     (cdkDropListDropped)="onDrop($event)"
@@ -40,7 +40,7 @@
             [epgProgram]="ch.currentEpgProgram"
             [progressPercentage]="ch.progressPercentage"
             [showFavoriteButton]="true"
-            [isFavorite]="true"
+            [isFavorite]="isChannelFavorite(ch)"
             [showProgramInfoButton]="true"
             (clicked)="onChannelClick(ch)"
             (favoriteToggled)="onFavoriteToggled(ch)"

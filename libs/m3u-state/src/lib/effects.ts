@@ -11,7 +11,9 @@ import {
     EMPTY,
     filter,
     firstValueFrom,
+    from,
     map,
+    mergeMap,
     switchMap,
     tap,
     withLatestFrom,
@@ -277,12 +279,14 @@ export class PlaylistEffects {
     parsePlaylist$ = createEffect(() => {
         return this.actions$.pipe(
             ofType(PlaylistActions.parsePlaylist),
-            map((action) =>
-                this.playlistsService.handlePlaylistParsing(
-                    action.uploadType,
-                    action.playlist,
-                    action.title,
-                    action.path
+            mergeMap((action) =>
+                from(
+                    this.playlistsService.handlePlaylistParsing(
+                        action.uploadType,
+                        action.playlist,
+                        action.title,
+                        action.path
+                    )
                 )
             ),
             map((playlist) =>

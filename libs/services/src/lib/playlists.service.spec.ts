@@ -1,6 +1,6 @@
 import { firstValueFrom, of } from 'rxjs';
 import { DbStores, Playlist, PlaylistMeta } from 'shared-interfaces';
-import { PlaylistsService } from './playlists.service';
+import { PlaylistsService, resolvePlaylistParser } from './playlists.service';
 
 const SQLITE_PLAYLIST_MIGRATION_FLAG = 'm3u-playlists-indexeddb-to-sqlite-v1';
 const STALKER_PLAYLIST_METADATA_MIGRATION_FLAG =
@@ -39,6 +39,16 @@ describe('PlaylistsService', () => {
 
         return service;
     }
+
+    it('resolves the parser from a CommonJS default dynamic import shape', () => {
+        const parse = jest.fn();
+
+        expect(
+            resolvePlaylistParser({
+                default: { parse },
+            })
+        ).toBe(parse);
+    });
 
     it('migrates legacy Stalker portal flags in SQLite before returning playlists', async () => {
         let storedPlaylists: Playlist[] = [

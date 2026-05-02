@@ -1,7 +1,9 @@
 <div
     [class]="
-        player === 'videojs' || player === 'html5'
-            ? 'itv-container'
+        usesInternalPlayer()
+            ? isLiveEpgPanelCollapsed()
+                ? 'itv-container itv-container--epg-collapsed'
+                : 'itv-container'
             : 'itv-container-epg'
     "
 >
@@ -58,7 +60,7 @@
             </div>
         </div>
     </div>
-    @if (player === 'videojs' || player === 'html5') {
+    @if (usesInternalPlayer()) {
         @if (streamUrl) {
             <div class="video-player">
                 <app-web-player-view [streamUrl]="streamUrl" />
@@ -66,10 +68,27 @@
         }
     }
     @if (streamUrl) {
-        <div class="epg">
-            <div class="epg-content">
-                <app-epg-view [epgItems]="epgItems" />
-            </div>
+        <div
+            class="epg"
+            [class.epg-collapsed]="
+                usesInternalPlayer() && isLiveEpgPanelCollapsed()
+            "
+        >
+            @if (usesInternalPlayer()) {
+                <app-live-epg-panel
+                    [collapsed]="isLiveEpgPanelCollapsed()"
+                    [summary]="getLiveEpgPanelSummary()"
+                    (collapsedChange)="onLiveEpgPanelCollapsedChange($event)"
+                >
+                    <div class="epg-content">
+                        <app-epg-view [epgItems]="epgItems" />
+                    </div>
+                </app-live-epg-panel>
+            } @else {
+                <div class="epg-content">
+                    <app-epg-view [epgItems]="epgItems" />
+                </div>
+            }
         </div>
     } @else {
         <div class="no-channel-selected">

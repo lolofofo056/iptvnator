@@ -87,6 +87,9 @@ declare global {
                 urls: string[]
             ) => Promise<{ success: boolean; message?: string }>;
             getChannelPrograms: (channelId: string) => Promise<any>;
+            getCurrentProgramsBatch: (
+                channelIds: string[]
+            ) => Promise<Record<string, any>>;
             getEpgChannels: () => Promise<any>;
             getEpgChannelsByRange: (
                 skip: number,
@@ -307,6 +310,9 @@ declare global {
                 contentId: number,
                 playlistId: string
             ) => Promise<{ success: boolean }>;
+            dbRemoveRecentItemsBatch: (
+                items: { contentId: number; playlistId: string }[]
+            ) => Promise<{ success: boolean; count: number }>;
             dbGetContentByXtreamId: (
                 xtreamId: number,
                 playlistId: string,

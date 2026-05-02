@@ -61,7 +61,6 @@ import { v4 as uuid } from 'uuid';
                 align-items: center;
                 gap: 8px;
             }
-
         `,
     ],
 })
@@ -98,11 +97,15 @@ export class XtreamCodeImportComponent {
         }`;
 
         try {
+            // User-initiated connection test — bypass the shared cache so the
+            // result reflects the portal's current state, not whatever was
+            // cached up to 30 s ago by another component.
             this.connectionStatus =
                 await this.portalStatusService.checkPortalStatus(
                     serverUrl,
                     this.form.value.username as string,
-                    this.form.value.password as string
+                    this.form.value.password as string,
+                    { skipCache: true }
                 );
         } finally {
             this.isTestingConnection = false;
@@ -121,7 +124,7 @@ export class XtreamCodeImportComponent {
         return this.portalStatusService.getStatusIcon(this.connectionStatus);
     }
 
-    clearForm() {
+    clearForm(): void {
         this.form.reset({
             _id: uuid(),
             title: '',

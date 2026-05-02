@@ -6,6 +6,7 @@ import { MockPipe } from 'ng-mocks';
 import { TranslatePipe } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import {
+    LIVE_EPG_PANEL_STATE_STORAGE_KEY,
     PORTAL_PLAYER,
     ResizableDirective,
 } from '@iptvnator/portal/shared/util';
@@ -15,7 +16,12 @@ import {
     XtreamUrlService,
 } from '@iptvnator/portal/xtream/data-access';
 import { EpgListComponent, EpgProgramActivationEvent } from '@iptvnator/ui/epg';
-import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
+import {
+    EpgViewComponent,
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 import { EpgItem, EpgProgram } from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { LiveStreamLayoutComponent } from './live-stream-layout.component';
@@ -25,7 +31,7 @@ const LIVE_CHANNEL_SORT_STORAGE_KEY = 'xtream-live-channel-sort-mode';
 @Component({
     selector: 'app-portal-channels-list',
     standalone: true,
-    template: '',
+    template: '<div data-test-id="portal-channels-list-stub"></div>',
 })
 class StubPortalChannelsListComponent {
     readonly sortMode = input<'server' | 'name-asc' | 'name-desc'>('server');
@@ -62,7 +68,28 @@ class StubEpgListComponent {
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
     readonly archivePlaybackAvailable = input<boolean | null>(null);
+    readonly selectedDate = input<string | null>(null);
+    readonly showDateNavigator = input(true);
     readonly programActivated = output<EpgProgramActivationEvent>();
+    readonly selectedDateChange = output<string>();
+}
+
+@Component({
+    selector: 'app-live-epg-panel',
+    standalone: true,
+    template: `
+        <div class="live-epg-panel-summary">{{ summary()?.title }}</div>
+        <ng-content />
+    `,
+})
+class StubLiveEpgPanelComponent {
+    readonly collapsed = input(false);
+    readonly summary = input<LiveEpgPanelSummary | null>(null);
+    readonly loading = input(false);
+    readonly showDateNavigator = input(false);
+    readonly selectedDate = input<string | null>(null);
+    readonly collapsedChange = output<boolean>();
+    readonly dateNavigation = output<'next' | 'prev'>();
 }
 
 @Directive({
@@ -95,6 +122,7 @@ describe('LiveStreamLayoutComponent', () => {
     const epgItems = signal<EpgItem[]>([]);
     const currentEpgItem = signal<EpgItem | null>(null);
     const isLoadingEpg = signal(false);
+    const selectedTypeContentLoading = signal(false);
     const selectedCategoryId = signal<number | null>(1);
     const selectedContentType = signal<'live' | 'vod' | 'series'>('live');
     const selectedItem = signal<unknown>(sampleChannel);
@@ -106,6 +134,7 @@ describe('LiveStreamLayoutComponent', () => {
         epgItems,
         currentEpgItem,
         isLoadingEpg,
+        selectedTypeContentLoading,
         selectedCategoryId,
         selectedContentType,
         selectedItem,
@@ -132,6 +161,7 @@ describe('LiveStreamLayoutComponent', () => {
         jest.useFakeTimers();
         jest.setSystemTime(fixedNow);
         localStorage.removeItem(LIVE_CHANNEL_SORT_STORAGE_KEY);
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
 
         window.electron = {
             updateRemoteControlStatus: jest.fn(),
@@ -150,6 +180,7 @@ describe('LiveStreamLayoutComponent', () => {
         epgItems.set([]);
         currentEpgItem.set(null);
         isLoadingEpg.set(false);
+        selectedTypeContentLoading.set(false);
         selectedCategoryId.set(1);
         selectedContentType.set('live');
         selectedItem.set(sampleChannel);
@@ -186,6 +217,7 @@ describe('LiveStreamLayoutComponent', () => {
                     imports: [
                         EpgListComponent,
                         EpgViewComponent,
+                        LiveEpgPanelComponent,
                         PortalChannelsListComponent,
                         ResizableDirective,
                         TranslatePipe,
@@ -196,6 +228,7 @@ describe('LiveStreamLayoutComponent', () => {
                     imports: [
                         StubEpgListComponent,
                         StubEpgViewComponent,
+                        StubLiveEpgPanelComponent,
                         StubPortalChannelsListComponent,
                         StubResizableDirective,
                         MockPipe(
@@ -216,6 +249,7 @@ describe('LiveStreamLayoutComponent', () => {
         fixture.destroy();
         jest.useRealTimers();
         localStorage.removeItem(LIVE_CHANNEL_SORT_STORAGE_KEY);
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
         window.electron = originalElectron;
     });
 
@@ -236,6 +270,90 @@ describe('LiveStreamLayoutComponent', () => {
             fixture.nativeElement.querySelector('app-epg-list')
         ).not.toBeNull();
         expect(fixture.nativeElement.querySelector('app-epg-view')).toBeNull();
+    });
+
+    it('restores the collapsed live EPG panel state for embedded playback', () => {
+        fixture.destroy();
+        localStorage.setItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY, 'collapsed');
+
+        fixture = TestBed.createComponent(LiveStreamLayoutComponent);
+        component = fixture.componentInstance;
+        component.playLive(sampleChannel);
+        fixture.detectChanges();
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(true);
+    });
+
+    it('persists live EPG panel toggle changes', () => {
+        component.onLiveEpgPanelCollapsedChange(true);
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'collapsed'
+        );
+
+        component.onLiveEpgPanelCollapsedChange(false);
+
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'expanded'
+        );
+    });
+
+    it('does not render the collapsible panel for external playback', () => {
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        component.playLive(sampleChannel);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('app-live-epg-panel')
+        ).toBeNull();
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(false);
+    });
+
+    it('shows the channel loading skeleton surface while live content loads without a selected category', () => {
+        selectedCategoryId.set(null);
+        selectedTypeContentLoading.set(true);
+
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="portal-channels-list-stub"]'
+            )
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-portal-empty-state')
+        ).toBeNull();
+    });
+
+    it('renders the current EPG program in the collapsible panel summary', () => {
+        epgItems.set([
+            buildEpgItem(
+                'current',
+                'Current Show',
+                '2026-04-05T11:30:00.000Z',
+                '2026-04-05T12:30:00.000Z'
+            ),
+        ]);
+        currentEpgItem.set(epgItems()[0]);
+
+        component.playLive(sampleChannel);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.live-epg-panel-summary')
+                .textContent
+        ).toContain('Current Show');
     });
 
     it('uses currentEpgItem instead of assuming the first schedule item is current', () => {

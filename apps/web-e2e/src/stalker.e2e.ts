@@ -201,9 +201,11 @@ test('@stalker EPG data loads for ITV channel', async ({ page }) => {
     await expect(page.locator('app-epg-list')).toBeVisible({
         timeout: 20_000,
     });
-    await expect(page.locator('app-epg-list .selected-date')).toBeVisible({
-        timeout: 20_000,
-    });
+    await expect(
+        page.locator(
+            'app-live-epg-panel .selected-date, app-epg-list .selected-date'
+        )
+    ).toBeVisible({ timeout: 20_000 });
 });
 
 test('@stalker bulk EPG is fetched once and reused across channel switches', async ({

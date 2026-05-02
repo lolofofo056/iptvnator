@@ -13,7 +13,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
-import { EnrichedChannel } from '../all-channels-view/all-channels-view.component';
+import { ChannelEpgMetadata } from '../all-channels-view/all-channels-view.component';
 import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
 
@@ -71,26 +71,33 @@ export class FavoritesViewComponent {
     });
 
     /**
-     * Computed signal for enriched favorites with EPG data
+     * Side-car EPG metadata keyed by channel EPG lookup key. Rebuilt every
+     * progressTick (~30 s) but only contains entries for channels with EPG
+     * data. Replaces the previous spread-clone-every-channel pattern.
      */
-    readonly enrichedFavorites = computed(() => {
-        const favorites = this.filteredFavorites();
+    readonly epgMetadataMap = computed(() => {
         const epgMap = this.channelEpgMap();
-        const iconMap = this.channelIconMap();
-        // Read progressTick to trigger recalculation
         this.progressTick();
 
-        return favorites.map((channel) => {
-            const channelId = resolveChannelEpgLookupKey(channel);
-            const epgProgram = channelId ? epgMap.get(channelId) : null;
-            return {
-                ...channel,
-                epgProgram,
-                logo: resolveChannelLogo(channel, iconMap),
-                progressPercentage: this.calculateProgress(epgProgram),
-            } as EnrichedChannel;
+        const result = new Map<string, ChannelEpgMetadata>();
+        epgMap.forEach((program, channelId) => {
+            result.set(channelId, {
+                epgProgram: program,
+                progressPercentage: this.calculateProgress(program),
+            });
         });
+        return result;
     });
+
+    /** Resolves the EPG lookup key the side-car map is keyed by. */
+    getChannelEpgKey(channel: Channel): string {
+        return resolveChannelEpgLookupKey(channel) ?? '';
+    }
+
+    /** Resolves the channel logo. Called per visible row from the template. */
+    getLogoForChannel(channel: Channel): string {
+        return resolveChannelLogo(channel, this.channelIconMap());
+    }
 
     /**
      * Calculates progress percentage for an EPG program

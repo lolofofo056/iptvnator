@@ -109,7 +109,7 @@
             "REFRESH_XTREAM": "Refresh Xtream playlist from remote",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Refresh Xtream Playlist",
-                "MESSAGE": "This will delete locally cached categories and streams and re-import everything from the remote server. Your favorites and recently viewed items will be preserved. Are you sure you want to continue?",
+                "MESSAGE": "This will delete the local Xtream cache and re-import categories and streams from the remote server. Favorites, recently viewed items, hidden category visibility, and playback progress are restored after a successful re-import when matching content still exists. If the server cannot be reached, the restore remains pending until a later successful refresh. Continue?",
                 "STARTED": "Refresh started. Navigating to playlist...",
                 "ERROR": "Failed to refresh playlist. Please try again.",
                 "IN_PROGRESS": "Refreshing playlist...",
@@ -264,6 +264,11 @@
         "STREAM_FORMAT_DESCRIPTION": "Select default stream format (xtream)",
         "LANGUAGE_DESCRIPTION": "Select language of the application",
         "THEME_DESCRIPTION": "Select visual theme of the application",
+        "COVER_SIZE": "Cover size",
+        "COVER_SIZE_DESCRIPTION": "Adjust the size of poster cards across grids and rails. Larger sizes are easier to see on TVs; smaller sizes show more content per row on big monitors.",
+        "COVER_SIZE_SMALL": "Small",
+        "COVER_SIZE_MEDIUM": "Medium",
+        "COVER_SIZE_LARGE": "Large",
         "STARTUP_BEHAVIOR": "Startup view",
         "STARTUP_BEHAVIOR_DESCRIPTION": "Choose whether IPTVnator opens the first available workspace view or restores your last section-level view. First view means Dashboard when enabled, otherwise Sources.",
         "STARTUP_BEHAVIOR_FIRST_VIEW": "First available view",
@@ -372,6 +377,7 @@
         "LOADING_MORE": "Loading more...",
         "NO_SEARCH_RESULTS": "No channels found",
         "NO_CHANNELS_FOUND": "No channels found",
+        "NO_GROUPS_FOUND": "No groups found",
         "TRY_DIFFERENT_SEARCH": "Try a different search term",
         "DETAILS_DIALOG": {
             "TITLE": "Channel details",
@@ -432,7 +438,8 @@
         "TIMESHIFT_AVAILABLE": "Timeshift is available, click to play",
         "ARCHIVE_PLAYBACK_UNAVAILABLE_TITLE": "Archive playback is unavailable",
         "ARCHIVE_PLAYBACK_UNAVAILABLE_DESCRIPTION": "This provider exposes schedule history for the channel, but does not expose playable archive/catch-up playback.",
-        "EPG_NOT_AVAILABLE_DATE": "Ooops, EPG is not available for the selected date",
+        "EPG_NOT_AVAILABLE_DATE": "No program guide",
+        "NO_GUIDE_HINT": "Try a different date or refresh the playlist.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Ooops, EPG is not available for this channel.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Please add/change the URL of the EPG list in the settings of the app.",
         "FETCH_EPG": "Fetching EPG data...",
@@ -459,7 +466,10 @@
         "TOTAL_CHANNELS": "Total channels",
         "TOTAL_PROGRAMS": "Total programs",
         "UP_TO_DATE": "EPG is up-to-date, no sync needed",
-        "RETRY": "Retry"
+        "RETRY": "Retry",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",
@@ -654,7 +664,7 @@
         },
         "EMPTY_LIST_VIEW": {
             "TITLE": "No results found",
-            "NO_SEARCH_RESULTS": "Nothing found, try to change you search request"
+            "NO_SEARCH_RESULTS": "Nothing found, try to change your search request."
         },
         "SEARCH_VIEW": {
             "INITIAL_TITLE": "Search for content",
@@ -757,7 +767,7 @@
             "OPEN_DASHBOARD": "Open dashboard",
             "RAIL_SOURCES": "Sources",
             "OPEN_SOURCES": "Open sources",
-            "RAIL_GLOBAL_FAVORITES": "Global favorites",
+            "RAIL_GLOBAL_FAVORITES": "Favorites",
             "RAIL_GLOBAL_RECENT": "Recently viewed",
             "RAIL_SETTINGS": "Settings",
             "OPEN_SETTINGS": "Open settings",
@@ -871,7 +881,10 @@
                 "GO_TO_LIVE_LABEL": "Live TV",
                 "GO_TO_LIVE_DESCRIPTION": "Jump to live TV section",
                 "GO_TO_SERIES_LABEL": "Series",
-                "GO_TO_SERIES_DESCRIPTION": "Jump to series section"
+                "GO_TO_SERIES_DESCRIPTION": "Jump to series section",
+                "SWITCH_PLAYER_LABEL": "Switch player to {{name}}",
+                "SWITCH_PLAYER_DESCRIPTION": "Set {{name}} as the active video player",
+                "SWITCH_PLAYER_FEEDBACK": "Player set to {{name}}"
             }
         },
         "SOURCES": {
@@ -914,7 +927,8 @@
             "GROUP_GLOBAL": "Global actions",
             "GROUP_PLAYLIST": "This playlist",
             "GROUP_VIEW": "Current view",
-            "GROUP_SECTION": "This section"
+            "GROUP_SECTION": "This section",
+            "GROUP_RECENT": "Recently used"
         },
         "GLOBAL_FAVORITES": {
             "TITLE": "Global Favorites",
