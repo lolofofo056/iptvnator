@@ -103,6 +103,7 @@ const CREATE_TABLE_STATEMENTS = [
       type TEXT NOT NULL CHECK (type IN ('live', 'movies', 'series')),
       xtream_id INTEGER NOT NULL,
       hidden INTEGER DEFAULT 0,
+      UNIQUE(playlist_id, type, xtream_id),
       FOREIGN KEY (playlist_id) REFERENCES playlists (id) ON DELETE CASCADE
   )`,
     `CREATE TABLE IF NOT EXISTS content (
@@ -119,6 +120,7 @@ const CREATE_TABLE_STATEMENTS = [
       direct_source TEXT,
       xtream_id INTEGER NOT NULL,
       type TEXT NOT NULL CHECK (type IN ('live', 'movie', 'series')),
+      UNIQUE(category_id, type, xtream_id),
       FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
   )`,
     `CREATE TABLE IF NOT EXISTS recently_viewed (
@@ -134,6 +136,7 @@ const CREATE_TABLE_STATEMENTS = [
       content_id INTEGER NOT NULL,
       playlist_id TEXT NOT NULL,
       added_at TEXT DEFAULT (datetime('now')),
+      position INTEGER DEFAULT 0,
       FOREIGN KEY (content_id) REFERENCES content(id) ON DELETE CASCADE,
       FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
   )`,
@@ -151,7 +154,6 @@ const CREATE_TABLE_STATEMENTS = [
     `CREATE INDEX IF NOT EXISTS recently_viewed_playlist_idx ON recently_viewed(playlist_id)`,
     `CREATE INDEX IF NOT EXISTS recently_viewed_viewed_at_idx ON recently_viewed(viewed_at)`,
     `CREATE INDEX IF NOT EXISTS recently_viewed_playlist_viewed_idx ON recently_viewed(playlist_id, viewed_at DESC)`,
-    `CREATE INDEX IF NOT EXISTS favorites_playlist_position_idx ON favorites(playlist_id, position, added_at DESC)`,
     // EPG tables
     `CREATE TABLE IF NOT EXISTS epg_channels (
       id TEXT PRIMARY KEY,
@@ -281,7 +283,15 @@ const INDEX_MIGRATION_STATEMENTS = [
     // v1.3.0 -> v1.4.0: Prevent duplicate Xtream categories/content rows
     `CREATE UNIQUE INDEX IF NOT EXISTS categories_playlist_type_xtream_unique ON categories(playlist_id, type, xtream_id)`,
     `CREATE UNIQUE INDEX IF NOT EXISTS content_category_type_xtream_unique ON content(category_id, type, xtream_id)`,
+    // v1.6.0 -> v1.7.0: Query global favorites in stable display order
+    `CREATE INDEX IF NOT EXISTS favorites_playlist_position_idx ON favorites(playlist_id, position, added_at DESC)`,
 ];
+
+export const __databaseConnectionTestHooks = {
+    createTableStatements: CREATE_TABLE_STATEMENTS,
+    columnMigrationStatements: COLUMN_MIGRATION_STATEMENTS,
+    indexMigrationStatements: INDEX_MIGRATION_STATEMENTS,
+} as const;
 
 /**
  * Create tables if they don't exist

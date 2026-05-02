@@ -31,7 +31,7 @@ import {
     PlaylistsService,
 } from 'services';
 import {
-    /* EmbeddedMpvSupport, */
+    EmbeddedMpvSupport,
     Language,
     PlaylistMeta,
     StartupBehavior,
@@ -427,7 +427,7 @@ describe('SettingsComponent', () => {
             });
         });
 
-        /* it('hides the embedded mpv option when the desktop support probe reports unsupported', async () => {
+        it('hides the embedded mpv option when the desktop support probe reports unsupported', async () => {
             window.electron = {
                 ...window.electron,
                 getEmbeddedMpvSupport: jest.fn().mockResolvedValue({
@@ -441,9 +441,9 @@ describe('SettingsComponent', () => {
             await fixture.whenStable();
 
             expect(
-                component.players().some(
-                    (player) => player.id === VideoPlayer.EmbeddedMpv
-                )
+                component
+                    .players()
+                    .some((player) => player.id === VideoPlayer.EmbeddedMpv)
             ).toBe(false);
         });
 
@@ -460,9 +460,9 @@ describe('SettingsComponent', () => {
             await fixture.whenStable();
 
             expect(
-                component.players().some(
-                    (player) => player.id === VideoPlayer.EmbeddedMpv
-                )
+                component
+                    .players()
+                    .some((player) => player.id === VideoPlayer.EmbeddedMpv)
             ).toBe(true);
         });
 
@@ -483,9 +483,9 @@ describe('SettingsComponent', () => {
             expect(component.settingsForm.value).toEqual(DEFAULT_SETTINGS);
             expect(window.electron.getEmbeddedMpvSupport).toHaveBeenCalled();
             expect(
-                component.players().some(
-                    (player) => player.id === VideoPlayer.EmbeddedMpv
-                )
+                component
+                    .players()
+                    .some((player) => player.id === VideoPlayer.EmbeddedMpv)
             ).toBe(false);
 
             resolveSupport!({
@@ -495,11 +495,11 @@ describe('SettingsComponent', () => {
             await fixture.whenStable();
 
             expect(
-                component.players().some(
-                    (player) => player.id === VideoPlayer.EmbeddedMpv
-                )
+                component
+                    .players()
+                    .some((player) => player.id === VideoPlayer.EmbeddedMpv)
             ).toBe(true);
-        }); */
+        });
     });
 
     describe('Version check', () => {

@@ -175,9 +175,9 @@ export async function removeRecentItemsBatch(
         )
         .prepare();
 
-    await db.transaction(async () => {
+    await db.transaction(() => {
         for (const { contentId, playlistId } of items) {
-            await stmt.execute({ contentId, playlistId });
+            stmt.execute({ contentId, playlistId });
         }
     });
 

@@ -48,6 +48,8 @@ class StubChannelListItemComponent {
 })
 class StubWebPlayerViewComponent {
     readonly streamUrl = input('');
+    readonly title = input('');
+    readonly playback = input<unknown>(null);
 }
 
 @Component({
@@ -383,6 +385,8 @@ describe('StalkerLiveStreamLayoutComponent', () => {
     it('does not reset live channels when loading the next lazy page', async () => {
         fixture.detectChanges();
         await fixture.whenStable();
+        await new Promise<void>((resolve) => setTimeout(resolve, 120));
+
         page.set(0);
         hasMoreChannels.set(true);
         stalkerStore.setItvChannels.mockClear();

@@ -20,7 +20,7 @@ jest.mock('drizzle-orm', () => ({
 
 import * as schema from 'database-schema';
 import type { AppDatabase } from '../database.types';
-import { getContentByXtreamId } from './content.operations';
+import { getContentByXtreamId, saveContent } from './content.operations';
 
 function createDbMock(result: unknown[] = []) {
     const limit = jest.fn().mockResolvedValue(result);
@@ -90,5 +90,80 @@ describe('content.operations', () => {
         );
         expect(eqMock).not.toHaveBeenCalledWith(schema.content.type, 'series');
         expect(where.mock.calls[0][0].conditions).toHaveLength(2);
+    });
+
+    it('uses a synchronous better-sqlite transaction callback when saving content', async () => {
+        const existingContentWhere = jest.fn().mockResolvedValue([{ count: 0 }]);
+        const existingContentInnerJoin = jest
+            .fn()
+            .mockReturnValue({ where: existingContentWhere });
+        const existingContentFrom = jest
+            .fn()
+            .mockReturnValue({ innerJoin: existingContentInnerJoin });
+
+        const categoriesWhere = jest.fn().mockResolvedValue([
+            {
+                id: 42,
+                xtreamId: 201,
+            },
+        ]);
+        const categoriesFrom = jest
+            .fn()
+            .mockReturnValue({ where: categoriesWhere });
+
+        const select = jest
+            .fn()
+            .mockReturnValueOnce({ from: existingContentFrom })
+            .mockReturnValueOnce({ from: categoriesFrom });
+
+        const run = jest.fn();
+        const onConflictDoNothing = jest.fn().mockReturnValue({ run });
+        const values = jest.fn().mockReturnValue({ onConflictDoNothing });
+        const insert = jest.fn().mockReturnValue({ values });
+        const transactionResults: unknown[] = [];
+        const transaction = jest.fn((callback: (tx: unknown) => unknown) => {
+            const result = callback({ insert });
+            transactionResults.push(result);
+
+            if (
+                typeof result === 'object' &&
+                result !== null &&
+                'then' in result
+            ) {
+                throw new Error('Transaction function cannot return a promise');
+            }
+
+            return result;
+        });
+        const db = {
+            select,
+            transaction,
+        } as unknown as AppDatabase;
+
+        await expect(
+            saveContent(
+                db,
+                'playlist-1',
+                [
+                    {
+                        category_id: '201',
+                        name: 'News Live',
+                        stream_id: '100',
+                    },
+                ],
+                'live'
+            )
+        ).resolves.toEqual({ success: true, count: 1 });
+
+        expect(transactionResults).toEqual([undefined]);
+        expect(values).toHaveBeenCalledWith([
+            expect.objectContaining({
+                categoryId: 42,
+                title: 'News Live',
+                xtreamId: 100,
+                type: 'live',
+            }),
+        ]);
+        expect(run).toHaveBeenCalled();
     });
 });

@@ -179,9 +179,9 @@ export async function reorderGlobalFavorites(
     for (const chunk of chunkValues(updates, DEFAULT_BATCH_SIZE)) {
         await checkpointOperation(control);
 
-        await db.transaction(async () => {
+        await db.transaction(() => {
             for (const { content_id, position } of chunk) {
-                await updateFavoritePosition.execute({
+                updateFavoritePosition.execute({
                     position,
                     contentId: content_id,
                 });

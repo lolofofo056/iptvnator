@@ -9,6 +9,9 @@ import {
     setMainWindow as setDownloadsMainWindow,
 } from './app/events/database/downloads.events';
 import ElectronEvents from './app/events/electron.events';
+import EmbeddedMpvEvents, {
+    shutdownEmbeddedMpv,
+} from './app/events/embedded-mpv.events';
 import EpgEvents from './app/events/epg.events';
 import PlayerEvents from './app/events/player.events';
 import PlaylistEvents from './app/events/playlist.events';
@@ -57,6 +60,7 @@ export default class Main {
         }
 
         ElectronEvents.bootstrapElectronEvents();
+        EmbeddedMpvEvents.bootstrapEmbeddedMpvEvents();
         PlaylistEvents.bootstrapPlaylistEvents();
         SharedEvents.bootstrapSharedEvents();
         PlayerEvents.bootstrapPlayerEvents();
@@ -105,5 +109,6 @@ app.whenReady().then(async () => {
 });
 
 app.on('before-quit', () => {
+    shutdownEmbeddedMpv();
     void databaseWorkerClient.shutdown();
 });

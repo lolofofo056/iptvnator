@@ -1,6 +1,9 @@
 import fs from 'fs';
+import { createRequire } from 'module';
 import path from 'path';
 
+const require = createRequire(import.meta.url);
+const { validatePackagedEmbeddedMpv } = require('./embedded-mpv-macos.cjs');
 const args = process.argv.slice(2);
 const normalizedArgs = args[0] === '--' ? args.slice(1) : args;
 const [platform, arch = ''] = normalizedArgs;
@@ -36,6 +39,7 @@ const electronBuilderConfig = JSON.parse(
 );
 const flatpakFinishArgs = electronBuilderConfig.flatpak?.finishArgs ?? [];
 const snapConfigInspection = loadSnapConfigInspection();
+const embeddedMpvRequired = isTruthy(process.env.IPTVNATOR_REQUIRE_EMBEDDED_MPV);
 const workerRelativeDir = path.join(
     'dist',
     'apps',
@@ -64,6 +68,14 @@ function directoryExists(directoryPath) {
 
 function fileExists(filePath) {
     return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+}
+
+function isTruthy(value) {
+    return ['1', 'true', 'yes', 'on'].includes(
+        String(value ?? '')
+            .trim()
+            .toLowerCase()
+    );
 }
 
 function getMacResourceDirs() {
@@ -475,6 +487,14 @@ function verifyResourceDir(resourceDir) {
         verifyFlatpakPermissions(errors);
         verifySnapPackagingConfig(errors);
         verifyLinuxLauncher(resourceDir, errors);
+    }
+
+    if (platform === 'macos') {
+        errors.push(
+            ...validatePackagedEmbeddedMpv(resourceDir, {
+                required: embeddedMpvRequired,
+            })
+        );
     }
 
     return {

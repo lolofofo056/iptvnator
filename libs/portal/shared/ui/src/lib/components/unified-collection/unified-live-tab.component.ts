@@ -50,6 +50,7 @@ import {
     EpgViewComponent,
     LiveEpgPanelComponent,
     LiveEpgPanelSummary,
+    WebPlayerViewComponent,
 } from 'shared-portals';
 
 @Component({
@@ -72,6 +73,7 @@ import {
         ResizableDirective,
         TranslatePipe,
         VjsPlayerComponent,
+        WebPlayerViewComponent,
     ],
 })
 export class UnifiedLiveTabComponent {

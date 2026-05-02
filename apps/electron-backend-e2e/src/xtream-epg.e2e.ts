@@ -97,18 +97,10 @@ for (const timeZone of ['UTC', 'Europe/Berlin'] as const) {
                 .poll(() => visibleProgramTitles(app.mainWindow))
                 .toEqual(currentDayTitles);
 
-            const currentProgramRow = app.mainWindow
-                .locator('app-epg-list .program-item.current-program')
-                .first();
-            await expect(currentProgramRow).toBeVisible();
-            await expect(
-                currentProgramRow.locator('.program-title')
-            ).toHaveText(currentProgram.title);
-            await expect(currentProgramRow.locator('.time')).toHaveText(
-                `${formatTimeInZone(
-                    currentProgram.startTimestamp,
-                    timeZone
-                )}–${formatTimeInZone(currentProgram.stopTimestamp, timeZone)}`
+            await expectCurrentProgram(
+                app.mainWindow,
+                currentProgram,
+                timeZone
             );
 
             const firstFutureDateKey = getFirstFutureDateKey(
@@ -237,6 +229,36 @@ async function visibleProgramTitles(
         .locator('app-epg-list .program-title')
         .allInnerTexts()
         .then((titles) => titles.map((title) => title.trim()).filter(Boolean));
+}
+
+async function expectCurrentProgram(
+    page: Parameters<typeof channelItemByTitle>[0],
+    currentProgram: XtreamNormalizedEpgListing,
+    timeZone: string
+): Promise<void> {
+    const startTime = formatTimeInZone(currentProgram.startTimestamp, timeZone);
+    const stopTime = formatTimeInZone(currentProgram.stopTimestamp, timeZone);
+    const currentProgramRow = page
+        .locator('app-epg-list .program-item.current-program')
+        .first();
+
+    if (await currentProgramRow.isVisible().catch(() => false)) {
+        await expect(currentProgramRow.locator('.program-title')).toHaveText(
+            currentProgram.title
+        );
+        await expect(currentProgramRow.locator('.time')).toHaveText(
+            `${startTime}–${stopTime}`
+        );
+        return;
+    }
+
+    const summary = page.locator('app-live-epg-panel').first();
+    await expect(summary.locator('.live-epg-panel__title')).toHaveText(
+        currentProgram.title
+    );
+    await expect(summary.locator('.live-epg-panel__time')).toHaveText(
+        `${startTime} - ${stopTime}`
+    );
 }
 
 async function getProgressWidthPercent(

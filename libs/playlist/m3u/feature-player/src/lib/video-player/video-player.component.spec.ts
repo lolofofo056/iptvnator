@@ -307,6 +307,23 @@ describe('VideoPlayerComponent', () => {
         ).not.toBeNull();
     });
 
+    it('renders the embedded mpv inline player with the EPG panel', () => {
+        syncStoreState(sampleChannel);
+        player.set(VideoPlayer.EmbeddedMpv);
+
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.video-player')
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-web-player-view')
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-epg-list')
+        ).not.toBeNull();
+    });
+
     it('renders only the EPG panel when an external player is configured', () => {
         syncStoreState(sampleChannel);
         player.set(VideoPlayer.MPV);

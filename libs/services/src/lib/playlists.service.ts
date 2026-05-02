@@ -60,6 +60,20 @@ type PlaylistStorageWindow = Window & {
     electron?: PlaylistStorageElectronApi;
 };
 
+type PlaylistParserModule = Partial<typeof import('iptv-playlist-parser')> & {
+    default?: Partial<typeof import('iptv-playlist-parser')>;
+};
+
+export function resolvePlaylistParser(parserModule: PlaylistParserModule) {
+    const parse = parserModule.parse ?? parserModule.default?.parse;
+
+    if (!parse) {
+        throw new Error('iptv-playlist-parser parse export was not found');
+    }
+
+    return parse;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -769,7 +783,8 @@ export class PlaylistsService {
             // Dynamic import keeps the ~130KB validator dep (transitively pulled
             // by iptv-playlist-parser) out of the eager bundle. parse() only runs
             // on user-triggered imports.
-            const { parse } = await import('iptv-playlist-parser');
+            const parserModule = await import('iptv-playlist-parser');
+            const parse = resolvePlaylistParser(parserModule);
             const parsedPlaylist = parse(playlist);
             return createPlaylistObject(
                 title,

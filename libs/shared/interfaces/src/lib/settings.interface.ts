@@ -8,6 +8,7 @@ import { Theme } from './theme.enum';
 export enum VideoPlayer {
     VideoJs = 'videojs',
     Html5Player = 'html5',
+    EmbeddedMpv = 'embedded-mpv',
     MPV = 'mpv',
     VLC = 'vlc',
     ArtPlayer = 'artplayer',

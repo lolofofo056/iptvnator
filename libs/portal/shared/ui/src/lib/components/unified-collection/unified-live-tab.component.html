@@ -80,6 +80,13 @@
                             [showCaptions]="false"
                         />
                     }
+                    @if (player() === 'embedded-mpv') {
+                        <app-web-player-view
+                            [streamUrl]="currentStreamUrl()"
+                            [title]="activeDetail()?.playback?.title ?? ''"
+                            [playback]="activeDetail()?.playback ?? null"
+                        />
+                    }
                 }
             </div>
         }

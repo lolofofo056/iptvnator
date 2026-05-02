@@ -256,15 +256,16 @@ export async function upsertAppPlaylists(
         return { success: true, count: 0 };
     }
 
-    await db.transaction(async (tx) => {
+    await db.transaction((tx) => {
         for (const row of rows) {
-            await tx
+            tx
                 .insert(schema.playlists)
                 .values(row)
                 .onConflictDoUpdate({
                     target: schema.playlists.id,
                     set: row,
-                });
+                })
+                .run();
         }
     });
 
@@ -396,8 +397,8 @@ export async function deletePlaylist(
 
         for (const chunk of chunkValues(ids, DEFAULT_BATCH_SIZE)) {
             await checkpointOperation(control);
-            await db.transaction(async (tx) => {
-                await tx.delete(table).where(inArray(column, chunk));
+            await db.transaction((tx) => {
+                tx.delete(table).where(inArray(column, chunk)).run();
             });
             current += chunk.length;
             await reportOperationProgress(control, {

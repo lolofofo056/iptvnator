@@ -46,6 +46,8 @@ class StubPortalChannelsListComponent {
 })
 class StubWebPlayerViewComponent {
     readonly streamUrl = input('');
+    readonly title = input('');
+    readonly playback = input<unknown>(null);
 }
 
 @Component({

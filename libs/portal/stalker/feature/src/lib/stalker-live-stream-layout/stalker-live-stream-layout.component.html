@@ -85,7 +85,11 @@
     } @else if (stalkerStore.selectedItem()) {
         @if (streamUrl() && isEmbeddedPlayer) {
             <div class="video-player">
-                <app-web-player-view [streamUrl]="streamUrl()" />
+                <app-web-player-view
+                    [streamUrl]="streamUrl()"
+                    [title]="activePlayback()?.title ?? ''"
+                    [playback]="activePlayback()"
+                />
             </div>
         }
         @let canCollapseEpgPanel = !!streamUrl() && isEmbeddedPlayer;

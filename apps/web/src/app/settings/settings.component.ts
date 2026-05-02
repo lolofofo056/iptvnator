@@ -44,7 +44,7 @@ import {
     PlaylistsService,
 } from 'services';
 import {
-    /* EmbeddedMpvSupport, */
+    EmbeddedMpvSupport,
     CoverSize,
     Language,
     StartupBehavior,
@@ -132,10 +132,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
 
     /** Flag that indicates whether the app runs in electron environment */
     readonly isDesktop = !!window.electron;
-    /* readonly embeddedMpvSupport = signal<EmbeddedMpvSupport | null>(null);
+    readonly embeddedMpvSupport = signal<EmbeddedMpvSupport | null>(null);
     readonly supportsEmbeddedMpv = computed(
         () => this.isDesktop && !!this.embeddedMpvSupport()?.supported
-    ); */
+    );
 
     isPwa = this.dataService.getAppEnvironment() === 'pwa';
 
@@ -143,14 +143,14 @@ export class SettingsComponent implements OnInit, OnDestroy {
     readonly activeSection = this.settingsCtx.activeSection;
 
     readonly osPlayers = computed(() => [
-        /* ...(this.supportsEmbeddedMpv()
+        ...(this.supportsEmbeddedMpv()
             ? [
                   {
                       id: VideoPlayer.EmbeddedMpv,
                       labelKey: 'SETTINGS.PLAYER_EMBEDDED_MPV',
                   },
               ]
-            : []), */
+            : []),
         ...SETTINGS_OS_PLAYER_OPTIONS,
     ]);
 
@@ -275,7 +275,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         // Wait for settings to load before setting the form
         await this.settingsStore.loadSettings();
         this.setSettings();
-        /* void this.loadEmbeddedMpvSupport(); */
+        void this.loadEmbeddedMpvSupport();
         this.checkAppVersion();
         void this.fetchLocalIpAddresses();
 
@@ -284,7 +284,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         }
     }
 
-    /* private async loadEmbeddedMpvSupport(): Promise<void> {
+    private async loadEmbeddedMpvSupport(): Promise<void> {
         if (!this.isDesktop) {
             this.embeddedMpvSupport.set({
                 supported: false,
@@ -311,13 +311,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
             this.embeddedMpvSupport.set({
                 supported: false,
                 platform: window.electron.platform,
-                reason:
-                    error instanceof Error
-                        ? error.message
-                        : String(error),
+                reason: error instanceof Error ? error.message : String(error),
             });
         }
-    } */
+    }
 
     ngOnDestroy(): void {
         this.settingsCtx.reset();

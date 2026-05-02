@@ -26,7 +26,8 @@ export class PlayerService {
         return (
             player === VideoPlayer.VideoJs ||
             player === VideoPlayer.Html5Player ||
-            player === VideoPlayer.ArtPlayer
+            player === VideoPlayer.ArtPlayer ||
+            player === VideoPlayer.EmbeddedMpv
         );
     }
 
@@ -118,7 +119,13 @@ export class PlayerService {
         return import('@iptvnator/portal/xtream/feature').then(
             ({ PlayerDialogComponent }) => {
                 this.dialog.open(PlayerDialogComponent, {
-                    data: { streamUrl, title, contentInfo, startTime },
+                    data: {
+                        streamUrl,
+                        title,
+                        contentInfo,
+                        startTime,
+                        playback,
+                    },
                     width: '80%',
                     maxWidth: '1200px',
                     maxHeight: '90vh',
