@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Oynatıcıyı {{name}} olarak değiştir",
                 "SWITCH_PLAYER_DESCRIPTION": "{{name}} oynatıcısını etkin video oynatıcı olarak ayarla",
                 "SWITCH_PLAYER_FEEDBACK": "Oynatıcı {{name}} olarak ayarlandı"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Oynatma listesi yenileniyor",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Kitaplık verileriniz korunuyor...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Önbelleğe alınmış yayınlar kaldırılıyor...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Önbelleğe alınmış kategoriler kaldırılıyor...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Favoriler, izleme geçmişi, gizli kategoriler ve oynatma ilerlemesi eşitlemeden sonra geri yüklenmek üzere hazırlanıyor.",
+            "XTREAM_REFRESH_PROGRESS": "İşlenen yerel kayıtlar: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Kaynaklar",

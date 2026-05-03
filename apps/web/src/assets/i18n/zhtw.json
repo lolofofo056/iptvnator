@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "切換播放器至 {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "將 {{name}} 設為使用中的影片播放器",
                 "SWITCH_PLAYER_FEEDBACK": "播放器已設為 {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "正在重新整理播放清單",
+            "XTREAM_REFRESH_COLLECTING_DATA": "正在保留你的媒體庫資料...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "正在移除快取的串流...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "正在移除快取的分類...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "我的最愛、觀看記錄、隱藏分類和播放進度會保留，以便同步後還原。",
+            "XTREAM_REFRESH_PROGRESS": "已處理本機記錄：{{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "來源",

@@ -15,6 +15,27 @@ import { Playlist, PlaylistMeta } from 'shared-interfaces';
 import { PlaylistContextFacade } from './playlist-context.facade';
 import { PlaylistRefreshActionService } from './playlist-refresh-action.service';
 
+function createDeferred<T>() {
+    let resolve!: (value: T) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+    });
+
+    return { promise, resolve, reject };
+}
+
+function createAbortError(): Error {
+    const error = new Error('Cancelled');
+    error.name = 'AbortError';
+    return error;
+}
+
+async function waitForRefreshPreparationPaint(): Promise<void> {
+    await new Promise<void>((resolve) => setTimeout(resolve, 160));
+}
+
 function createPlaylistMeta(
     overrides: Partial<PlaylistMeta> = {}
 ): PlaylistMeta {
@@ -238,6 +259,141 @@ describe('PlaylistRefreshActionService', () => {
         setItemSpy.mockRestore();
         dateNowSpy.mockRestore();
     });
+
+    it('sets refresh-preparation state immediately after Xtream refresh confirmation', async () => {
+        const item = createPlaylistMeta();
+        const refresh = createDeferred<{
+            success: boolean;
+            favorites: [];
+            recentlyViewed: [];
+            hiddenCategories: [];
+        }>();
+        let confirmPromise: Promise<void> | undefined;
+
+        databaseService.deleteXtreamPlaylistContent.mockReturnValue(
+            refresh.promise
+        );
+        dialogService.openConfirmDialog.mockImplementation(
+            ({ onConfirm }: { onConfirm?: () => Promise<void> }) => {
+                confirmPromise = onConfirm?.();
+            }
+        );
+
+        service.refresh(item);
+
+        expect(service.refreshPreparation()).toEqual({
+            playlistId: item._id,
+            operationId: 'xtream-refresh-op',
+            phase: 'collecting-user-data',
+        });
+
+        refresh.resolve({
+            success: true,
+            favorites: [],
+            recentlyViewed: [],
+            hiddenCategories: [],
+        });
+        await confirmPromise;
+
+        expect(service.refreshPreparation()).toBeNull();
+    });
+
+    it('updates refresh-preparation phase and progress from worker events', async () => {
+        const item = createPlaylistMeta();
+        const refresh = createDeferred<{
+            success: boolean;
+            favorites: [];
+            recentlyViewed: [];
+            hiddenCategories: [];
+        }>();
+        let confirmPromise: Promise<void> | undefined;
+
+        databaseService.deleteXtreamPlaylistContent.mockImplementation(
+            (
+                _playlistId: string,
+                options?: {
+                    operationId?: string;
+                    onEvent?: (event: any) => void;
+                }
+            ) => {
+                options?.onEvent?.({
+                    operation: 'delete-xtream-content',
+                    operationId: 'xtream-refresh-op',
+                    status: 'progress',
+                    phase: 'deleting-content',
+                    current: 50,
+                    total: 100,
+                });
+
+                return refresh.promise;
+            }
+        );
+        dialogService.openConfirmDialog.mockImplementation(
+            ({ onConfirm }: { onConfirm?: () => Promise<void> }) => {
+                confirmPromise = onConfirm?.();
+            }
+        );
+
+        service.refresh(item);
+        await waitForRefreshPreparationPaint();
+
+        expect(service.refreshPreparation()).toEqual({
+            playlistId: item._id,
+            operationId: 'xtream-refresh-op',
+            phase: 'deleting-content',
+            current: 50,
+            total: 100,
+        });
+
+        refresh.resolve({
+            success: true,
+            favorites: [],
+            recentlyViewed: [],
+            hiddenCategories: [],
+        });
+        await confirmPromise;
+    });
+
+    it.each([
+        ['abort', createAbortError()],
+        ['error', new Error('Refresh failed')],
+    ])(
+        'clears refresh-preparation state after Xtream refresh %s',
+        async (_caseName, error) => {
+            const item = createPlaylistMeta();
+            const consoleErrorSpy = jest
+                .spyOn(console, 'error')
+                .mockImplementation();
+            const refresh = createDeferred<{
+                success: boolean;
+                favorites: [];
+                recentlyViewed: [];
+                hiddenCategories: [];
+            }>();
+            let confirmPromise: Promise<void> | undefined;
+
+            databaseService.deleteXtreamPlaylistContent.mockReturnValue(
+                refresh.promise
+            );
+            dialogService.openConfirmDialog.mockImplementation(
+                ({ onConfirm }: { onConfirm?: () => Promise<void> }) => {
+                    confirmPromise = onConfirm?.();
+                }
+            );
+
+            try {
+                service.refresh(item);
+                expect(service.refreshPreparation()).not.toBeNull();
+
+                refresh.reject(error);
+                await confirmPromise;
+
+                expect(service.refreshPreparation()).toBeNull();
+            } finally {
+                consoleErrorSpy.mockRestore();
+            }
+        }
+    );
 
     it('marks the active M3U route as loading before refreshing and clears loading after the update action', async () => {
         const item = createPlaylistMeta({

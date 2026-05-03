@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Speler wisselen naar {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "Stel {{name}} in als de actieve videospeler",
                 "SWITCH_PLAYER_FEEDBACK": "Speler ingesteld op {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Afspeellijst vernieuwen",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Bibliotheekgegevens worden bewaard...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Gecachte streams worden verwijderd...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Gecachte categorieën worden verwijderd...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Favorieten, kijkgeschiedenis, verborgen categorieën en afspeelvoortgang worden klaargezet voor herstel na de synchronisatie.",
+            "XTREAM_REFRESH_PROGRESS": "Lokale records verwerkt: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Bronnen",

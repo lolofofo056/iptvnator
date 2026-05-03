@@ -1,7 +1,14 @@
-import { XtreamImportPhaseTone } from './workspace-shell-constants';
-import { TranslateFn } from './workspace-shell-search-labels';
+import type { XtreamImportPhaseTone } from './workspace-shell-constants';
+import type { TranslateFn } from './workspace-shell-search-labels';
 
 export type XtreamImportContentType = 'live' | 'vod' | 'series' | null;
+export type XtreamRefreshPreparationPhase =
+    | 'collecting-user-data'
+    | 'deleting-content'
+    | 'deleting-categories'
+    | string
+    | null
+    | undefined;
 
 export function buildXtreamImportTypeLabel(
     contentType: XtreamImportContentType,
@@ -36,6 +43,24 @@ export function buildXtreamImportPhaseTone(
             return 'local';
         default:
             return null;
+    }
+}
+
+export function buildXtreamRefreshPreparationPhaseLabel(
+    phase: XtreamRefreshPreparationPhase,
+    translate: TranslateFn
+): string {
+    switch (phase) {
+        case 'collecting-user-data':
+            return translate('WORKSPACE.SHELL.XTREAM_REFRESH_COLLECTING_DATA');
+        case 'deleting-content':
+            return translate('WORKSPACE.SHELL.XTREAM_REFRESH_DELETING_CONTENT');
+        case 'deleting-categories':
+            return translate(
+                'WORKSPACE.SHELL.XTREAM_REFRESH_DELETING_CATEGORIES'
+            );
+        default:
+            return translate('WORKSPACE.SHELL.XTREAM_REFRESH_COLLECTING_DATA');
     }
 }
 
@@ -104,6 +129,22 @@ export function buildXtreamImportProgressLabel(
 
     return translate('WORKSPACE.SHELL.XTREAM_IMPORT_PROGRESS', {
         type: typeLabel,
+        current: formatNumber(currentCount),
+        total: formatNumber(totalCount),
+    });
+}
+
+export function buildXtreamRefreshPreparationProgressLabel(
+    currentCount: number,
+    totalCount: number,
+    translate: TranslateFn,
+    formatNumber: (value: number) => string
+): string {
+    if (totalCount === 0) {
+        return '';
+    }
+
+    return translate('WORKSPACE.SHELL.XTREAM_REFRESH_PROGRESS', {
         current: formatNumber(currentCount),
         total: formatNumber(totalCount),
     });

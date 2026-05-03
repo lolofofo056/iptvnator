@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "切换播放器为 {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "将 {{name}} 设为当前视频播放器",
                 "SWITCH_PLAYER_FEEDBACK": "播放器已设为 {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "正在刷新播放列表",
+            "XTREAM_REFRESH_COLLECTING_DATA": "正在保留你的媒体库数据...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "正在移除缓存的流...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "正在移除缓存的分类...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "收藏、观看历史、隐藏分类和播放进度会保留，以便同步后恢复。",
+            "XTREAM_REFRESH_PROGRESS": "已处理本地记录：{{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "源",

@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "플레이어를 {{name}}(으)로 전환",
                 "SWITCH_PLAYER_DESCRIPTION": "{{name}}을(를) 활성 비디오 플레이어로 설정",
                 "SWITCH_PLAYER_FEEDBACK": "플레이어가 {{name}}(으)로 설정되었습니다"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "재생목록 새로 고침 중",
+            "XTREAM_REFRESH_COLLECTING_DATA": "라이브러리 데이터를 보존하는 중...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "캐시된 스트림을 제거하는 중...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "캐시된 카테고리를 제거하는 중...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "즐겨찾기, 시청 기록, 숨긴 카테고리, 재생 진행률을 동기화 후 복원할 수 있도록 준비합니다.",
+            "XTREAM_REFRESH_PROGRESS": "처리된 로컬 레코드: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "소스",

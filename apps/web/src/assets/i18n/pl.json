@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Przełącz odtwarzacz na {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "Ustaw {{name}} jako aktywny odtwarzacz wideo",
                 "SWITCH_PLAYER_FEEDBACK": "Odtwarzacz ustawiony na {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Odświeżanie listy odtwarzania",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Zachowywanie danych biblioteki...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Usuwanie strumieni z pamięci podręcznej...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Usuwanie kategorii z pamięci podręcznej...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Ulubione, historia oglądania, ukryte kategorie i postęp odtwarzania są przygotowywane do przywrócenia po synchronizacji.",
+            "XTREAM_REFRESH_PROGRESS": "Przetworzone rekordy lokalne: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Źródła",

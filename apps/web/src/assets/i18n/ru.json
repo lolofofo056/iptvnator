@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Переключить плеер на {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "Сделать {{name}} активным видеоплеером",
                 "SWITCH_PLAYER_FEEDBACK": "Плеер переключен на {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Обновление плейлиста",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Сохраняем данные вашей библиотеки...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Удаляем кэшированные потоки...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Удаляем кэшированные категории...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Избранное, история просмотра, скрытые категории и прогресс воспроизведения будут подготовлены для восстановления после синхронизации.",
+            "XTREAM_REFRESH_PROGRESS": "Обработано локальных записей: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Источники",

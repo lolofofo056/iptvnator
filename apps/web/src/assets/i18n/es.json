@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Cambiar reproductor a {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "Establecer {{name}} como reproductor de vídeo activo",
                 "SWITCH_PLAYER_FEEDBACK": "Reproductor establecido a {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Actualizando lista de reproducción",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Conservando los datos de tu biblioteca...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Eliminando streams en caché...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Eliminando categorías en caché...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Guardamos favoritos, historial de reproducción, categorías ocultas y progreso para restaurarlos después de la sincronización.",
+            "XTREAM_REFRESH_PROGRESS": "Registros locales procesados: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Fuentes",

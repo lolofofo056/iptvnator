@@ -267,15 +267,29 @@ export class WorkspaceShellFacade {
     );
     private readonly xtreamImport = inject(WorkspaceShellXtreamImportService);
     readonly showXtreamImportOverlay = computed(() => {
+        const route = this.currentRoute();
         const context = this.currentContext();
         const section = this.currentSection();
+        const hasRefreshPreparation = Boolean(
+            this.xtreamImport.refreshPreparation()
+        );
+
+        if (route.kind === 'dashboard') {
+            return hasRefreshPreparation;
+        }
 
         if (context?.provider !== 'xtreams') {
             return false;
         }
 
+        const isPreparingCurrentPlaylist =
+            this.xtreamImport.isRefreshPreparationRunningForPlaylist(
+                context.playlistId
+            );
+
         return (
-            this.xtreamImport.isImportRunning() &&
+            (this.xtreamImport.isImportRunning() ||
+                isPreparingCurrentPlaylist) &&
             (section === 'vod' ||
                 section === 'live' ||
                 section === 'series' ||

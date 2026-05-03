@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Player auf {{name}} wechseln",
                 "SWITCH_PLAYER_DESCRIPTION": "{{name}} als aktiven Videoplayer festlegen",
                 "SWITCH_PLAYER_FEEDBACK": "Player auf {{name}} festgelegt"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Playlist wird aktualisiert",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Mediathekdaten werden gesichert...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Zwischengespeicherte Streams werden entfernt...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Zwischengespeicherte Kategorien werden entfernt...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Favoriten, Wiedergabeverlauf, ausgeblendete Kategorien und Wiedergabefortschritt werden für die Wiederherstellung nach der Synchronisierung vorbereitet.",
+            "XTREAM_REFRESH_PROGRESS": "Lokale Einträge verarbeitet: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Quellen",

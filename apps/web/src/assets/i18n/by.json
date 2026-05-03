@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Пераключыць прайгравальнік на {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "Усталяваць {{name}} як актыўны відэапрайгравальнік",
                 "SWITCH_PLAYER_FEEDBACK": "Прайгравальнік усталяваны: {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Абнаўленне плэйліста",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Захаванне даных вашай бібліятэкі...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Выдаленне кэшаваных патокаў...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Выдаленне кэшаваных катэгорый...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Выбранае, гісторыя прагляду, схаваныя катэгорыі і прагрэс прайгравання будуць падрыхтаваны для аднаўлення пасля сінхранізацыі.",
+            "XTREAM_REFRESH_PROGRESS": "Апрацавана лакальных запісаў: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Крыніцы",

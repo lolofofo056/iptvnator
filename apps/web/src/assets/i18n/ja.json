@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "プレーヤーを{{name}}に切り替え",
                 "SWITCH_PLAYER_DESCRIPTION": "{{name}}をアクティブなビデオプレーヤーに設定",
                 "SWITCH_PLAYER_FEEDBACK": "プレーヤーを{{name}}に設定しました"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "プレイリストを更新中",
+            "XTREAM_REFRESH_COLLECTING_DATA": "ライブラリデータを保持しています...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "キャッシュ済みストリームを削除しています...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "キャッシュ済みカテゴリを削除しています...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "お気に入り、視聴履歴、非表示カテゴリ、再生進捗を同期後に復元できるよう準備しています。",
+            "XTREAM_REFRESH_PROGRESS": "処理済みローカルレコード: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "ソース",

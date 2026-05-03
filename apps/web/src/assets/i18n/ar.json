@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "تبديل المشغل إلى {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "تعيين {{name}} كمشغل الفيديو النشط",
                 "SWITCH_PLAYER_FEEDBACK": "تم تعيين المشغل إلى {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "جارٍ تحديث قائمة التشغيل",
+            "XTREAM_REFRESH_COLLECTING_DATA": "جارٍ حفظ بيانات مكتبتك...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "جارٍ إزالة البث المخزّن مؤقتًا...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "جارٍ إزالة الفئات المخزّنة مؤقتًا...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "نحتفظ بالمفضلة وسجل المشاهدة والفئات المخفية وتقدم التشغيل لاستعادتها بعد المزامنة.",
+            "XTREAM_REFRESH_PROGRESS": "السجلات المحلية المعالجة: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "المصادر",

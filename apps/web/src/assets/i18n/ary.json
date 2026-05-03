@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "بدل المشغل ل{{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "حدد {{name}} كمشغل الفيديو النشط",
                 "SWITCH_PLAYER_FEEDBACK": "المشغل تحدد ل{{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "كنحدّثو البلايليست",
+            "XTREAM_REFRESH_COLLECTING_DATA": "كنحافظو على معطيات المكتبة ديالك...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "كنحيدو الستريمات المخزنة...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "كنحيدو التصنيفات المخزنة...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "كنخليو المفضلات، تاريخ المشاهدة، التصنيفات المخفية، وتقدم التشغيل واجدين باش يرجعو من بعد المزامنة.",
+            "XTREAM_REFRESH_PROGRESS": "السجلات المحلية اللي تجهزات: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "المصادر",

@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Εναλλαγή προγράμματος αναπαραγωγής σε {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "Ορισμός του {{name}} ως ενεργό πρόγραμμα αναπαραγωγής βίντεο",
                 "SWITCH_PLAYER_FEEDBACK": "Το πρόγραμμα αναπαραγωγής ορίστηκε σε {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Ανανέωση λίστας αναπαραγωγής",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Διατήρηση των δεδομένων της βιβλιοθήκης σας...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Αφαίρεση αποθηκευμένων ροών...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Αφαίρεση αποθηκευμένων κατηγοριών...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Τα αγαπημένα, το ιστορικό προβολής, οι κρυφές κατηγορίες και η πρόοδος αναπαραγωγής ετοιμάζονται για επαναφορά μετά τον συγχρονισμό.",
+            "XTREAM_REFRESH_PROGRESS": "Τοπικές εγγραφές που επεξεργάστηκαν: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Πηγές",

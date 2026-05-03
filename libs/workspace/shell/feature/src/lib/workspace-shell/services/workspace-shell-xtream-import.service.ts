@@ -2,8 +2,9 @@ import { computed, inject, Injectable } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { TranslateService } from '@ngx-translate/core';
 import { startWith } from 'rxjs';
+import { PlaylistRefreshActionService } from '@iptvnator/playlist/shared/util';
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
-import { XtreamImportPhaseTone } from './helpers/workspace-shell-constants';
+import type { XtreamImportPhaseTone } from './helpers/workspace-shell-constants';
 import {
     buildXtreamImportDetailLabel,
     buildXtreamImportPhaseLabel,
@@ -11,12 +12,17 @@ import {
     buildXtreamImportProgressLabel,
     buildXtreamImportSourceLabel,
     buildXtreamImportTypeLabel,
+    buildXtreamRefreshPreparationPhaseLabel,
+    buildXtreamRefreshPreparationProgressLabel,
     formatLocalizedNumber,
 } from './helpers/workspace-shell-import-labels';
 
 @Injectable()
 export class WorkspaceShellXtreamImportService {
     private readonly xtreamStore = inject(XtreamStore);
+    private readonly playlistRefreshAction = inject(
+        PlaylistRefreshActionService
+    );
     private readonly translate = inject(TranslateService);
     private readonly isElectron = !!window.electron;
 
@@ -32,10 +38,22 @@ export class WorkspaceShellXtreamImportService {
 
     readonly xtreamImportCount = this.xtreamStore.getImportCount;
     readonly xtreamItemsToImport = this.xtreamStore.itemsToImport;
-    readonly xtreamActiveImportCount =
-        this.xtreamStore.activeImportCurrentCount;
-    readonly xtreamActiveItemsToImport =
-        this.xtreamStore.activeImportTotalCount;
+    readonly refreshPreparation = this.playlistRefreshAction.refreshPreparation;
+    readonly activeRefreshPreparation = computed(
+        () => this.refreshPreparation() ?? null
+    );
+    readonly xtreamActiveImportCount = computed(() => {
+        const preparation = this.activeRefreshPreparation();
+        return preparation
+            ? (preparation.current ?? 0)
+            : this.xtreamStore.activeImportCurrentCount();
+    });
+    readonly xtreamActiveItemsToImport = computed(() => {
+        const preparation = this.activeRefreshPreparation();
+        return preparation
+            ? (preparation.total ?? 0)
+            : this.xtreamStore.activeImportTotalCount();
+    });
     readonly xtreamImportPhase = this.xtreamStore.currentImportPhase;
     readonly isCancellingXtreamImport = this.xtreamStore.isCancellingImport;
 
@@ -47,9 +65,13 @@ export class WorkspaceShellXtreamImportService {
             !this.xtreamStore.isCancellingImport()
     );
 
-    readonly xtreamImportTitleLabel = computed(() =>
-        this.translateText('WORKSPACE.SHELL.XTREAM_IMPORT_TITLE')
-    );
+    readonly xtreamImportTitleLabel = computed(() => {
+        if (this.activeRefreshPreparation()) {
+            return this.translateText('WORKSPACE.SHELL.XTREAM_REFRESH_TITLE');
+        }
+
+        return this.translateText('WORKSPACE.SHELL.XTREAM_IMPORT_TITLE');
+    });
 
     readonly xtreamImportTypeLabel = computed(() => {
         this.languageTick();
@@ -59,24 +81,42 @@ export class WorkspaceShellXtreamImportService {
         );
     });
 
-    readonly xtreamImportProgressLabel = computed(() =>
-        buildXtreamImportProgressLabel(
+    readonly xtreamImportProgressLabel = computed(() => {
+        const formatNumber = (value: number): string =>
+            formatLocalizedNumber(
+                value,
+                this.translate.currentLang,
+                this.translate.defaultLang
+            );
+        const preparation = this.activeRefreshPreparation();
+
+        if (preparation) {
+            return buildXtreamRefreshPreparationProgressLabel(
+                this.xtreamActiveImportCount(),
+                this.xtreamActiveItemsToImport(),
+                this.translateText,
+                formatNumber
+            );
+        }
+
+        return buildXtreamImportProgressLabel(
             this.xtreamImportTypeLabel(),
             this.xtreamActiveImportCount(),
             this.xtreamActiveItemsToImport(),
             this.translateText,
-            (value) =>
-                formatLocalizedNumber(
-                    value,
-                    this.translate.currentLang,
-                    this.translate.defaultLang
-                )
-        )
-    );
+            formatNumber
+        );
+    });
 
-    readonly xtreamImportPhaseTone = computed<XtreamImportPhaseTone>(() =>
-        buildXtreamImportPhaseTone(this.xtreamStore.currentImportPhase())
-    );
+    readonly xtreamImportPhaseTone = computed<XtreamImportPhaseTone>(() => {
+        if (this.activeRefreshPreparation()) {
+            return 'local';
+        }
+
+        return buildXtreamImportPhaseTone(
+            this.xtreamStore.currentImportPhase()
+        );
+    });
 
     readonly xtreamImportSourceLabel = computed(() => {
         this.languageTick();
@@ -88,6 +128,15 @@ export class WorkspaceShellXtreamImportService {
 
     readonly xtreamImportPhaseLabel = computed(() => {
         this.languageTick();
+        const preparation = this.activeRefreshPreparation();
+
+        if (preparation) {
+            return buildXtreamRefreshPreparationPhaseLabel(
+                preparation.phase,
+                this.translateText
+            );
+        }
+
         return buildXtreamImportPhaseLabel(
             this.xtreamStore.currentImportPhase(),
             this.translateText
@@ -96,6 +145,12 @@ export class WorkspaceShellXtreamImportService {
 
     readonly xtreamImportDetailLabel = computed(() => {
         this.languageTick();
+        if (this.activeRefreshPreparation()) {
+            return this.translateText(
+                'WORKSPACE.SHELL.XTREAM_REFRESH_DETAIL_LOCAL'
+            );
+        }
+
         return buildXtreamImportDetailLabel(
             this.xtreamImportPhaseTone(),
             this.translateText
@@ -107,6 +162,13 @@ export class WorkspaceShellXtreamImportService {
             !this.xtreamStore.contentInitBlockReason() &&
             this.xtreamStore.isImporting()
     );
+    readonly isRefreshPreparationRunning = computed(() =>
+        Boolean(this.activeRefreshPreparation())
+    );
+
+    isRefreshPreparationRunningForPlaylist(playlistId: string): boolean {
+        return this.refreshPreparation()?.playlistId === playlistId;
+    }
 
     cancelXtreamImport(): void {
         void this.xtreamStore.cancelImport();

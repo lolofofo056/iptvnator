@@ -891,7 +891,13 @@
                 "SWITCH_PLAYER_LABEL": "Passa al lettore {{name}}",
                 "SWITCH_PLAYER_DESCRIPTION": "Imposta {{name}} come lettore video attivo",
                 "SWITCH_PLAYER_FEEDBACK": "Lettore impostato su {{name}}"
-            }
+            },
+            "XTREAM_REFRESH_TITLE": "Aggiornamento playlist",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Conservazione dei dati della libreria...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Rimozione degli stream in cache...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Rimozione delle categorie in cache...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Preferiti, cronologia di visione, categorie nascoste e avanzamento di riproduzione vengono preparati per il ripristino dopo la sincronizzazione.",
+            "XTREAM_REFRESH_PROGRESS": "Record locali elaborati: {{current}} / {{total}}"
         },
         "SOURCES": {
             "TITLE": "Sorgenti",

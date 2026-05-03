@@ -5,7 +5,11 @@ import { NavigationEnd, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { of } from 'rxjs';
-import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
+import {
+    PlaylistContextFacade,
+    PlaylistRefreshActionService,
+    type XtreamRefreshPreparationState,
+} from '@iptvnator/playlist/shared/util';
 import {
     PORTAL_EXTERNAL_PLAYBACK,
     WorkspaceHeaderContextService,
@@ -34,6 +38,7 @@ class MockXtreamStore {
     readonly categorySearchTerm = signal('');
     readonly isImporting = signal(false);
     readonly isCancellingImport = signal(false);
+    readonly contentInitBlockReason = signal(null);
     readonly activeImportSessionId = signal<string | null>(null);
     readonly currentImportPhase = signal<string | null>(null);
     readonly activeImportContentType = signal<'live' | 'vod' | 'series' | null>(
@@ -123,6 +128,9 @@ describe('WorkspaceShellFacade', () => {
         typeof signal<PlaylistSignalMeta | null>
     >;
     let playlistsSignal: ReturnType<typeof signal<PlaylistSignalMeta[]>>;
+    let refreshPreparationSignal: ReturnType<
+        typeof signal<XtreamRefreshPreparationState | null>
+    >;
     let stalkerStore: MockStalkerStore;
     let showDashboardSignal: ReturnType<typeof signal<boolean>>;
     let startupPreferences: {
@@ -145,6 +153,9 @@ describe('WorkspaceShellFacade', () => {
             { _id: 'pl-1', serverUrl: 'http://example.com' },
             { _id: 'pl-2', macAddress: '00:11:22:33' },
         ]);
+        refreshPreparationSignal = signal<XtreamRefreshPreparationState | null>(
+            null
+        );
 
         router = {
             url: '/workspace/xtreams/pl-1/vod',
@@ -231,6 +242,16 @@ describe('WorkspaceShellFacade', () => {
                     },
                 },
                 {
+                    provide: PlaylistRefreshActionService,
+                    useValue: {
+                        canRefresh: jest.fn(() => true),
+                        isRefreshing: signal(false),
+                        refreshPreparation:
+                            refreshPreparationSignal.asReadonly(),
+                        refresh: jest.fn(),
+                    },
+                },
+                {
                     provide: SettingsStore,
                     useValue: {
                         showExternalPlaybackBar: signal(true),
@@ -268,6 +289,14 @@ describe('WorkspaceShellFacade', () => {
                                 params
                             ) {
                                 return `${params.type} imported: ${params.current} / ${params.total}`;
+                            }
+
+                            if (
+                                key ===
+                                    'WORKSPACE.SHELL.XTREAM_REFRESH_PROGRESS' &&
+                                params
+                            ) {
+                                return `Local records processed: ${params.current} / ${params.total}`;
                             }
 
                             return key;
@@ -346,6 +375,73 @@ describe('WorkspaceShellFacade', () => {
         );
         expect(xtreamImport.xtreamImportDetailLabel()).toBe(
             'WORKSPACE.SHELL.XTREAM_IMPORT_DETAIL_LOCAL'
+        );
+    });
+
+    it('shows the Xtream overlay during refresh preparation for the active playlist', () => {
+        refreshPreparationSignal.set({
+            playlistId: 'pl-1',
+            operationId: 'xtream-refresh-op',
+            phase: 'collecting-user-data',
+        });
+
+        expect(facade.showXtreamImportOverlay()).toBe(true);
+    });
+
+    it('shows the Xtream overlay during refresh preparation on the dashboard', () => {
+        facade.currentUrl.set('/workspace/dashboard');
+        refreshPreparationSignal.set({
+            playlistId: 'dashboard-xtream-playlist',
+            operationId: 'xtream-refresh-op',
+            phase: 'collecting-user-data',
+        });
+
+        expect(facade.showXtreamImportOverlay()).toBe(true);
+    });
+
+    it('does not show the Xtream overlay for another playlist refresh preparation', () => {
+        refreshPreparationSignal.set({
+            playlistId: 'other-playlist',
+            operationId: 'xtream-refresh-op',
+            phase: 'collecting-user-data',
+        });
+
+        expect(facade.showXtreamImportOverlay()).toBe(false);
+    });
+
+    it('prefers refresh-preparation labels over import labels', () => {
+        const xtreamStore = TestBed.inject(
+            XtreamStore
+        ) as unknown as MockXtreamStore;
+        const xtreamImport = TestBed.inject(WorkspaceShellXtreamImportService);
+
+        xtreamStore.isImporting.set(true);
+        xtreamStore.currentImportPhase.set('loading-categories');
+        xtreamStore.activeImportContentType.set('vod');
+        xtreamStore.activeImportCurrentCount.set(2);
+        xtreamStore.activeImportTotalCount.set(20);
+        refreshPreparationSignal.set({
+            playlistId: 'pl-1',
+            operationId: 'xtream-refresh-op',
+            phase: 'deleting-content',
+            current: 5,
+            total: 10,
+        });
+
+        expect(xtreamImport.xtreamImportTitleLabel()).toBe(
+            'WORKSPACE.SHELL.XTREAM_REFRESH_TITLE'
+        );
+        expect(xtreamImport.xtreamImportSourceLabel()).toBe(
+            'WORKSPACE.SHELL.XTREAM_IMPORT_LOCAL_BADGE'
+        );
+        expect(xtreamImport.xtreamImportPhaseLabel()).toBe(
+            'WORKSPACE.SHELL.XTREAM_REFRESH_DELETING_CONTENT'
+        );
+        expect(xtreamImport.xtreamImportDetailLabel()).toBe(
+            'WORKSPACE.SHELL.XTREAM_REFRESH_DETAIL_LOCAL'
+        );
+        expect(xtreamImport.xtreamImportProgressLabel()).toBe(
+            'Local records processed: 5 / 10'
         );
     });
 
