@@ -231,6 +231,20 @@ async function refreshFromWorkspaceHeader(page: Page): Promise<void> {
     const dialog = page.locator('mat-dialog-container');
     await expect(dialog).toBeVisible();
     await dialog.getByRole('button', { name: 'Yes', exact: true }).click();
+
+    const refreshOverlay = page.locator('app-workspace-shell-import-overlay');
+    await expect(refreshOverlay).toBeVisible({ timeout: 5000 });
+    await expect(
+        refreshOverlay.getByRole('heading', {
+            name: 'Refreshing playlist',
+            exact: true,
+        })
+    ).toBeVisible();
+    await expect(refreshOverlay).toContainText(/Local library/);
+    await expect(refreshOverlay).toContainText(
+        /Preserving your library data|Removing cached streams|Removing cached categories/
+    );
+
     await page.waitForSelector('mat-dialog-container', { state: 'detached' });
 }
 
@@ -240,66 +254,60 @@ function sidebarCategoryById(page: Page, categoryId: string): Locator {
     );
 }
 
-async function expectVisibleSidebarCategoryIds(
-    page: Page,
-    expectedIds: string[]
-): Promise<void> {
-    const categories = page.locator(
-        'app-workspace-context-panel .category-item:visible'
-    );
-    const actualIds: string[] = [];
-    const count = await categories.count();
-
-    for (let index = 0; index < count; index += 1) {
-        const categoryId = await categories
-            .nth(index)
-            .getAttribute('data-category-id');
-
-        if (categoryId) {
-            actualIds.push(categoryId.trim());
-        }
-    }
-
-    expect(actualIds).toEqual(expectedIds);
-}
-
 async function expectVisibleSidebarCategoryNames(
     page: Page,
     expectedNames: string[]
 ): Promise<void> {
-    await expect
-        .poll(async () => {
-            const categories = page.locator(
-                'app-workspace-context-panel .category-item:visible'
-            );
-            const actualNames: string[] = [];
-            const count = await categories.count();
+    try {
+        await expect
+            .poll(() => readVisibleSidebarCategoryNames(page), {
+                timeout: 30000,
+            })
+            .toEqual(expectedNames);
+    } catch (error) {
+        const actualNames = await readVisibleSidebarCategoryNames(page);
+        throw new Error(
+            `Expected visible sidebar categories ${JSON.stringify(
+                expectedNames
+            )}, received ${JSON.stringify(actualNames)}`,
+            { cause: error }
+        );
+    }
+}
 
-            for (let index = 0; index < count; index += 1) {
-                const categoryName =
-                    (
-                        await categories
-                            .nth(index)
-                            .locator('.nav-item-label')
-                            .textContent()
-                    )?.trim() ?? '';
+async function readVisibleSidebarCategoryNames(page: Page): Promise<string[]> {
+    const categories = page.locator(
+        'app-workspace-context-panel .category-item'
+    );
+    const actualNames: string[] = [];
+    const count = await categories.count();
 
-                if (categoryName) {
-                    actualNames.push(categoryName);
-                }
-            }
+    for (let index = 0; index < count; index += 1) {
+        const category = categories.nth(index);
+        if (!(await category.isVisible())) {
+            continue;
+        }
 
-            return actualNames;
-        })
-        .toEqual(expectedNames);
+        const categoryName =
+            (await category.locator('.nav-item-label').textContent())?.trim() ??
+            '';
+
+        if (categoryName) {
+            actualNames.push(categoryName);
+        }
+    }
+
+    return actualNames;
 }
 
 async function pickSidebarCategory(
     page: Page
 ): Promise<{ id: string; itemCount: number; name: string }> {
-    let preferredCandidate:
-        | { id: string; itemCount: number; name: string }
-        | null = null;
+    let preferredCandidate: {
+        id: string;
+        itemCount: number;
+        name: string;
+    } | null = null;
 
     await expect
         .poll(async () => {
