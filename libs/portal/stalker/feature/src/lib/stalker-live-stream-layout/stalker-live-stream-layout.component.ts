@@ -44,17 +44,15 @@ import {
     WebPlayerViewComponent,
 } from 'shared-portals';
 import {
+    LiveLayoutSidebarStateService,
     PORTAL_PLAYER,
     createLogger,
     getAdjacentChannelItem,
     getChannelItemByNumber,
     isTypingInInput,
     LiveEpgPanelState,
-    LiveSidebarState,
     persistLiveEpgPanelState,
-    persistLiveSidebarState,
     restoreLiveEpgPanelState,
-    restoreLiveSidebarState,
 } from '@iptvnator/portal/shared/util';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
@@ -91,6 +89,9 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     private readonly portalPlayer = inject(PORTAL_PLAYER);
     private readonly snackBar = inject(MatSnackBar);
     private readonly translate = inject(TranslateService);
+    private readonly liveSidebarStateService = inject(
+        LiveLayoutSidebarStateService
+    );
     private readonly logger = createLogger('StalkerLiveStream');
     readonly selectedCategoryTitle = this.stalkerStore.getSelectedCategoryName;
 
@@ -151,12 +152,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
     );
-    readonly liveSidebarState = signal<LiveSidebarState>(
-        restoreLiveSidebarState()
-    );
-    readonly isSidebarCollapsed = computed(
-        () => this.liveSidebarState() === 'collapsed'
-    );
+    readonly isSidebarCollapsed = this.liveSidebarStateService.isCollapsed;
     readonly liveEpgPanelSummary = computed(() =>
         this.toLiveEpgPanelSummary(this.currentProgram())
     );
@@ -398,11 +394,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     }
 
     toggleSidebar(): void {
-        const next: LiveSidebarState = this.isSidebarCollapsed()
-            ? 'expanded'
-            : 'collapsed';
-        this.liveSidebarState.set(next);
-        persistLiveSidebarState(next);
+        this.liveSidebarStateService.toggle();
     }
 
     @HostListener('document:keydown', ['$event'])

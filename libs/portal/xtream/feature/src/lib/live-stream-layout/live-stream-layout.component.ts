@@ -18,6 +18,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ResizableDirective } from 'components';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
+    LiveLayoutSidebarStateService,
     PORTAL_PLAYER,
     PortalChannelSortMode,
     getPortalChannelSortModeLabel,
@@ -26,13 +27,10 @@ import {
     isTypingInInput,
     isWorkspaceLayoutRoute,
     LiveEpgPanelState,
-    LiveSidebarState,
     persistLiveEpgPanelState,
-    persistLiveSidebarState,
     persistPortalChannelSortMode,
     queryParamSignal,
     restoreLiveEpgPanelState,
-    restoreLiveSidebarState,
     restorePortalChannelSortMode,
 } from '@iptvnator/portal/shared/util';
 import {
@@ -103,6 +101,9 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     private readonly xtreamStore = inject(XtreamStore);
     private readonly xtreamUrlService = inject(XtreamUrlService);
     private readonly portalPlayer = inject(PORTAL_PLAYER);
+    private readonly liveSidebarStateService = inject(
+        LiveLayoutSidebarStateService
+    );
 
     readonly categories = this.xtreamStore.getCategoriesBySelectedType;
     readonly categoryItemCounts = this.xtreamStore.getCategoryItemCounts;
@@ -177,12 +178,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     readonly isLiveEpgPanelCollapsed = computed(
         () => this.liveEpgPanelState() === 'collapsed'
     );
-    readonly liveSidebarState = signal<LiveSidebarState>(
-        restoreLiveSidebarState()
-    );
-    readonly isSidebarCollapsed = computed(
-        () => this.liveSidebarState() === 'collapsed'
-    );
+    readonly isSidebarCollapsed = this.liveSidebarStateService.isCollapsed;
     readonly liveEpgPanelSummary = computed(() =>
         this.toLiveEpgPanelSummary(this.currentEpgItem())
     );
@@ -379,11 +375,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     }
 
     toggleSidebar(): void {
-        const next: LiveSidebarState = this.isSidebarCollapsed()
-            ? 'expanded'
-            : 'collapsed';
-        this.liveSidebarState.set(next);
-        persistLiveSidebarState(next);
+        this.liveSidebarStateService.toggle();
     }
 
     @HostListener('document:keydown', ['$event'])

@@ -38,14 +38,12 @@ import {
     getOpenLiveCollectionItemState,
     getUnifiedCollectionNavigation,
     isWorkspaceLayoutRoute,
-    LiveSidebarState,
+    LiveLayoutSidebarStateService,
     OPEN_COLLECTION_DETAIL_STATE_KEY,
     OPEN_LIVE_COLLECTION_ITEM_STATE_KEY,
     persistFavoritesChannelSortMode,
-    persistLiveSidebarState,
     queryParamSignal,
     restoreFavoritesChannelSortMode,
-    restoreLiveSidebarState,
     routeParamSignal,
     ScopeToggleService,
     STALKER_RETURN_TO_STATE_KEY,
@@ -100,6 +98,9 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
     private readonly dialogService = inject(DialogService);
     private readonly translate = inject(TranslateService);
     private readonly workspaceViewCommands = inject(WorkspaceViewCommandService);
+    private readonly liveSidebarStateService = inject(
+        LiveLayoutSidebarStateService
+    );
     readonly detailTemplate = contentChild(UnifiedCollectionDetailDirective);
     private readonly playlists = this.store.selectSignal(
         selectAllPlaylistsMeta
@@ -265,12 +266,7 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
             this.selectedContentType() === 'live' &&
             this.hasLive()
     );
-    readonly liveSidebarState = signal<LiveSidebarState>(
-        restoreLiveSidebarState()
-    );
-    readonly isSidebarCollapsed = computed(
-        () => this.liveSidebarState() === 'collapsed'
-    );
+    readonly isSidebarCollapsed = this.liveSidebarStateService.isCollapsed;
     readonly showSidebarToggle = computed(
         () => this.selectedContentType() === 'live' && this.hasLive()
     );
@@ -460,11 +456,7 @@ export class UnifiedCollectionPageComponent implements AfterContentInit {
     }
 
     toggleSidebar(): void {
-        const next: LiveSidebarState = this.isSidebarCollapsed()
-            ? 'expanded'
-            : 'collapsed';
-        this.liveSidebarState.set(next);
-        persistLiveSidebarState(next);
+        this.liveSidebarStateService.toggle();
     }
 
     setFavSortMode(mode: FavoritesChannelSortMode): void {

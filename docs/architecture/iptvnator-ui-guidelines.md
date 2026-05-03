@@ -147,20 +147,32 @@ The shared row should be reused instead of rebuilding channel markup per view.
 
 - M3U, Xtream, and Stalker live layouts share a single sidebar collapse toggle
   that hides the channels rail to give the player and EPG full width.
-- Collapsed state is persisted in `live-sidebar-state` (helpers in
-  `@iptvnator/portal/shared/util`); missing or invalid values restore to
-  expanded. The state is global across all three modules so the user's choice
-  carries across portals and reloads.
+- In Xtream and Stalker live TV, the same toggle also collapses the workspace
+  shell context sidebar (the "Live Categories" rail rendered by
+  `WorkspaceShellContextSidebarComponent`), matching M3U's "everything quiets"
+  behaviour. The shell categories rail only collapses when the active section
+  is `live` (Xtream) or `itv` (Stalker); movies, series, favorites, and recent
+  routes leave it untouched.
+- Collapsed state is owned by `LiveLayoutSidebarStateService`
+  (`providedIn: 'root'`) in `@iptvnator/portal/shared/util`. Every surface that
+  participates injects the service and reads `isCollapsed`; any toggle calls
+  `service.toggle()`. Persistence delegates to the existing
+  `live-sidebar-state` helpers, so the localStorage key stays unchanged and
+  missing/invalid values restore to expanded.
 - A `mat-icon-button` with `chevron_left` lives in the sidebar header and
   toggles state. While collapsed, a floating `chevron_right` mini-fab appears
-  at the left edge of `.content-container` to restore the rail.
+  at the left edge of `.content-container` to restore the rail (and the
+  categories rail, in Xtream/Stalker live).
 - Keyboard shortcut: `Cmd/Ctrl+B`. The handler ignores events that originate
   inside `<input>`, `<textarea>`, `<select>`, or content-editable elements via
   the shared `isTypingInInput` helper.
-- The CSS class `.sidebar-collapsed` overrides the inline width set by the
-  `appResizable` directive with `width: 0 !important; min-width: 0 !important`.
-  The directive's persisted width is preserved so uncollapsing restores the
-  user's previous resized width.
+- The CSS class `.sidebar-collapsed` (channels rail) and
+  `.context-panel--collapsed` (workspace shell categories rail) both override
+  the inline width set by the `appResizable` directive with
+  `width: 0 !important; min-width: 0 !important`. The directive's persisted
+  width is preserved so uncollapsing restores the user's previous resized
+  width. Both rails share the same 180 ms width transition so motion stays in
+  lockstep.
 - Below 600 px viewport, the M3U layout's mobile bottom-drawer rule overrides
   the desktop collapse to `height: 0` instead of `width: 0`, and the floating
   restore handle is hidden.

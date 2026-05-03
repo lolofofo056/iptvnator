@@ -7,6 +7,8 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { of } from 'rxjs';
 import {
     LIVE_EPG_PANEL_STATE_STORAGE_KEY,
+    LIVE_SIDEBAR_STATE_STORAGE_KEY,
+    LiveLayoutSidebarStateService,
     PORTAL_PLAYER,
     ResizableDirective,
 } from '@iptvnator/portal/shared/util';
@@ -162,6 +164,7 @@ describe('LiveStreamLayoutComponent', () => {
         jest.setSystemTime(fixedNow);
         localStorage.removeItem(LIVE_CHANNEL_SORT_STORAGE_KEY);
         localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
+        localStorage.removeItem(LIVE_SIDEBAR_STATE_STORAGE_KEY);
 
         window.electron = {
             updateRemoteControlStatus: jest.fn(),
@@ -243,13 +246,17 @@ describe('LiveStreamLayoutComponent', () => {
 
         fixture = TestBed.createComponent(LiveStreamLayoutComponent);
         component = fixture.componentInstance;
+
+        TestBed.inject(LiveLayoutSidebarStateService).setState('expanded');
     });
 
     afterEach(() => {
+        TestBed.inject(LiveLayoutSidebarStateService).setState('expanded');
         fixture.destroy();
         jest.useRealTimers();
         localStorage.removeItem(LIVE_CHANNEL_SORT_STORAGE_KEY);
         localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
+        localStorage.removeItem(LIVE_SIDEBAR_STATE_STORAGE_KEY);
         window.electron = originalElectron;
     });
 
@@ -469,6 +476,26 @@ describe('LiveStreamLayoutComponent', () => {
 
         expect(
             fixture.nativeElement.querySelector('.archive-unavailable-banner')
+        ).toBeNull();
+    });
+
+    it('shows the floating restore button when the sidebar is collapsed even without a selected category', () => {
+        selectedCategoryId.set(null);
+        TestBed.inject(LiveLayoutSidebarStateService).setState('collapsed');
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.sidebar-restore')
+        ).not.toBeNull();
+    });
+
+    it('hides the floating restore button when the sidebar is expanded', () => {
+        selectedCategoryId.set(1);
+        TestBed.inject(LiveLayoutSidebarStateService).setState('expanded');
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.sidebar-restore')
         ).toBeNull();
     });
 
