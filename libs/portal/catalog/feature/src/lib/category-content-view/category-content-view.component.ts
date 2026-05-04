@@ -64,6 +64,8 @@ export class CategoryContentViewComponent implements OnInit {
     private readonly hostElement = inject(ElementRef<HTMLElement>);
     private readonly router = inject(Router);
     private readonly translate = inject(TranslateService);
+    private hasAppliedInitialQueryParams = false;
+    private previousSearchQuery: string | null = null;
     private readonly catalog = inject(
         PORTAL_CATALOG_FACADE
     ) as PortalCatalogFacade<
@@ -130,8 +132,31 @@ export class CategoryContentViewComponent implements OnInit {
         this.activatedRoute.queryParamMap
             .pipe(takeUntilDestroyed(this.destroyRef))
             .subscribe((params) => {
-                this.catalog.setSearchQuery?.(params.get('q') ?? '');
-                this.catalog.setPage(this.toPageIndex(params.get('page')));
+                const searchQuery = params.get('q') ?? '';
+                const pageIndex = this.toPageIndex(params.get('page'));
+
+                this.catalog.setSearchQuery?.(searchQuery);
+
+                if (!this.hasAppliedInitialQueryParams) {
+                    this.hasAppliedInitialQueryParams = true;
+                    this.previousSearchQuery = searchQuery;
+                    this.catalog.setPage(pageIndex);
+                    return;
+                }
+
+                const didSearchChange =
+                    searchQuery !== this.previousSearchQuery;
+                this.previousSearchQuery = searchQuery;
+
+                if (didSearchChange) {
+                    this.catalog.setPage(0);
+                    if (params.has('page')) {
+                        this.clearPageQueryParam();
+                    }
+                    return;
+                }
+
+                this.catalog.setPage(pageIndex);
             });
     }
 
@@ -170,6 +195,17 @@ export class CategoryContentViewComponent implements OnInit {
             'app-grid-list'
         ) as HTMLElement | null;
         gridList?.scrollTo?.({ top: 0 });
+    }
+
+    private clearPageQueryParam(): void {
+        void this.router.navigate([], {
+            relativeTo: this.activatedRoute,
+            queryParams: {
+                page: null,
+            },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+        });
     }
 
     private openStalkerItemFromNavigationState(): void {

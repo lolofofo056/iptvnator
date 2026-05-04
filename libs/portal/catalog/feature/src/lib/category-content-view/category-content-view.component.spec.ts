@@ -214,6 +214,64 @@ describe('CategoryContentViewComponent', () => {
         expect(catalog.setPage).toHaveBeenCalledWith(2);
     });
 
+    it('preserves the initial search and page query params on direct route loads', () => {
+        queryParamMap$.next(
+            convertToParamMap({
+                q: 'matrix',
+                page: '3',
+            })
+        );
+
+        fixture.detectChanges();
+
+        expect(catalog.setSearchQuery).toHaveBeenCalledWith('matrix');
+        expect(catalog.setPage).toHaveBeenCalledWith(2);
+        expect(router.navigate).not.toHaveBeenCalled();
+    });
+
+    it('resets to the first page and removes stale page query params when search changes', () => {
+        fixture.detectChanges();
+        catalog.setPage.mockClear();
+
+        queryParamMap$.next(
+            convertToParamMap({
+                q: 'matrix',
+                page: '3',
+            })
+        );
+
+        expect(catalog.setSearchQuery).toHaveBeenCalledWith('matrix');
+        expect(catalog.setPage).toHaveBeenCalledWith(0);
+        expect(router.navigate).toHaveBeenCalledWith([], {
+            relativeTo: expect.any(Object),
+            queryParams: {
+                page: null,
+            },
+            queryParamsHandling: 'merge',
+            replaceUrl: true,
+        });
+    });
+
+    it('restores page changes while the search query is unchanged', () => {
+        queryParamMap$.next(
+            convertToParamMap({
+                q: 'matrix',
+            })
+        );
+        fixture.detectChanges();
+        catalog.setPage.mockClear();
+
+        queryParamMap$.next(
+            convertToParamMap({
+                q: 'matrix',
+                page: '3',
+            })
+        );
+
+        expect(catalog.setPage).toHaveBeenCalledWith(2);
+        expect(router.navigate).not.toHaveBeenCalled();
+    });
+
     it('falls back to the first catalog page when the page query param is absent or invalid', () => {
         fixture.detectChanges();
         catalog.setPage.mockClear();
