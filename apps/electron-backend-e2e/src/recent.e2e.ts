@@ -163,6 +163,62 @@ test.describe('Electron Recently Viewed', () => {
         }
     });
 
+    test('removes one M3U recent live channel from the all-playlists context menu', async ({
+        dataDir,
+    }) => {
+        const filePath = writeTemporaryM3uFile(
+            dataDir,
+            'm3u-recent-context-menu-source.m3u',
+            [
+                {
+                    groupTitle: 'Live',
+                    name: 'Context Recent One',
+                    url: 'https://streams.example.test/context-recent-one.m3u8',
+                },
+                {
+                    groupTitle: 'Live',
+                    name: 'Context Recent Two',
+                    url: 'https://streams.example.test/context-recent-two.m3u8',
+                },
+            ]
+        );
+        const app = await launchElectronApp(dataDir);
+
+        try {
+            await importM3uPlaylistFromNativeDialog(app, filePath);
+            await waitForM3uCatalog(app.mainWindow);
+
+            await channelItemByTitle(app.mainWindow, 'Context Recent One')
+                .first()
+                .click();
+            await channelItemByTitle(app.mainWindow, 'Context Recent Two')
+                .first()
+                .click();
+
+            await openPlaylistRecent(app.mainWindow);
+            await switchUnifiedCollectionScope(app.mainWindow, 'All playlists');
+            await expect
+                .poll(() => visibleLiveTitles(app.mainWindow))
+                .toEqual(['Context Recent Two', 'Context Recent One']);
+
+            await channelItemByTitle(app.mainWindow, 'Context Recent One')
+                .first()
+                .click({ button: 'right' });
+            await app.mainWindow
+                .getByRole('menuitem', { name: 'Remove from history' })
+                .click();
+
+            await expect
+                .poll(() => visibleLiveTitles(app.mainWindow))
+                .toEqual(['Context Recent Two']);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'Context Recent One')
+            ).toHaveCount(0);
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
+
     test('tracks Xtream live, movie, and series history across playlist and all-playlists scope, persists after restart, and supports clearing', async ({
         dataDir,
         request,

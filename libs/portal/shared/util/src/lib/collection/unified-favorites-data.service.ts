@@ -459,6 +459,7 @@ export class UnifiedFavoritesDataService {
                     streamUrl: channel.url,
                     channelId: channel.id,
                     radio: channel.radio,
+                    m3uChannel: channel,
                     tvgId: channel.tvg?.id || channel.tvg?.name || channel.name,
                     addedAt: new Date(0).toISOString(),
                     position: index,

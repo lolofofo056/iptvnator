@@ -74,6 +74,7 @@ class StubGlobalFavoritesListComponent {
     readonly channelSelected = output<UnifiedFavoriteChannel>();
     readonly channelsReordered = output<UnifiedFavoriteChannel[]>();
     readonly favoriteToggled = output<UnifiedFavoriteChannel>();
+    readonly removeRequested = output<UnifiedFavoriteChannel>();
 }
 
 @Component({
@@ -319,6 +320,28 @@ describe('UnifiedLiveTabComponent', () => {
         list.favoriteToggled.emit(list.channels()[0]);
 
         expect(toggledItems).toEqual([item]);
+        subscription.unsubscribe();
+    });
+
+    it('maps shared live list remove requests back to collection items', async () => {
+        const item = buildLiveItem('xtream');
+        const removedItems: UnifiedCollectionItem[] = [];
+        const subscription = component.removeItem.subscribe((removed) =>
+            removedItems.push(removed)
+        );
+
+        fixture.componentRef.setInput('items', [item]);
+        fixture.componentRef.setInput('mode', 'recent');
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const list = fixture.debugElement.query(
+            By.directive(StubGlobalFavoritesListComponent)
+        ).componentInstance as StubGlobalFavoritesListComponent;
+
+        list.removeRequested.emit(list.channels()[0]);
+
+        expect(removedItems).toEqual([item]);
         subscription.unsubscribe();
     });
 

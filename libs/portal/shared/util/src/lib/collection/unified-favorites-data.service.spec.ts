@@ -248,6 +248,8 @@ describe('UnifiedFavoritesDataService', () => {
         ]);
         expect(items[1].channelId).toBe('channel-1');
         expect(items[0].radio).toBe('true');
+        expect(items[0].m3uChannel).toBe(m3uChannels[1]);
+        expect(items[1].m3uChannel).toBe(m3uChannels[0]);
     });
 
     it('persists M3U playlist reorders through setFavorites', async () => {

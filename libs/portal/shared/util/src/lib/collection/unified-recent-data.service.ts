@@ -467,6 +467,7 @@ export class UnifiedRecentDataService {
                     streamUrl: channel.url,
                     channelId: channel.id,
                     radio: channel.radio,
+                    m3uChannel: channel,
                     tvgId:
                         channel.tvg?.id ||
                         recentItem.tvg_id ||

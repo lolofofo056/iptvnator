@@ -182,6 +182,8 @@ channel-list-container/
 - `ChannelListContainerComponent` now renders a dedicated skeleton state while `channelsLoading` is true.
 - `ChannelListContainerComponent` no longer clears `channels` on destroy; route/session code is the single owner of shared list lifecycle during navigation.
 - The dedicated `/workspace/playlists/:id/favorites` and `/workspace/playlists/:id/recent` collection routes do not drive the shared sidebar channel list; they default to the `playlist` scope so rail links always open the current playlist view, not the last persisted global scope.
+- M3U favorites and recent collection rows preserve their full `Channel` payload on unified live items so the shared live list can open the read-only channel details context menu without reconstructing partial channel data.
+- Recent live rows support context-menu removal in the unified all-playlists view; the row-level delete shortcut remains available on playlist-scoped M3U recent rows.
 - Empty playlists and empty search results are no longer conflated:
     - loading: skeletons
     - empty source: no channels in the playlist after loading completes
@@ -266,7 +268,13 @@ EPG lookup keys use the same precedence in both program and icon paths:
 
 - **Inputs**: `favorites`, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
 - **Outputs**: `channelSelected`, `favoriteToggled`, `favoritesReordered`
-- **Features**: Drag-and-drop reordering with CDK DragDrop
+- **Features**: Drag-and-drop reordering with CDK DragDrop, read-only channel details context menu
+
+#### RecentTabComponent
+
+- **Inputs**: recent channels, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
+- **Outputs**: `channelSelected`, `favoriteToggled`, `recentItemRemoved`
+- **Features**: Read-only channel details context menu, row-level and context-menu removal
 
 ## EPG Integration
 

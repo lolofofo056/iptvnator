@@ -43,6 +43,7 @@ class StubUnifiedLiveTabComponent {
     readonly autoOpenItem = input<unknown>(null);
     readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly sortMode = input<FavoritesChannelSortMode>('custom');
+    readonly isSidebarCollapsed = input(false);
 
     readonly removeItem = output<UnifiedCollectionItem>();
     readonly favoriteToggled = output<UnifiedCollectionItem>();
@@ -486,6 +487,55 @@ describe('UnifiedCollectionPageComponent', () => {
         expect(fixture.componentInstance.favoriteUidSet().has(recentItem.uid))
             .toBe(true);
         expect(fixture.componentInstance.allItems()).toEqual([recentItem]);
+    });
+
+    it('removes one recent live row through the live tab remove event', async () => {
+        const recentItems = [
+            {
+                uid: 'm3u::playlist-1::https://example.com/one.m3u8',
+                name: 'Recent One',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'playlist-1',
+                playlistName: 'Playlist One',
+                streamUrl: 'https://example.com/one.m3u8',
+            },
+            {
+                uid: 'xtream::playlist-2::live:42',
+                name: 'Recent Two',
+                contentType: 'live',
+                sourceType: 'xtream',
+                playlistId: 'playlist-2',
+                playlistName: 'Playlist Two',
+                xtreamId: 42,
+                contentId: 1001,
+            },
+        ] satisfies UnifiedCollectionItem[];
+        recentData.removeRecentItem.mockResolvedValue(undefined);
+        recentData.getRecentItems.mockResolvedValueOnce(recentItems);
+        favoritesData.getFavorites.mockResolvedValueOnce([]);
+
+        fixture.componentRef.setInput('mode', 'recent');
+        fixture.detectChanges();
+        await fixture.whenStable();
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+        fixture.componentInstance.isLoading.set(false);
+        fixture.componentInstance.selectedContentType.set('live');
+        fixture.componentInstance.allItems.set(recentItems);
+        fixture.detectChanges();
+
+        const liveTab = fixture.debugElement.query(
+            By.directive(StubUnifiedLiveTabComponent)
+        ).componentInstance as StubUnifiedLiveTabComponent;
+
+        liveTab.removeItem.emit(recentItems[0]);
+        await fixture.whenStable();
+
+        expect(recentData.removeRecentItem).toHaveBeenCalledWith(
+            recentItems[0]
+        );
+        expect(fixture.componentInstance.allItems()).toEqual([recentItems[1]]);
     });
 
     it('clears current favorites through the bulk clear service path', async () => {

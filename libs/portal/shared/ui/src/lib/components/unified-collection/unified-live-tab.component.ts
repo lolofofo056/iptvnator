@@ -200,6 +200,7 @@ export class UnifiedLiveTabComponent {
             playlistId: item.playlistId,
             playlistName: item.playlistName,
             streamUrl: item.streamUrl,
+            m3uChannel: item.m3uChannel,
             xtreamId: item.xtreamId,
             tvgId: item.tvgId,
             stalkerCmd: item.stalkerCmd,
@@ -278,6 +279,15 @@ export class UnifiedLiveTabComponent {
             } else {
                 this.favoriteToggled.emit(item);
             }
+        }
+    }
+
+    onRemoveRequested(channel: UnifiedFavoriteChannel): void {
+        const item = this.items().find(
+            (candidate) => candidate.uid === channel.uid
+        );
+        if (item) {
+            this.removeItem.emit(item);
         }
     }
 

@@ -7,11 +7,19 @@ import {
     ChangeDetectionStrategy,
     Component,
     computed,
+    inject,
     input,
     output,
+    signal,
+    viewChild,
 } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { ChannelListItemComponent } from 'components';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import {
+    ChannelDetailsDialogComponent,
+    ChannelListItemComponent,
+} from 'components';
 import { EpgProgram } from 'shared-interfaces';
 import {
     DEFAULT_FAVORITES_CHANNEL_SORT_MODE,
@@ -37,10 +45,16 @@ export type GlobalFavoritesListMode = 'favorites' | 'recent';
         ChannelListItemComponent,
         DragDropModule,
         MatIconModule,
+        MatMenuModule,
         TranslateModule,
     ],
 })
 export class GlobalFavoritesListComponent {
+    private readonly dialog = inject(MatDialog);
+
+    readonly contextMenuTrigger =
+        viewChild.required<MatMenuTrigger>('contextMenuTrigger');
+
     readonly channels = input.required<UnifiedFavoriteChannel[]>();
     readonly mode = input<GlobalFavoritesListMode>('favorites');
     readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
@@ -56,6 +70,13 @@ export class GlobalFavoritesListComponent {
     readonly channelSelected = output<UnifiedFavoriteChannel>();
     readonly channelsReordered = output<UnifiedFavoriteChannel[]>();
     readonly favoriteToggled = output<UnifiedFavoriteChannel>();
+    readonly removeRequested = output<UnifiedFavoriteChannel>();
+
+    readonly contextMenuChannel = signal<EnrichedUnifiedFavorite | null>(null);
+    readonly contextMenuPosition = signal({
+        x: '0px',
+        y: '0px',
+    });
 
     readonly isCustomSort = computed(() => this.sortMode() === 'custom');
     readonly canDragDrop = computed(
@@ -107,6 +128,54 @@ export class GlobalFavoritesListComponent {
 
     onFavoriteToggled(channel: UnifiedFavoriteChannel): void {
         this.favoriteToggled.emit(channel);
+    }
+
+    onChannelContextMenu(
+        channel: EnrichedUnifiedFavorite,
+        event: MouseEvent
+    ): void {
+        this.contextMenuChannel.set(channel);
+        this.contextMenuPosition.set({
+            x: `${event.clientX}px`,
+            y: `${event.clientY}px`,
+        });
+
+        const trigger = this.contextMenuTrigger();
+        if (trigger.menuOpen) {
+            trigger.closeMenu();
+        }
+
+        queueMicrotask(() => {
+            this.contextMenuTrigger().openMenu();
+        });
+    }
+
+    hasChannelContextMenu(channel: UnifiedFavoriteChannel): boolean {
+        return Boolean(channel.m3uChannel) || this.mode() === 'recent';
+    }
+
+    openChannelDetails(): void {
+        const channel = this.contextMenuChannel()?.m3uChannel;
+        if (!channel) {
+            return;
+        }
+
+        this.contextMenuTrigger().closeMenu();
+        this.dialog.open(ChannelDetailsDialogComponent, {
+            data: channel,
+            maxWidth: '720px',
+            width: 'calc(100vw - 32px)',
+        });
+    }
+
+    removeContextMenuChannel(): void {
+        const channel = this.contextMenuChannel();
+        if (!channel) {
+            return;
+        }
+
+        this.contextMenuTrigger().closeMenu();
+        this.removeRequested.emit(channel);
     }
 
     isChannelFavorite(channel: UnifiedFavoriteChannel): boolean {

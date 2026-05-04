@@ -18,12 +18,16 @@
                 [epgProgram]="item.epgProgram"
                 [progressPercentage]="item.progressPercentage"
                 [selected]="activeChannelUrl() === item.channel?.url"
+                [showDetailsContextMenu]="true"
                 [showAuxActionButton]="true"
                 [auxActionIcon]="'delete'"
                 [auxActionTooltip]="
                     'WORKSPACE.DASHBOARD.REMOVE_FROM_HISTORY' | translate
                 "
                 (clicked)="onChannelClick(item.channel)"
+                (contextMenuRequested)="
+                    onChannelContextMenu(item.channel, $event)
+                "
                 (auxActionClicked)="onRemoveRecent(item.channel, $event)"
             />
         }
@@ -46,3 +50,23 @@
         </div>
     }
 </div>
+
+<div
+    aria-hidden="true"
+    class="channel-context-menu-anchor"
+    [style.left]="contextMenuPosition().x"
+    [style.top]="contextMenuPosition().y"
+    [matMenuTriggerFor]="channelContextMenu"
+    #contextMenuTrigger="matMenuTrigger"
+></div>
+
+<mat-menu #channelContextMenu="matMenu">
+    <button mat-menu-item (click)="openChannelDetails()">
+        <mat-icon>info</mat-icon>
+        <span>{{ 'CHANNELS.SHOW_DETAILS' | translate }}</span>
+    </button>
+    <button mat-menu-item (click)="removeContextMenuChannel()">
+        <mat-icon>delete</mat-icon>
+        <span>{{ 'WORKSPACE.DASHBOARD.REMOVE_FROM_HISTORY' | translate }}</span>
+    </button>
+</mat-menu>

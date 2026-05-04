@@ -155,6 +155,7 @@ describe('UnifiedRecentDataService', () => {
             tvgId: 'recent-two',
             logo: 'two.png',
             radio: 'true',
+            m3uChannel: channels[1],
         });
     });
 

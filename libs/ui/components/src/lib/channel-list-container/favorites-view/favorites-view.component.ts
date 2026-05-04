@@ -7,13 +7,20 @@ import {
     ChangeDetectionStrategy,
     Component,
     computed,
+    inject,
     input,
     output,
+    signal,
+    viewChild,
 } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { TranslatePipe } from '@ngx-translate/core';
 import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
 import { ChannelEpgMetadata } from '../all-channels-view/all-channels-view.component';
+import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
 
@@ -22,9 +29,20 @@ import { ChannelListItemComponent } from '../channel-list-item/channel-list-item
     templateUrl: './favorites-view.component.html',
     styleUrls: ['./favorites-view.component.scss'],
     changeDetection: ChangeDetectionStrategy.OnPush,
-    imports: [ChannelListItemComponent, DragDropModule, TranslatePipe],
+    imports: [
+        ChannelListItemComponent,
+        DragDropModule,
+        MatIconModule,
+        MatMenuModule,
+        TranslatePipe,
+    ],
 })
 export class FavoritesViewComponent {
+    private readonly dialog = inject(MatDialog);
+
+    readonly contextMenuTrigger =
+        viewChild.required<MatMenuTrigger>('contextMenuTrigger');
+
     /** Favorite channels */
     readonly favorites = input.required<Channel[]>();
     readonly searchTerm = input('');
@@ -53,6 +71,12 @@ export class FavoritesViewComponent {
 
     /** Emits when favorites order changes via drag-drop */
     readonly favoritesReordered = output<string[]>();
+
+    readonly contextMenuChannel = signal<Channel | null>(null);
+    readonly contextMenuPosition = signal({
+        x: '0px',
+        y: '0px',
+    });
 
     readonly hasSearchTerm = computed(() => this.searchTerm().trim().length > 0);
     readonly filteredFavorites = computed(() => {
@@ -129,6 +153,37 @@ export class FavoritesViewComponent {
 
     onFavoriteToggle(channel: Channel, event: MouseEvent): void {
         this.favoriteToggled.emit({ channel, event });
+    }
+
+    onChannelContextMenu(channel: Channel, event: MouseEvent): void {
+        this.contextMenuChannel.set(channel);
+        this.contextMenuPosition.set({
+            x: `${event.clientX}px`,
+            y: `${event.clientY}px`,
+        });
+
+        const trigger = this.contextMenuTrigger();
+        if (trigger.menuOpen) {
+            trigger.closeMenu();
+        }
+
+        queueMicrotask(() => {
+            this.contextMenuTrigger().openMenu();
+        });
+    }
+
+    openChannelDetails(): void {
+        const channel = this.contextMenuChannel();
+        if (!channel) {
+            return;
+        }
+
+        this.contextMenuTrigger().closeMenu();
+        this.dialog.open(ChannelDetailsDialogComponent, {
+            data: channel,
+            maxWidth: '720px',
+            width: 'calc(100vw - 32px)',
+        });
     }
 
     onDrop(event: CdkDragDrop<Channel[]>): void {
