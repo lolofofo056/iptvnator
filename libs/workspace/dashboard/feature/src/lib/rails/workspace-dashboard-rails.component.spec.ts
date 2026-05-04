@@ -30,6 +30,19 @@ describe('buildDashboardSourceActions', () => {
         ]);
     });
 
+    it('exposes refresh, info, and remove for file-backed M3U sources', () => {
+        const playlist = {
+            ...basePlaylist,
+            filePath: '/tmp/local-playlist.m3u',
+        } as PlaylistMeta;
+
+        expect(actionIds(playlist, true)).toEqual([
+            'refresh',
+            'playlist-info',
+            'remove',
+        ]);
+    });
+
     it('exposes refresh, info, account, and remove for refreshable Xtream sources', () => {
         const playlist = {
             ...basePlaylist,

@@ -55,7 +55,8 @@ declare global {
                 filePath: string,
                 title: string
             ) => Promise<Playlist>;
-            openPlaylistFromFile: () => Promise<Playlist>;
+            openPlaylistFromFile: () => Promise<Playlist | null>;
+            getPathForFile: (file: File) => string;
             saveFileDialog: (
                 defaultPath: string,
                 filters?: { name: string; extensions: string[] }[]

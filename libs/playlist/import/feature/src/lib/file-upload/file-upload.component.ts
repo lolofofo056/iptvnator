@@ -24,7 +24,12 @@ export class FileUploadComponent {
     readonly isDragging = signal(false);
     readonly isImporting = signal(false);
 
-    openPicker(input: HTMLInputElement): void {
+    async openPicker(input: HTMLInputElement): Promise<void> {
+        if (this.importService.canImportFromNativeDialog()) {
+            await this.importFromNativeDialog();
+            return;
+        }
+
         input.value = '';
         input.click();
     }
@@ -90,5 +95,22 @@ export class FileUploadComponent {
             return;
         }
         this.selectedFile.set(file);
+    }
+
+    private async importFromNativeDialog(): Promise<void> {
+        if (this.isImporting()) return;
+
+        this.isImporting.set(true);
+        const result = await this.importService.importFromNativeDialog();
+        this.isImporting.set(false);
+
+        if (result.ok === true) {
+            this.imported.emit({ title: result.title });
+            return;
+        }
+
+        if (result.reason !== 'cancelled') {
+            this.fileRejected.emit('selected playlist');
+        }
     }
 }

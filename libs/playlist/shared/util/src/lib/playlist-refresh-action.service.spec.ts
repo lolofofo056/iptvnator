@@ -183,6 +183,36 @@ describe('PlaylistRefreshActionService', () => {
         localStorage.clear();
     });
 
+    it('treats file-backed M3U playlists as refreshable in Electron', () => {
+        window.electron = { platform: 'darwin' } as typeof window.electron;
+
+        expect(
+            service.canRefresh(
+                createPlaylistMeta({
+                    serverUrl: undefined,
+                    username: undefined,
+                    password: undefined,
+                    filePath: '/tmp/local-source.m3u',
+                })
+            )
+        ).toBe(true);
+    });
+
+    it('does not expose filesystem refresh outside Electron', () => {
+        window.electron = undefined as unknown as typeof window.electron;
+
+        expect(
+            service.canRefresh(
+                createPlaylistMeta({
+                    serverUrl: undefined,
+                    username: undefined,
+                    password: undefined,
+                    filePath: '/tmp/local-source.m3u',
+                })
+            )
+        ).toBe(false);
+    });
+
     it('stores Xtream restore data before updating playlist meta and navigating', async () => {
         const item = createPlaylistMeta();
         const executionOrder: string[] = [];

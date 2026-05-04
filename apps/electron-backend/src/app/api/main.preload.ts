@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
     EmbeddedMpvBounds,
     EmbeddedMpvSession,
@@ -291,6 +291,7 @@ const electronApi = {
     updatePlaylistFromFilePath: (filePath: string, title: string) =>
         ipcRenderer.invoke('update-playlist-from-file-path', filePath, title),
     openPlaylistFromFile: () => ipcRenderer.invoke('open-playlist-from-file'),
+    getPathForFile: (file: File) => webUtils.getPathForFile(file),
     saveFileDialog: (
         defaultPath: string,
         filters?: { name: string; extensions: string[] }[]

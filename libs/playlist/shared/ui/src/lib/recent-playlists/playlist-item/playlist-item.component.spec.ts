@@ -75,6 +75,25 @@ describe('PlaylistItemComponent', () => {
         expect(emitSpy).not.toHaveBeenCalled();
     });
 
+    it('renders a refresh action for file-backed M3U playlists', () => {
+        fixture.destroy();
+        fixture = TestBed.createComponent(PlaylistItemComponent);
+        component = fixture.componentInstance;
+        component.item = {
+            title: 'Local Source',
+            _id: 'local-source',
+            count: 10,
+            importDate: Date.now().toString(),
+            autoRefresh: false,
+            filePath: '/tmp/local-source.m3u',
+        };
+        fixture.detectChanges();
+
+        const nativeElement = fixture.nativeElement as HTMLElement;
+
+        expect(nativeElement.querySelector('.refresh-btn')).not.toBeNull();
+    });
+
     it('renders cancel and progress UI for long-running playlist actions', () => {
         fixture.componentRef.setInput('isDeleting', true);
         fixture.componentRef.setInput('busyMessage', 'Removing cached content...');

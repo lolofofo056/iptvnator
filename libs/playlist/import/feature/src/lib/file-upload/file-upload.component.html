@@ -23,6 +23,7 @@
         type="button"
         class="file-drop"
         [class.file-drop--dragging]="isDragging()"
+        [disabled]="isImporting()"
         appDragDropFileUpload
         (fileDropped)="onFilesDropped($event)"
         (dragStateChanged)="onDragStateChange($event)"
