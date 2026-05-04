@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, powerSaveBlocker } from 'electron';
 import { existsSync, readFileSync } from 'fs';
 import { createRequire } from 'module';
 import path from 'path';
@@ -51,6 +51,7 @@ interface EmbeddedMpvRuntimeSession {
     startedAt: string;
     updatedAt: string;
     lastPayloadKey: string;
+    lastStatus: EmbeddedMpvSessionStatus | null;
 }
 
 const EMBEDDED_MPV_EXPERIMENT_ENV =
@@ -65,6 +66,7 @@ export class EmbeddedMpvNativeService {
     private addonLoadError: Error | null = null;
     private readonly sessions = new Map<string, EmbeddedMpvRuntimeSession>();
     private pollingTimer: NodeJS.Timeout | null = null;
+    private powerBlockerId: number | null = null;
     private readonly loadAddonModule = createRequire(__filename);
 
     getSupport(): EmbeddedMpvSupport {
@@ -209,6 +211,7 @@ export class EmbeddedMpvNativeService {
             startedAt,
             updatedAt: startedAt,
             lastPayloadKey: '',
+            lastStatus: null,
         });
 
         this.ensurePolling();
@@ -292,6 +295,7 @@ export class EmbeddedMpvNativeService {
             };
             this.sendSessionUpdate(payload);
             this.stopPollingIfIdle();
+            this.updatePowerBlocker();
             return payload;
         }
     }
@@ -303,6 +307,7 @@ export class EmbeddedMpvNativeService {
             clearInterval(this.pollingTimer);
             this.pollingTimer = null;
         }
+        this.updatePowerBlocker();
     }
 
     private ensurePolling(): void {
@@ -363,13 +368,51 @@ export class EmbeddedMpvNativeService {
 
         session.streamUrl = payload.streamUrl;
         session.updatedAt = payload.updatedAt;
+        session.lastStatus = payload.status;
         const nextPayloadKey = JSON.stringify(payload);
         if (session.lastPayloadKey !== nextPayloadKey) {
             session.lastPayloadKey = nextPayloadKey;
             this.sendSessionUpdate(payload);
         }
 
+        this.updatePowerBlocker();
         return payload;
+    }
+
+    private hasPlayingSession(): boolean {
+        for (const session of this.sessions.values()) {
+            if (session.lastStatus === 'playing') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private updatePowerBlocker(): void {
+        const shouldBlock = this.hasPlayingSession();
+
+        if (shouldBlock && this.powerBlockerId === null) {
+            try {
+                this.powerBlockerId = powerSaveBlocker.start(
+                    'prevent-display-sleep'
+                );
+            } catch {
+                this.powerBlockerId = null;
+            }
+            return;
+        }
+
+        if (!shouldBlock && this.powerBlockerId !== null) {
+            const blockerId = this.powerBlockerId;
+            this.powerBlockerId = null;
+            try {
+                if (powerSaveBlocker.isStarted(blockerId)) {
+                    powerSaveBlocker.stop(blockerId);
+                }
+            } catch {
+                // ignore — assertion will be cleaned up when the process exits
+            }
+        }
     }
 
     private sendSessionUpdate(session: EmbeddedMpvSession): void {

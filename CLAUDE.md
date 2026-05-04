@@ -554,6 +554,7 @@ This project uses modern Angular signal-based APIs and patterns. **ALWAYS** use 
 
 - Built-in HTML5 player with HLS.js or Video.js
 - External players: MPV, VLC (via IPC to Electron backend)
+- Embedded MPV (experimental, macOS only): renders libmpv into a custom Cocoa view inside the Electron window. Because the standard `--wid` path is bypassed, mpv's own screensaver inhibition does not apply, so `EmbeddedMpvNativeService` holds an Electron `powerSaveBlocker` (`prevent-display-sleep`) whenever any session's status is `playing`, and releases it on pause, dispose, or shutdown. Service: `apps/electron-backend/src/app/services/embedded-mpv-native.service.ts`.
 
 **Radio Player**:
 
