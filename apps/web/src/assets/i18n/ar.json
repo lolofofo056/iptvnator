@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "مسار VLC",
         "VLC_PLAYER_PATH_DESCRIPTION": "حدد مسار مشغل VLC في نظامك.",
         "VLC_PLAYER_PATH": "مسار مشغل VLC",
+        "VLC_REUSE_INSTANCE_LABEL": "إعادة استخدام نسخة VLC",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "عند التفعيل، سيتم إعادة استخدام نفس نافذة VLC لتشغيل البثوث المختلفة. عند التعطيل، يفتح كل بث في نافذة VLC جديدة.",
         "REMOTE_CONTROL": "التحكم عن بعد",
         "REMOTE_CONTROL_DESCRIPTION": "تمكين التحكم عن بعد للتطبيق.",
         "REMOTE_CONTROL_PORT": "منفذ التحكم عن بعد",

@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "مسار VLC",
         "VLC_PLAYER_PATH_DESCRIPTION": "حدد مسار مشغل VLC في السيستيم ديالك. غادي يستعمل المسار اللي عطيتيه لملف VLC بدل المسار الافتراضي ديال السيستيم ديالنا.",
         "VLC_PLAYER_PATH": "مسار مشغل VLC",
+        "VLC_REUSE_INSTANCE_LABEL": "إعادة استخدام نسخة VLC",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "إلى كانت مفعلة، نفس نافذة VLC غادي تستعمل لتشغيل بثوث مختلفة. إلى كانت معطلة، كل بث كيتحل في نافذة VLC جديدة.",
         "REMOTE_CONTROL": "التحكم عن بعد",
         "REMOTE_CONTROL_DESCRIPTION": "فعل التحكم عن بعد للتطبيق.",
         "REMOTE_CONTROL_PORT": "منفذ التحكم عن بعد",

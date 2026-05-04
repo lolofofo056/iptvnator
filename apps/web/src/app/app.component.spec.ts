@@ -45,6 +45,7 @@ const DEFAULT_SETTINGS: Settings = {
     mpvPlayerPath: '',
     mpvReuseInstance: false,
     vlcPlayerPath: '',
+    vlcReuseInstance: false,
     remoteControl: false,
     remoteControlPort: 8765,
     downloadFolder: '',

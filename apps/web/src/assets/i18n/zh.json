@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC路径",
         "VLC_PLAYER_PATH_DESCRIPTION": "设置系统中 VLC 播放器的路径。\n它将使用提供的 VLC 二进制文件路径，而不是我们系统的默认路径。",
         "VLC_PLAYER_PATH": "VLC播放器路径",
+        "VLC_REUSE_INSTANCE_LABEL": "复用 VLC 实例",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "启用后，将复用同一个 VLC 窗口播放不同的视频流。禁用后，每个视频流都会在新的 VLC 窗口中打开。",
         "REMOTE_CONTROL": "远程控制",
         "REMOTE_CONTROL_DESCRIPTION": "启用对应用程序的远程控制。",
         "REMOTE_CONTROL_PORT": "远程控制端口",

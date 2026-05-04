@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC 路徑",
         "VLC_PLAYER_PATH_DESCRIPTION": "設定您系統中 VLC 播放器的路徑。將使用提供的 VLC 二進位檔路徑，而非系統預設路徑。",
         "VLC_PLAYER_PATH": "VLC 播放器路徑",
+        "VLC_REUSE_INSTANCE_LABEL": "重複使用 VLC 實體",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "啟用後，相同的 VLC 視窗將重複用於播放不同串流。停用時，每個串流會在新的 VLC 視窗中開啟。",
         "REMOTE_CONTROL": "遠端控制",
         "REMOTE_CONTROL_DESCRIPTION": "啟用應用程式遠端控制功能。",
         "REMOTE_CONTROL_PORT": "遠端控制連接埠",

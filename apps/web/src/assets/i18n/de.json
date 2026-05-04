@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC-Pfad",
         "VLC_PLAYER_PATH_DESCRIPTION": "Legen Sie den Pfad zum VLC-Player in Ihrem System fest. \nEs wird der bereitgestellte Pfad zu einer VLC-Binärdatei anstelle des Standardpfads für unser System verwendet.",
         "VLC_PLAYER_PATH": "VLC-Playerpfad",
+        "VLC_REUSE_INSTANCE_LABEL": "VLC-Instanz wiederverwenden",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "Wenn aktiviert, wird dasselbe VLC-Fenster zum Abspielen verschiedener Streams wiederverwendet. Wenn deaktiviert, wird jeder Stream in einem neuen VLC-Fenster geöffnet.",
         "REMOTE_CONTROL": "Fernsteuerung",
         "REMOTE_CONTROL_DESCRIPTION": "Fernsteuerung der Anwendung aktivieren.",
         "REMOTE_CONTROL_PORT": "Fernsteuerungsport",

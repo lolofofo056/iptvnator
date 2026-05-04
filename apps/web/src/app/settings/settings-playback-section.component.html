@@ -146,5 +146,17 @@
                 </mat-form-field>
             </div>
         </div>
+
+        <div class="setting-item">
+            <div class="setting-item__meta">
+                <h4>{{ 'SETTINGS.VLC_REUSE_INSTANCE_LABEL' | translate }}</h4>
+                <p>
+                    {{ 'SETTINGS.VLC_REUSE_INSTANCE_DESCRIPTION' | translate }}
+                </p>
+            </div>
+            <div class="setting-item__control setting-item__toggle">
+                <mat-checkbox formControlName="vlcReuseInstance"></mat-checkbox>
+            </div>
+        </div>
     }
 </section>

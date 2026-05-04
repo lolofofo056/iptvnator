@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "Percorso VLC",
         "VLC_PLAYER_PATH_DESCRIPTION": "Imposta il percorso del lettore VLC nel sistema. Verrà usato il percorso fornito per il file exe VLC invece del percorso predefinito per il sistema.",
         "VLC_PLAYER_PATH": "Percorso lettore VLC",
+        "VLC_REUSE_INSTANCE_LABEL": "Riutilizza istanza VLC",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "Quando attivo, la stessa finestra VLC viene riutilizzata per riprodurre stream diversi. Quando disattivo, ogni stream viene aperto in una nuova finestra VLC.",
         "REMOTE_CONTROL": "Telecomando",
         "REMOTE_CONTROL_DESCRIPTION": "Abilita controllo remoto nell'applicazione.",
         "REMOTE_CONTROL_PORT": "Porta controllo remoto",

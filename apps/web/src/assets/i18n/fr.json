@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "Chemin VLC",
         "VLC_PLAYER_PATH_DESCRIPTION": "Définissez le chemin d'accès au lecteur VLC dans votre système. Il utilisera le chemin fourni vers un binaire VLC au lieu du chemin par défaut.",
         "VLC_PLAYER_PATH": "Chemin du lecteur VLC",
+        "VLC_REUSE_INSTANCE_LABEL": "Réutiliser l'instance VLC",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "Lorsqu'elle est activée, la même fenêtre VLC sera réutilisée pour lire différents flux. Lorsqu'elle est désactivée, chaque flux s'ouvre dans une nouvelle fenêtre VLC.",
         "REMOTE_CONTROL": "Télécommande",
         "REMOTE_CONTROL_DESCRIPTION": "Activer la télécommande de l'application.",
         "REMOTE_CONTROL_PORT": "Port de télécommande",

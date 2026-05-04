@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC-bestandspad",
         "VLC_PLAYER_PATH_DESCRIPTION": "Stel het bestandspad in naar de VLC-speler op je systeem. Dit bestandspad wordt gebruikt in plaats van het standaardpad van het systeem.",
         "VLC_PLAYER_PATH": "VLC-speler bestandspad",
+        "VLC_REUSE_INSTANCE_LABEL": "VLC-instantie hergebruiken",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "Wanneer ingeschakeld, wordt hetzelfde VLC-venster hergebruikt voor het afspelen van verschillende streams. Wanneer uitgeschakeld, wordt elke stream geopend in een nieuw VLC-venster.",
         "REMOTE_CONTROL": "Afstandsbediening",
         "REMOTE_CONTROL_DESCRIPTION": "Schakel de afstandsbediening voor de applicatie in.",
         "REMOTE_CONTROL_PORT": "Afstandsbedieningspoort",

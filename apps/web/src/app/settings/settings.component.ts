@@ -188,6 +188,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         mpvPlayerPath: '',
         mpvReuseInstance: false,
         vlcPlayerPath: '',
+        vlcReuseInstance: false,
         remoteControl: false,
         remoteControlPort: [
             8765,

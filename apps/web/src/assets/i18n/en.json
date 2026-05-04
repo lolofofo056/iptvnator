@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC path",
         "VLC_PLAYER_PATH_DESCRIPTION": "Set path to VLC player in your system. It will use the provided path to a VLC binary instead of the default path for our system.",
         "VLC_PLAYER_PATH": "VLC player path",
+        "VLC_REUSE_INSTANCE_LABEL": "Reuse VLC instance",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "When enabled, the same VLC window will be reused for playing different streams. When disabled, each stream opens in a new VLC window.",
         "REMOTE_CONTROL": "Remote control",
         "REMOTE_CONTROL_DESCRIPTION": "Enable remote control of the application.",
         "REMOTE_CONTROL_PORT": "Remote control port",

@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC 경로",
         "VLC_PLAYER_PATH_DESCRIPTION": "시스템에서 VLC 플레이어의 경로를 설정하십시오. \n시스템의 기본 경로 대신 VLC 바이너리에 제공된 경로를 사용합니다.",
         "VLC_PLAYER_PATH": "VLC 플레이어 경로",
+        "VLC_REUSE_INSTANCE_LABEL": "VLC 인스턴스 재사용",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "활성화하면 동일한 VLC 창에서 다른 스트림을 재생합니다. 비활성화하면 각 스트림이 새 VLC 창에서 열립니다.",
         "REMOTE_CONTROL": "원격 제어",
         "REMOTE_CONTROL_DESCRIPTION": "애플리케이션의 원격 제어를 활성화합니다.",
         "REMOTE_CONTROL_PORT": "원격 제어 포트",

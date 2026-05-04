@@ -38,6 +38,7 @@ export interface Settings {
     mpvPlayerPath: string;
     mpvReuseInstance: boolean;
     vlcPlayerPath: string;
+    vlcReuseInstance: boolean;
     remoteControl: boolean;
     remoteControlPort: number;
     /** Custom download folder path (uses system Downloads folder if not set) */

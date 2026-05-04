@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "Ścieżka VLC",
         "VLC_PLAYER_PATH_DESCRIPTION": "Ustaw ścieżkę do odtwarzacza VLC w systemie. Będzie używać podanej ścieżki do pliku binarnego VLC zamiast domyślnej ścieżki dla naszego systemu.",
         "VLC_PLAYER_PATH": "Ścieżka odtwarzacza VLC",
+        "VLC_REUSE_INSTANCE_LABEL": "Użyj ponownie instancji VLC",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "Po włączeniu to samo okno VLC będzie używane do odtwarzania różnych strumieni. Po wyłączeniu każdy strumień otwiera się w nowym oknie VLC.",
         "REMOTE_CONTROL": "Zdalne sterowanie",
         "REMOTE_CONTROL_DESCRIPTION": "Włącz zdalne sterowanie aplikacją.",
         "REMOTE_CONTROL_PORT": "Port zdalnego sterowania",

@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "ruta VLC",
         "VLC_PLAYER_PATH_DESCRIPTION": "Establezca la ruta al reproductor VLC en su sistema. \nUtilizará la ruta proporcionada a un binario VLC en lugar de la ruta predeterminada para nuestro sistema.",
         "VLC_PLAYER_PATH": "Ruta del reproductor VLC",
+        "VLC_REUSE_INSTANCE_LABEL": "Reutilizar instancia de VLC",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "Cuando esta opción está activada, se reutiliza la misma ventana de VLC para reproducir distintos streams. Cuando está desactivada, cada stream se abre en una nueva ventana de VLC.",
         "REMOTE_CONTROL": "Control remoto",
         "REMOTE_CONTROL_DESCRIPTION": "Habilita el control remoto de la aplicación.",
         "REMOTE_CONTROL_PORT": "Puerto de control remoto",

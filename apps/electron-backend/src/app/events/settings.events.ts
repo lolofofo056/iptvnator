@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import {
     MPV_REUSE_INSTANCE,
     store,
+    VLC_REUSE_INSTANCE,
 } from '../services/store.service';
 import { httpServer } from '../server/http-server';
 
@@ -17,6 +18,10 @@ ipcMain.handle('SETTINGS_UPDATE', (_event, arg) => {
     // Only set values that are defined
     if (arg.mpvReuseInstance !== undefined) {
         store.set(MPV_REUSE_INSTANCE, arg.mpvReuseInstance);
+    }
+
+    if (arg.vlcReuseInstance !== undefined) {
+        store.set(VLC_REUSE_INSTANCE, arg.vlcReuseInstance);
     }
 
     // Handle remote control settings

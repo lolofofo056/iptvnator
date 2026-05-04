@@ -323,6 +323,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC yolu",
         "VLC_PLAYER_PATH_DESCRIPTION": "Sisteminizdeki VLC oynatıcı yolunu ayarlayın. Sistemimiz için varsayılan yolu kullanmak yerine, sağlanan VLC ikili dosyası yolunu kullanacaktır.",
         "VLC_PLAYER_PATH": "VLC oynatıcı yolu",
+        "VLC_REUSE_INSTANCE_LABEL": "VLC örneğini yeniden kullan",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "Etkinleştirildiğinde, farklı yayınları oynatmak için aynı VLC penceresi yeniden kullanılır. Devre dışı bırakıldığında, her yayın yeni bir VLC penceresinde açılır.",
         "REMOTE_CONTROL": "Uzaktan kontrol",
         "REMOTE_CONTROL_DESCRIPTION": "Uygulamanın uzaktan kontrolünü etkinleştirin.",
         "REMOTE_CONTROL_PORT": "Uzaktan kontrol portu",
