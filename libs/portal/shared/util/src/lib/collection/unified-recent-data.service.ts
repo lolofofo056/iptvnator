@@ -82,9 +82,10 @@ export class UnifiedRecentDataService {
     }
 
     /**
-     * Bulk remove. Xtream items are batched into a single IPC call;
-     * m3u/stalker items still go per-playlist because they update a JSON
-     * column on the playlist row (not the recently_viewed SQL table).
+     * Bulk remove. Xtream items are batched into a single IPC call. m3u/stalker
+     * items live in the playlist row's `recentlyViewed` JSON column, so we
+     * group them by `playlistId` and do one read-filter-write per playlist —
+     * a per-item Promise.all would race and clobber sibling deletions.
      */
     async removeRecentItemsBatch(
         items: UnifiedCollectionItem[]
@@ -94,25 +95,56 @@ export class UnifiedRecentDataService {
         }
 
         const xtreamBatch: { contentId: number; playlistId: string }[] = [];
-        const nonXtreamItems: UnifiedCollectionItem[] = [];
+        const groupedByPlaylist = new Map<string, (string | number)[]>();
 
         for (const item of items) {
-            if (item.sourceType === 'xtream' && item.contentId != null) {
-                xtreamBatch.push({
-                    contentId: item.contentId,
-                    playlistId: item.playlistId,
-                });
-            } else if (item.sourceType !== 'xtream') {
-                nonXtreamItems.push(item);
+            if (item.sourceType === 'xtream') {
+                if (item.contentId != null) {
+                    xtreamBatch.push({
+                        contentId: item.contentId,
+                        playlistId: item.playlistId,
+                    });
+                }
+                continue;
             }
+
+            const identity =
+                item.sourceType === 'm3u'
+                    ? (item.streamUrl ?? item.uid.split('::')[2])
+                    : (item.stalkerId ?? item.uid.split('::')[2]);
+
+            if (!identity) {
+                continue;
+            }
+
+            const existing = groupedByPlaylist.get(item.playlistId) ?? [];
+            existing.push(identity);
+            groupedByPlaylist.set(item.playlistId, existing);
         }
 
-        await Promise.all([
-            xtreamBatch.length > 0
-                ? this.dbService.removeRecentItemsBatch(xtreamBatch)
-                : Promise.resolve(),
-            ...nonXtreamItems.map((item) => this.removeRecentItem(item)),
-        ]);
+        const tasks: Promise<unknown>[] = [];
+
+        if (xtreamBatch.length > 0) {
+            tasks.push(this.dbService.removeRecentItemsBatch(xtreamBatch));
+        }
+
+        for (const [playlistId, identities] of groupedByPlaylist) {
+            tasks.push(
+                firstValueFrom(
+                    this.playlistsService.removeFromPlaylistRecentlyViewedBatch(
+                        playlistId,
+                        identities
+                    )
+                ).then((updatedPlaylist) =>
+                    this.dispatchPlaylistRecentUpdate(
+                        playlistId,
+                        updatedPlaylist
+                    )
+                )
+            );
+        }
+
+        await Promise.all(tasks);
     }
 
     async clearRecentItems(

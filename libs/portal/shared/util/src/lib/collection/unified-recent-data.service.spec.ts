@@ -19,6 +19,7 @@ describe('UnifiedRecentDataService', () => {
         addM3uRecentlyViewed: jest.Mock;
         removeFromM3uRecentlyViewed: jest.Mock;
         removeFromPortalRecentlyViewed: jest.Mock;
+        removeFromPlaylistRecentlyViewedBatch: jest.Mock;
         clearPlaylistRecentlyViewed: jest.Mock;
         getAllPlaylists: jest.Mock;
     };
@@ -113,6 +114,9 @@ describe('UnifiedRecentDataService', () => {
             ),
             removeFromM3uRecentlyViewed: jest.fn().mockReturnValue(of({ recentlyViewed: [] })),
             removeFromPortalRecentlyViewed: jest.fn().mockReturnValue(of({ recentlyViewed: [] })),
+            removeFromPlaylistRecentlyViewedBatch: jest
+                .fn()
+                .mockReturnValue(of({ recentlyViewed: [] })),
             clearPlaylistRecentlyViewed: jest.fn().mockReturnValue(of({ recentlyViewed: [] })),
             getAllPlaylists: jest.fn().mockReturnValue(of([])),
         };
@@ -271,6 +275,112 @@ describe('UnifiedRecentDataService', () => {
                 }),
             ])
         );
+    });
+
+    it('coalesces multiple M3U items from one playlist into a single batched removal', async () => {
+        const items: UnifiedCollectionItem[] = [
+            {
+                uid: 'm3u::m3u-1::https://example.com/1.m3u8',
+                name: 'Channel One',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'm3u-1',
+                playlistName: 'M3U List',
+                streamUrl: 'https://example.com/1.m3u8',
+            },
+            {
+                uid: 'm3u::m3u-1::https://example.com/2.m3u8',
+                name: 'Channel Two',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'm3u-1',
+                playlistName: 'M3U List',
+                streamUrl: 'https://example.com/2.m3u8',
+            },
+        ];
+
+        await service.removeRecentItemsBatch(items);
+
+        expect(
+            playlistsService.removeFromPlaylistRecentlyViewedBatch
+        ).toHaveBeenCalledTimes(1);
+        expect(
+            playlistsService.removeFromPlaylistRecentlyViewedBatch
+        ).toHaveBeenCalledWith('m3u-1', [
+            'https://example.com/1.m3u8',
+            'https://example.com/2.m3u8',
+        ]);
+        expect(playlistsService.removeFromM3uRecentlyViewed).not.toHaveBeenCalled();
+        expect(store.dispatch).toHaveBeenCalledTimes(1);
+    });
+
+    it('groups Stalker items by their stalker id and skips entries without an identity', async () => {
+        const items: UnifiedCollectionItem[] = [
+            {
+                uid: 'stalker::stalker-1::42',
+                name: 'Stalker Live A',
+                contentType: 'live',
+                sourceType: 'stalker',
+                playlistId: 'stalker-1',
+                playlistName: 'Stalker',
+                stalkerId: '42',
+            },
+            {
+                uid: 'stalker::stalker-1::43',
+                name: 'Stalker Live B',
+                contentType: 'live',
+                sourceType: 'stalker',
+                playlistId: 'stalker-1',
+                playlistName: 'Stalker',
+                stalkerId: '43',
+            },
+        ];
+
+        await service.removeRecentItemsBatch(items);
+
+        expect(
+            playlistsService.removeFromPlaylistRecentlyViewedBatch
+        ).toHaveBeenCalledTimes(1);
+        expect(
+            playlistsService.removeFromPlaylistRecentlyViewedBatch
+        ).toHaveBeenCalledWith('stalker-1', ['42', '43']);
+    });
+
+    it('routes Xtream items through dbService and m3u items through the batch helper', async () => {
+        const items: UnifiedCollectionItem[] = [
+            {
+                uid: 'xtream::xtream-1::live:290',
+                name: 'Xtream Live',
+                contentType: 'live',
+                sourceType: 'xtream',
+                playlistId: 'xtream-1',
+                playlistName: 'Xtream',
+                contentId: 3867578,
+                xtreamId: 290,
+            },
+            {
+                uid: 'm3u::m3u-1::https://example.com/1.m3u8',
+                name: 'Channel One',
+                contentType: 'live',
+                sourceType: 'm3u',
+                playlistId: 'm3u-1',
+                playlistName: 'M3U List',
+                streamUrl: 'https://example.com/1.m3u8',
+            },
+        ];
+
+        await service.removeRecentItemsBatch(items);
+
+        expect(dbService.removeRecentItemsBatch).toHaveBeenCalledTimes(1);
+        expect(dbService.removeRecentItemsBatch).toHaveBeenCalledWith([
+            { contentId: 3867578, playlistId: 'xtream-1' },
+        ]);
+        expect(
+            playlistsService.removeFromPlaylistRecentlyViewedBatch
+        ).toHaveBeenCalledTimes(1);
+        expect(
+            playlistsService.removeFromPlaylistRecentlyViewedBatch
+        ).toHaveBeenCalledWith('m3u-1', ['https://example.com/1.m3u8']);
     });
 
     it('normalizes SQLite-style Xtream recent timestamps to ISO before exposing them', async () => {

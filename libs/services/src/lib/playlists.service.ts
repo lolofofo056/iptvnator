@@ -1041,6 +1041,44 @@ export class PlaylistsService {
         );
     }
 
+    removeFromPlaylistRecentlyViewedBatch(
+        playlistId: string,
+        identities: ReadonlyArray<string | number>
+    ) {
+        if (!playlistId) {
+            throw new Error('Playlist ID is required');
+        }
+
+        if (identities.length === 0) {
+            return this.getPlaylistById(playlistId);
+        }
+
+        return this.getPlaylistById(playlistId).pipe(
+            switchMap((playlist) => {
+                const nextPlaylist: Playlist = {
+                    ...playlist,
+                    recentlyViewed: (
+                        playlist.recentlyViewed as PlaylistRecentlyViewedItem[]
+                    )?.filter(
+                        (item) =>
+                            !identities.some((identity) =>
+                                this.matchesPlaylistRecentIdentity(
+                                    item,
+                                    identity
+                                )
+                            )
+                    ),
+                };
+
+                if (this.isElectronStorageAvailable) {
+                    return this.upsertSqlitePlaylist(nextPlaylist);
+                }
+
+                return this.dbService.update(DbStores.Playlists, nextPlaylist);
+            })
+        );
+    }
+
     clearPlaylistRecentlyViewed(playlistId: string) {
         if (!playlistId) {
             throw new Error('Playlist ID is required');
