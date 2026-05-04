@@ -25,6 +25,12 @@ jest.mock('../services/stalker-playback-context.service', () => ({
     getStalkerPlaybackContextHeaders: jest.fn(() => undefined),
 }));
 
+import { ipcMain } from 'electron';
+import {
+    MPV_PLAYER_PATH,
+    store,
+    VLC_PLAYER_PATH,
+} from '../services/store.service';
 import {
     buildExternalPlayerSpawnSpec,
     isRunningInFlatpak,
@@ -37,6 +43,22 @@ import {
 
 function createPathExists(existingPaths: string[]) {
     return (candidatePath: string) => existingPaths.includes(candidatePath);
+}
+
+function getIpcMainHandler(channel: string): (...args: unknown[]) => unknown {
+    const handleMock = ipcMain.handle as unknown as jest.Mock;
+    const calls = handleMock.mock.calls as Array<
+        [string, (...args: unknown[]) => unknown]
+    >;
+    const match = calls.find(
+        ([registeredChannel]) => registeredChannel === channel
+    );
+
+    if (!match) {
+        throw new Error(`Missing ipcMain handler for ${channel}`);
+    }
+
+    return match[1];
 }
 
 describe('player.events Flatpak launch helpers', () => {
@@ -168,5 +190,29 @@ Command Line Interface initialized. Type \`help' for help.
 > ( state stopped )
 > `)
         ).toBe('stopped');
+    });
+});
+
+describe('player.events external player path settings', () => {
+    beforeEach(() => {
+        (store.set as unknown as jest.Mock).mockClear();
+    });
+
+    it('stores cleared VLC player paths as an empty string', () => {
+        getIpcMainHandler('SET_VLC_PLAYER_PATH')({}, '   ');
+
+        expect(store.set).toHaveBeenCalledWith(VLC_PLAYER_PATH, '');
+    });
+
+    it('trims custom MPV player paths before storing them', () => {
+        getIpcMainHandler('SET_MPV_PLAYER_PATH')(
+            {},
+            '  /Applications/mpv.app/Contents/MacOS/mpv  '
+        );
+
+        expect(store.set).toHaveBeenCalledWith(
+            MPV_PLAYER_PATH,
+            '/Applications/mpv.app/Contents/MacOS/mpv'
+        );
     });
 });

@@ -443,28 +443,33 @@ export class SettingsComponent implements OnInit, OnDestroy {
      * the indexed db store
      */
     onSubmit(): void {
-        this.settingsStore.updateSettings(this.settingsForm.value).then(() => {
+        const settings = this.settingsForm.value;
+        const mpvPlayerPath = this.normalizeExternalPlayerPath(
+            settings.mpvPlayerPath
+        );
+        const vlcPlayerPath = this.normalizeExternalPlayerPath(
+            settings.vlcPlayerPath
+        );
+
+        this.settingsStore.updateSettings(settings).then(() => {
             this.applyChangedSettings();
 
             if (window.electron) {
-                window.electron.updateSettings(this.settingsForm.value);
+                window.electron.updateSettings(settings);
 
-                // Set player paths if using external players
-                if (this.settingsForm.value.mpvPlayerPath) {
-                    window.electron.setMpvPlayerPath(
-                        this.settingsForm.value.mpvPlayerPath
-                    );
-                }
-                if (this.settingsForm.value.vlcPlayerPath) {
-                    window.electron.setVlcPlayerPath(
-                        this.settingsForm.value.vlcPlayerPath
-                    );
-                }
+                window.electron.setMpvPlayerPath(mpvPlayerPath);
+                window.electron.setVlcPlayerPath(vlcPlayerPath);
             }
         });
         if (this.isDialog) {
             this.matDialog.closeAll();
         }
+    }
+
+    private normalizeExternalPlayerPath(
+        playerPath: string | null | undefined
+    ): string {
+        return playerPath?.trim() ?? '';
     }
 
     /**

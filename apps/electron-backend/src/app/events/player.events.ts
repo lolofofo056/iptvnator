@@ -77,9 +77,15 @@ export function isRunningInFlatpak(
     return platform === 'linux' && pathExists('/.flatpak-info');
 }
 
-function normalizeCustomPlayerPath(value: string | undefined): string | null {
+function normalizeCustomPlayerPath(
+    value: string | null | undefined
+): string | null {
     const trimmedValue = value?.trim();
     return trimmedValue ? trimmedValue : null;
+}
+
+function normalizePlayerPathForStore(value: string | null | undefined): string {
+    return normalizeCustomPlayerPath(value) ?? '';
 }
 
 function getDefaultPlayerPath(
@@ -921,10 +927,14 @@ ipcMain.handle(
     }
 );
 
-ipcMain.handle('SET_MPV_PLAYER_PATH', (_event, mpvPlayerPath) => {
-    console.log('... setting mpv player path', mpvPlayerPath);
-    store.set(MPV_PLAYER_PATH, mpvPlayerPath);
-});
+ipcMain.handle(
+    'SET_MPV_PLAYER_PATH',
+    (_event, mpvPlayerPath: string | null | undefined) => {
+        const normalizedPlayerPath = normalizePlayerPathForStore(mpvPlayerPath);
+        console.log('... setting mpv player path', normalizedPlayerPath);
+        store.set(MPV_PLAYER_PATH, normalizedPlayerPath);
+    }
+);
 
 ipcMain.handle('SET_MPV_REUSE_INSTANCE', (_event, reuseInstance: boolean) => {
     console.log('... setting mpv reuse instance', reuseInstance);
@@ -1247,10 +1257,14 @@ ipcMain.handle(
     }
 );
 
-ipcMain.handle('SET_VLC_PLAYER_PATH', (_event, vlcPlayerPath) => {
-    console.log('... setting vlc player path', vlcPlayerPath);
-    store.set(VLC_PLAYER_PATH, vlcPlayerPath);
-});
+ipcMain.handle(
+    'SET_VLC_PLAYER_PATH',
+    (_event, vlcPlayerPath: string | null | undefined) => {
+        const normalizedPlayerPath = normalizePlayerPathForStore(vlcPlayerPath);
+        console.log('... setting vlc player path', normalizedPlayerPath);
+        store.set(VLC_PLAYER_PATH, normalizedPlayerPath);
+    }
+);
 
 ipcMain.handle(
     CLOSE_EXTERNAL_PLAYER_SESSION,
