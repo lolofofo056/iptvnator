@@ -67,6 +67,58 @@ Live catchup is different: the catchup URL already encodes the archive window, s
 
 Audio tracks are discovered from MPV's `track-list` property. The selected track is controlled through MPV's `aid` property. Switching tracks must not reload the stream.
 
+Subtitle tracks mirror the audio-track contract: same `track-list` source, same parsing pipeline, but selected through MPV's `sid` property. A `trackId` of `-1` from the renderer is interpreted as "disable subtitles" and translated to `sid=no` at the addon boundary. Playback speed is observed and set through MPV's `speed` property, clamped at the addon to `[0.25, 4.0]`. Aspect override uses MPV's `video-aspect-override` property as a passthrough string ("no", "16:9", "4:3", "21:9", "2.35:1"). All four properties (`sid`, `speed`, `video-aspect-override`, plus `aid`) are observed at session init so renderer state stays in sync with the native side without needing extra round-trips.
+
+The renderer learns which features the loaded addon binary supports through the `EmbeddedMpvSupport.capabilities` field returned from `getEmbeddedMpvSupport()`. The service probes `typeof addon.<method> === 'function'` for each optional native export. Older addon binaries with the original audio-only surface return `capabilities: { subtitles: false, playbackSpeed: false, aspectOverride: false, screenshot: false }`, and the renderer hides the corresponding controls instead of throwing at runtime. After a native rebuild, the new buttons light up automatically without renderer changes.
+
+## Renderer Architecture And Reactivity
+
+The Angular side of the embedded MPV player is intentionally split so the player component stays a view-only orchestrator. The renderer files live under `libs/ui/playback/src/lib/embedded-mpv-player/`:
+
+- `embedded-mpv-format.utils.ts` — pure helpers (`formatTime`, `audioTrackLabel`, `subtitleTrackLabel`, `speedLabel`, `aspectLabel`, `volumeIcon`, `volumeLabel`, `readStoredVolume`, `persistVolume`, `measureBounds`) and preset constants (`SPEED_PRESETS`, `ASPECT_PRESETS`, `HIDDEN_BOUNDS`, `MENU_OPEN_BOTTOM_CUTOUT_PX`).
+- `embedded-mpv-shortcuts.ts` — `EmbeddedMpvShortcuts` class with `attach(handlers)` / `detach()`. Owns the document keydown listener and routes through a callback interface; the component supplies the callbacks. Listens for Space/K (toggle), F (fullscreen), arrow keys (seek/volume), M (mute), Escape (close popovers).
+- `embedded-mpv-overlay-visibility.service.ts` — singleton service that exposes `overlayActive: signal<boolean>`. Tracks `MatDialog.afterOpened`/`afterAllClosed` for dialog-shaped overlays and falls back to a `MutationObserver` on the CDK overlay container for any remaining backdrop-bearing CDK overlays. The MPV NSView is hidden off-screen while a modal is open so DOM dialogs can paint above it.
+- `embedded-mpv-ui-state.ts` — `EmbeddedMpvMenuState` (single-open popover state machine with `volumeOpen`, `audioOpen`, `subtitleOpen`, `speedOpen`, `aspectOpen` signals plus `anyOpen` computed; `toggle`/`open`/`close`/`closeAll` helpers) and `EmbeddedMpvFeedback` (transient overlay that auto-clears after a configurable delay; used for keypress feedback).
+- `embedded-mpv-session-controller.ts` — component-scoped `Injectable` service that owns the `support`, `session`, `sessionId`, `stalled`, and `retryToken` signals. Subscribes to `onEmbeddedMpvSessionUpdate`, runs the polling-driven `stalled` timer, owns bounds-sync (resize, scroll, overlay state), and exposes the imperative IPC surface (`startSession`, `togglePaused`, `seekBy`/`seekTo`, `applyVolume`, `setAudioTrack`, `setSubtitleTrack`, `setSpeed`, `setAspect`, `retry`).
+- `embedded-mpv-player.component.ts` — view-only shell. Holds view children, derived `computed` signals, DOM event listeners (pointermove, pointerdown, fullscreenchange, dblclick), and three `effect()`s.
+
+### Bounds compositing strategy
+
+The native NSView paints over the WebContents layer, so any DOM region it covers cannot receive pointer events and any CSS `z-index` competition is unwinnable. The component compensates with a single `boundsProvider(host)` closure on the controller that returns one of three bound shapes, evaluated each time the active bounds-sync runs:
+
+- **Modal overlay open** (any MatDialog, including the command palette) → `HIDDEN_BOUNDS`. The MPV view moves off-screen so the dialog has the full window.
+- **Control popover open** (any of the menu states above) → host bounds with `MENU_OPEN_BOTTOM_CUTOUT_PX` (300 px) removed from the bottom. The popover region becomes DOM-receiving while video keeps playing in the upper region.
+- **Idle** → full host bounds.
+
+The viewport DOM element also reserves `--embedded-mpv-controls-height` (64 px) at the bottom when controls are enabled, so the controls strip itself is always DOM and always reachable for hover-to-reveal even before the popover-cutout takes effect.
+
+### Reactivity rules (signals and effects)
+
+A signal read inside an `effect()` becomes a tracked dependency and re-runs the entire effect on change. The cleanup-then-rebuild pattern that lives in `effect((onCleanup) => { ... })` is catastrophic for stateful resources like MPV sessions — every dependency change disposes the active session and creates a new one, restarting playback.
+
+Defensive practice for this component:
+
+> Any signal read inside an effect that is used as **input to a one-shot side effect** (write a value, emit an event, schedule a timer, pass an initial argument) must be wrapped in `untracked()`. Only signals whose change is supposed to trigger a re-run go in the tracked block.
+
+Concrete bugs from the audit, recorded so they don't get reintroduced:
+
+- **Infinite session-create loop.** `EmbeddedMpvSessionController.startSession` once wrote `this.support.set(prepared)` after the `prepareEmbeddedMpv` round-trip. The component's session-creation effect tracks `this.support()`, so the write fired the effect → cleanup disposed the session → new session was created → prepare ran again → support was set again. Symptom: endless "Loading stream…" spinner. Fix: do not write `support` inside `startSession`; the constructor's `loadSupport()` already populates it including capabilities.
+- **Stream restart on volume change.** The session-creation effect once read `this.volume()` directly to pass to `startSession`'s `initialVolume`. Each volume tick re-ran the effect, disposing and recreating the session — for VOD/series this restarted playback from the beginning. Fix: read it via `untracked(() => this.volume())`. Subsequent volume changes flow through `controller.applyVolume()`, never through the effect graph.
+- **Spurious `timeUpdate` re-emits and `volume.set` calls.** The session-fan-out effect calls `scheduleControlsHide()`, which reads `isPlaying`, `menus.anyOpen`, `statusLabel`, and `controlsVisible`. Those reads became tracked deps, so opening any popover, pausing, or hovering re-ran the body. No loop in isolation, but a parent that wires `timeUpdate` back into `playback.startTime` would have hit the volume-restart bug class. Fix: wrap the side-effect block in `untracked()` so the effect listens only to session changes.
+- **2 Hz no-op stalled-tracker re-runs.** The controller's stalled effect tracked the full `session` signal, which updates on every position-poll snapshot. `handleStalledTracking` is a no-op for non-loading status, so the re-runs cost nothing useful. Fix: track a `sessionStatus = computed(() => this.session()?.status ?? null)` instead so the effect fires only on real status transitions.
+
+When adding a new effect, audit it the same way: list every tracked signal read explicitly, justify each one as a *re-trigger source*, and wrap everything else in `untracked()`. When extending an existing helper that is called from inside an effect, treat the helper's signal reads as if they were inline in the effect.
+
+### IPC safety
+
+Renderer-side IPC methods on the controller use the canonical `sessionId()` signal as the gate, **not** `session()?.id`. The session payload during the loading window carries a placeholder id (`embedded-mpv-starting`) set by `createLoadingSession()`; pushing that placeholder to the addon would hit `getSessionOrThrow` for a session that does not exist. The native side throws `Napi::Error` rather than `std::runtime_error` so that misuse surfaces as a JS exception rather than a process abort, but the renderer should still gate properly so the addon never sees the placeholder.
+
+Every IPC call goes through a `guardIpc` helper that swallows addon-side throws — sessions can be torn down while a call is in flight, and snapshot polling will resync state on the next tick.
+
+### Power management
+
+The Electron main process holds an `electron.powerSaveBlocker` of type `prevent-display-sleep` whenever any embedded MPV session has status `playing`. Released on pause, dispose, or shutdown. Necessary because libmpv-rendered video does not own the windowing surface, so MPV's own screensaver inhibition does not apply. See `EmbeddedMpvNativeService.updatePowerBlocker()` for the implementation.
+
 ## Packaging State
 
 Current development behavior:
