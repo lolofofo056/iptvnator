@@ -142,9 +142,11 @@ export class EmbeddedMpvSessionController {
                         'Embedded MPV is not available in this environment.'
                 );
             }
-            if (prepared) {
-                this.support.set(prepared);
-            }
+            // Do not call this.support.set(prepared) here: support is already
+            // populated by loadSupport() in the constructor, and writing it
+            // again would re-trigger the component's session-creation effect
+            // (which depends on this.support()), tearing down the session we
+            // just created and looping forever.
 
             const created = await window.electron!.createEmbeddedMpvSession(
                 measureBounds(host),
