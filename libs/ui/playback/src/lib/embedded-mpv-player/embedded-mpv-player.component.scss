@@ -4,18 +4,20 @@
 }
 
 .embedded-mpv-player {
-    --embedded-mpv-accent: #7dd3fc;
-    --embedded-mpv-glass: rgba(6, 10, 18, 0.78);
-    --embedded-mpv-border: rgba(255, 255, 255, 0.12);
-    --embedded-mpv-controls-height: 96px;
+    --embedded-mpv-accent: var(--mat-sys-primary);
+    --embedded-mpv-glass: color-mix(
+        in srgb,
+        var(--mat-sys-surface) 78%,
+        transparent
+    );
+    --embedded-mpv-border: var(--mat-sys-outline-variant);
+    --embedded-mpv-controls-height: 64px;
 
     position: relative;
     display: block;
     height: 100%;
     min-height: 0;
-    background:
-        linear-gradient(180deg, rgba(10, 14, 24, 0.08), rgba(10, 14, 24, 0.24)),
-        #02050a;
+    background: var(--mat-sys-surface);
     border-radius: inherit;
     overflow: hidden;
 }
@@ -29,31 +31,50 @@
     width: 100vw;
     height: 100vh;
     border-radius: 0;
+    background: #000;
+}
+
+.embedded-mpv-player:fullscreen .embedded-mpv-player__viewport,
+.embedded-mpv-player--fullscreen .embedded-mpv-player__viewport {
+    background: #000;
 }
 
 .embedded-mpv-player__viewport {
     position: absolute;
     inset: 0;
     min-height: 0;
-    background:
-        radial-gradient(circle at top, rgba(96, 125, 139, 0.24), transparent 58%),
-        linear-gradient(180deg, rgba(6, 8, 13, 0.88), rgba(2, 4, 8, 0.98));
+    background: var(--mat-sys-surface);
 }
 
-.embedded-mpv-player--controls-enabled .embedded-mpv-player__viewport {
-    bottom: var(--embedded-mpv-controls-height);
+.embedded-mpv-player__loader {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-auto-rows: max-content;
+    place-content: center;
+    justify-items: center;
+    gap: 12px;
+    color: var(--mat-sys-on-surface);
+    font-size: 0.85rem;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.embedded-mpv-player__loader span {
+    color: color-mix(in srgb, var(--mat-sys-on-surface) 80%, transparent);
 }
 
 .embedded-mpv-player__status {
     position: absolute;
-    inset: auto 16px 16px 16px;
+    inset: 16px 16px auto auto;
+    max-width: min(60%, 360px);
     padding: 10px 12px;
-    color: rgba(245, 247, 250, 0.94);
-    background: rgba(7, 10, 16, 0.72);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--mat-sys-on-surface);
+    background: var(--embedded-mpv-glass);
+    border: 1px solid var(--embedded-mpv-border);
     border-radius: 12px;
     backdrop-filter: blur(14px);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     line-height: 1.4;
     pointer-events: none;
     z-index: 1;
@@ -67,24 +88,23 @@
     z-index: 2;
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    gap: 18px;
+    gap: 16px;
     align-items: center;
     align-content: center;
-    height: var(--embedded-mpv-controls-height);
-    padding: 12px 18px 14px;
+    min-height: var(--embedded-mpv-controls-height);
+    padding: 8px 16px 10px;
     opacity: 0;
     pointer-events: none;
-    transform: translateY(14px);
-    overflow: hidden;
-    background:
-        linear-gradient(180deg, rgba(2, 5, 10, 0.28), rgba(5, 9, 15, 0.88) 30%),
-        linear-gradient(180deg, rgba(12, 18, 29, 0.82), rgba(5, 9, 15, 0.94));
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: 0 -28px 70px rgba(0, 0, 0, 0.46);
-    backdrop-filter: blur(18px);
+    transform: translateY(8px);
+    background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(0, 0, 0, 0.55) 50%,
+        rgba(0, 0, 0, 0.78) 100%
+    );
     transition:
-        opacity 160ms ease,
-        transform 180ms ease;
+        opacity 180ms ease-out,
+        transform 200ms ease-out;
 }
 
 .embedded-mpv-player__controls--visible {
@@ -93,37 +113,60 @@
     transform: translateY(0);
 }
 
-.embedded-mpv-player__controls--panel-open {
-    background:
-        linear-gradient(180deg, rgba(2, 5, 10, 0.42), rgba(5, 9, 15, 0.92) 28%),
-        linear-gradient(180deg, rgba(12, 18, 29, 0.9), rgba(5, 9, 15, 0.98));
-}
-
 .embedded-mpv-player__transport {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
 }
 
 .embedded-mpv-player__timeline {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
 }
 
 .embedded-mpv-player__time {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 12px;
-    color: rgba(226, 232, 240, 0.84);
+    color: color-mix(in srgb, var(--mat-sys-on-surface) 84%, transparent);
     font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.embedded-mpv-player__live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--mat-sys-on-error);
+    background: var(--mat-sys-error);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.embedded-mpv-player__live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: embedded-mpv-live-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes embedded-mpv-live-pulse {
+    50% {
+        opacity: 0.35;
+    }
 }
 
 .embedded-mpv-player__actions {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
 }
 
 .embedded-mpv-player__popover-anchor {
@@ -142,14 +185,11 @@
 
 .embedded-mpv-player__control-panel {
     min-width: 0;
-    color: rgba(240, 247, 255, 0.94);
-    background:
-        linear-gradient(180deg, rgba(17, 26, 39, 0.9), rgba(5, 9, 16, 0.94));
+    color: var(--mat-sys-on-surface);
+    background: var(--embedded-mpv-glass);
     border: 1px solid var(--embedded-mpv-border);
-    border-radius: 18px;
-    box-shadow:
-        0 18px 50px rgba(0, 0, 0, 0.42),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
     backdrop-filter: blur(18px);
 }
 
@@ -163,8 +203,8 @@
 }
 
 .embedded-mpv-player__back-button {
-    color: rgba(241, 245, 249, 0.88);
-    background: rgba(255, 255, 255, 0.06);
+    color: var(--mat-sys-on-surface);
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 6%, transparent);
 }
 
 .embedded-mpv-player__volume-panel {
@@ -183,8 +223,9 @@
 }
 
 .embedded-mpv-player__volume-value {
-    color: rgba(226, 232, 240, 0.82);
+    color: color-mix(in srgb, var(--mat-sys-on-surface) 80%, transparent);
     font-size: 0.76rem;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
@@ -198,7 +239,7 @@
 
 .embedded-mpv-player__menu-title {
     padding: 0 2px;
-    color: rgba(226, 232, 240, 0.7);
+    color: color-mix(in srgb, var(--mat-sys-on-surface) 70%, transparent);
     font-size: 0.72rem;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -224,7 +265,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 8px 10px;
-    color: rgba(241, 245, 249, 0.88);
+    color: var(--mat-sys-on-surface);
     background: transparent;
     border: 0;
     border-radius: 12px;
@@ -241,8 +282,11 @@
 
 .embedded-mpv-player__audio-track:hover,
 .embedded-mpv-player__audio-track--selected {
-    color: #f8fafc;
-    background: rgba(125, 211, 252, 0.16);
+    background: color-mix(
+        in srgb,
+        var(--embedded-mpv-accent) 16%,
+        transparent
+    );
 }
 
 .embedded-mpv-player__audio-track mat-icon {
@@ -253,22 +297,26 @@
 }
 
 .embedded-mpv-player :is(button[mat-icon-button]) {
-    color: rgba(241, 245, 249, 0.9);
+    color: var(--mat-sys-on-surface);
 }
 
 .embedded-mpv-player :is(button[mat-icon-button]:hover) {
-    color: #ffffff;
-    background: rgba(125, 211, 252, 0.14);
+    color: var(--mat-sys-on-surface);
+    background: color-mix(
+        in srgb,
+        var(--embedded-mpv-accent) 14%,
+        transparent
+    );
 }
 
 @media (max-width: 720px) {
     .embedded-mpv-player {
-        --embedded-mpv-controls-height: 148px;
+        --embedded-mpv-controls-height: 88px;
     }
 
     .embedded-mpv-player__controls {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 8px;
     }
 
     .embedded-mpv-player__actions {

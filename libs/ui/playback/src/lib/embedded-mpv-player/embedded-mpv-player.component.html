@@ -13,8 +13,27 @@
     (focusin)="onPlayerInteraction()"
 >
     <div #viewport class="embedded-mpv-player__viewport">
-        @if (statusLabel()) {
-            <div class="embedded-mpv-player__status">
+        @if (isLoading()) {
+            <div
+                class="embedded-mpv-player__loader"
+                role="status"
+                aria-live="polite"
+            >
+                <mat-progress-spinner
+                    mode="indeterminate"
+                    diameter="48"
+                    strokeWidth="3"
+                />
+                @if (statusLabel()) {
+                    <span>{{ statusLabel() }}</span>
+                }
+            </div>
+        } @else if (statusLabel()) {
+            <div
+                class="embedded-mpv-player__status"
+                role="status"
+                aria-live="polite"
+            >
                 {{ statusLabel() }}
             </div>
         }
@@ -172,11 +191,22 @@
                         <span>{{
                             formatTime(session()?.positionSeconds)
                         }}</span>
-                        <span>{{
-                            canSeek()
-                                ? formatTime(session()?.durationSeconds)
-                                : 'LIVE'
-                        }}</span>
+                        @if (canSeek()) {
+                            <span>{{
+                                formatTime(session()?.durationSeconds)
+                            }}</span>
+                        } @else {
+                            <span
+                                class="embedded-mpv-player__live-badge"
+                                aria-label="Live stream"
+                            >
+                                <span
+                                    class="embedded-mpv-player__live-dot"
+                                    aria-hidden="true"
+                                ></span>
+                                LIVE
+                            </span>
+                        }
                     </div>
                 </div>
 

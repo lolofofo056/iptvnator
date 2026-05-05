@@ -23,6 +23,7 @@ const HIDDEN_BOUNDS = Object.freeze({
 });
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import {
     EmbeddedMpvAudioTrack,
@@ -36,7 +37,12 @@ import {
     selector: 'app-embedded-mpv-player',
     templateUrl: './embedded-mpv-player.component.html',
     styleUrl: './embedded-mpv-player.component.scss',
-    imports: [MatButtonModule, MatIconModule, MatTooltipModule],
+    imports: [
+        MatButtonModule,
+        MatIconModule,
+        MatProgressSpinnerModule,
+        MatTooltipModule,
+    ],
     changeDetection: ChangeDetectionStrategy.OnPush,
     host: {
         class: 'embedded-mpv-player-host',
@@ -104,7 +110,7 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
         }
 
         if (!session || session.status === 'loading') {
-            return 'Loading stream in MPV...';
+            return 'Loading stream…';
         }
 
         return '';
