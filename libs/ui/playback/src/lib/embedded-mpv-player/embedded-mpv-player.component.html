@@ -10,6 +10,7 @@
     (pointerenter)="onPlayerInteraction()"
     (pointermove)="onPlayerInteraction()"
     (click)="onPlayerInteraction()"
+    (dblclick)="onPlayerDblClick($event)"
     (focusin)="onPlayerInteraction()"
 >
     <div #viewport class="embedded-mpv-player__viewport">

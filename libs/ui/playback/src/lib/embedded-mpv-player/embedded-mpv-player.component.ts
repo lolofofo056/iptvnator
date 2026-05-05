@@ -194,12 +194,51 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
         }
     };
     private readonly onDocumentKeydown = (event: KeyboardEvent) => {
-        if (event.key !== 'Escape') {
+        if (event.key === 'Escape') {
+            this.closePopovers();
             return;
         }
 
-        this.closePopovers();
+        if (this.shouldIgnoreShortcut(event)) {
+            return;
+        }
+
+        switch (event.key) {
+            case ' ':
+            case 'k':
+            case 'K':
+                event.preventDefault();
+                void this.togglePaused();
+                return;
+            case 'f':
+            case 'F':
+                event.preventDefault();
+                void this.toggleFullscreen();
+                return;
+            case 'ArrowLeft':
+                event.preventDefault();
+                void this.seekBy(-5);
+                return;
+            case 'ArrowRight':
+                event.preventDefault();
+                void this.seekBy(5);
+                return;
+            case 'ArrowUp':
+                event.preventDefault();
+                this.adjustVolume(0.05);
+                return;
+            case 'ArrowDown':
+                event.preventDefault();
+                this.adjustVolume(-0.05);
+                return;
+            case 'm':
+            case 'M':
+                event.preventDefault();
+                this.toggleMute();
+                return;
+        }
     };
+    private mutedVolume = 0;
     private readonly onFullscreenChange = () => {
         const playerRoot = this.playerRoot()?.nativeElement;
         this.isFullscreen.set(
@@ -520,9 +559,37 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
 
     onVolumeInput(event: Event): void {
         const nextVolume = Number((event.target as HTMLInputElement).value);
+        this.applyVolume(nextVolume);
+        this.revealControls(false);
+    }
+
+    onPlayerDblClick(event: MouseEvent): void {
+        const target = event.target as HTMLElement | null;
+        if (target?.closest('button, input, [role="slider"]')) {
+            return;
+        }
+        void this.toggleFullscreen();
+    }
+
+    private adjustVolume(delta: number): void {
+        const next = Math.max(0, Math.min(1, this.volume() + delta));
+        this.applyVolume(next);
+        this.revealControls();
+    }
+
+    private toggleMute(): void {
+        if (this.volume() > 0) {
+            this.mutedVolume = this.volume();
+            this.applyVolume(0);
+        } else {
+            this.applyVolume(this.mutedVolume || 0.5);
+        }
+        this.revealControls();
+    }
+
+    private applyVolume(nextVolume: number): void {
         this.volume.set(nextVolume);
         localStorage.setItem('volume', String(nextVolume));
-        this.revealControls(false);
 
         const session = this.session();
         if (!session?.id || !window.electron?.setEmbeddedMpvVolume) {
@@ -537,6 +604,21 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
                 }
             })
             .catch(() => undefined);
+    }
+
+    private shouldIgnoreShortcut(event: KeyboardEvent): boolean {
+        if (this.overlayVisibility.overlayActive()) {
+            return true;
+        }
+        const target = event.target as HTMLElement | null;
+        if (!target) {
+            return false;
+        }
+        const tag = target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+            return true;
+        }
+        return target.isContentEditable;
     }
 
     async selectAudioTrack(trackId: number): Promise<void> {
