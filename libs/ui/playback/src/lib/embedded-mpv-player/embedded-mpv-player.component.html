@@ -14,7 +14,7 @@
     (focusin)="onPlayerInteraction()"
 >
     <div #viewport class="embedded-mpv-player__viewport">
-        @if (isLoading()) {
+        @if (isLoading() && !stalled()) {
             <div
                 class="embedded-mpv-player__loader"
                 role="status"
@@ -29,6 +29,19 @@
                     <span>{{ statusLabel() }}</span>
                 }
             </div>
+        } @else if (stalled()) {
+            <div
+                class="embedded-mpv-player__stalled"
+                role="alert"
+                aria-live="assertive"
+            >
+                <mat-icon>warning_amber</mat-icon>
+                <p>This stream is taking longer than expected to start.</p>
+                <button mat-stroked-button type="button" (click)="retry()">
+                    <mat-icon>refresh</mat-icon>
+                    <span>Retry</span>
+                </button>
+            </div>
         } @else if (statusLabel()) {
             <div
                 class="embedded-mpv-player__status"
@@ -38,226 +51,211 @@
                 {{ statusLabel() }}
             </div>
         }
+
+        @if (feedbackOverlay(); as feedback) {
+            <div
+                class="embedded-mpv-player__feedback"
+                [attr.data-feedback-key]="feedback.key"
+                aria-hidden="true"
+            >
+                <mat-icon>{{ feedback.icon }}</mat-icon>
+                <span>{{ feedback.label }}</span>
+            </div>
+        }
     </div>
 
     @if (showControls() && isSupported()) {
         <div
             class="embedded-mpv-player__controls"
             [class.embedded-mpv-player__controls--visible]="controlsAreVisible()"
-            [class.embedded-mpv-player__controls--panel-open]="
-                volumePopoverOpen() || audioMenuOpen()
-            "
         >
-            @if (volumePopoverOpen()) {
+            <div class="embedded-mpv-player__transport">
+                <button
+                    mat-icon-button
+                    type="button"
+                    class="embedded-mpv-player__control-button"
+                    [disabled]="isLoading()"
+                    (click)="togglePaused()"
+                    [attr.aria-label]="isPaused() ? 'Play' : 'Pause'"
+                    [matTooltip]="isPaused() ? 'Play' : 'Pause'"
+                    matTooltipPosition="above"
+                >
+                    <mat-icon>{{
+                        isPaused() ? 'play_arrow' : 'pause'
+                    }}</mat-icon>
+                </button>
+
+                <button
+                    mat-icon-button
+                    type="button"
+                    class="embedded-mpv-player__control-button"
+                    [disabled]="!canSeek()"
+                    (click)="seekBy(-10)"
+                    aria-label="Back 10 seconds"
+                    matTooltip="Back 10 seconds"
+                    matTooltipPosition="above"
+                >
+                    <mat-icon>replay_10</mat-icon>
+                </button>
+
+                <button
+                    mat-icon-button
+                    type="button"
+                    class="embedded-mpv-player__control-button"
+                    [disabled]="!canSeek()"
+                    (click)="seekBy(10)"
+                    aria-label="Forward 10 seconds"
+                    matTooltip="Forward 10 seconds"
+                    matTooltipPosition="above"
+                >
+                    <mat-icon>forward_10</mat-icon>
+                </button>
+            </div>
+
+            <div class="embedded-mpv-player__timeline">
+                <input
+                    class="embedded-mpv-player__slider"
+                    type="range"
+                    min="0"
+                    [max]="session()?.durationSeconds ?? 0"
+                    [value]="timelineValue()"
+                    [disabled]="!canSeek()"
+                    [attr.aria-valuetext]="formatTime(timelineValue())"
+                    (input)="onTimelineInput($event)"
+                />
+                <div class="embedded-mpv-player__time">
+                    <span>{{ formatTime(session()?.positionSeconds) }}</span>
+                    @if (canSeek()) {
+                        <span>{{ formatTime(session()?.durationSeconds) }}</span>
+                    } @else {
+                        <span
+                            class="embedded-mpv-player__live-badge"
+                            aria-label="Live stream"
+                        >
+                            <span
+                                class="embedded-mpv-player__live-dot"
+                                aria-hidden="true"
+                            ></span>
+                            LIVE
+                        </span>
+                    }
+                </div>
+            </div>
+
+            <div class="embedded-mpv-player__actions">
                 <div
-                    class="embedded-mpv-player__mode-panel embedded-mpv-player__mode-panel--volume"
+                    class="embedded-mpv-player__popover-anchor"
+                    (pointerenter)="onVolumeHoverEnter()"
+                    (pointerleave)="onVolumeHoverLeave()"
+                    (focusin)="onVolumeHoverEnter()"
+                    (focusout)="onVolumeHoverLeave()"
+                    (wheel)="onVolumeWheel($event)"
                 >
                     <button
                         mat-icon-button
                         type="button"
-                        class="embedded-mpv-player__control-button embedded-mpv-player__back-button"
-                        (click)="showDefaultControls()"
-                        aria-label="Back to player controls"
-                        matTooltip="Back to controls"
-                        matTooltipPosition="right"
-                    >
-                        <mat-icon>arrow_back</mat-icon>
-                    </button>
-
-                    <div
-                        class="embedded-mpv-player__control-panel embedded-mpv-player__volume-panel"
-                        role="dialog"
-                        aria-label="Volume"
+                        class="embedded-mpv-player__control-button"
+                        (click)="toggleMute()"
+                        [attr.aria-label]="
+                            volume() <= 0 ? 'Unmute' : 'Mute'
+                        "
+                        [matTooltip]="volume() <= 0 ? 'Unmute' : 'Mute'"
+                        matTooltipPosition="above"
                     >
                         <mat-icon>{{ volumeIcon() }}</mat-icon>
-                        <input
-                            class="embedded-mpv-player__slider"
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            [value]="volume()"
-                            [attr.aria-label]="volumeLabel()"
-                            (input)="onVolumeInput($event)"
-                        />
-                        <span class="embedded-mpv-player__volume-value">
-                            {{ volumeLabel() }}
-                        </span>
-                    </div>
-                </div>
-            } @else if (audioMenuOpen()) {
-                <div
-                    class="embedded-mpv-player__mode-panel embedded-mpv-player__mode-panel--audio"
-                >
-                    <button
-                        mat-icon-button
-                        type="button"
-                        class="embedded-mpv-player__control-button embedded-mpv-player__back-button"
-                        (click)="showDefaultControls()"
-                        aria-label="Back to player controls"
-                        matTooltip="Back to controls"
-                        matTooltipPosition="right"
-                    >
-                        <mat-icon>arrow_back</mat-icon>
                     </button>
-
-                    <div
-                        class="embedded-mpv-player__control-panel embedded-mpv-player__audio-menu"
-                        role="menu"
-                        aria-label="Audio tracks"
-                    >
-                        <div class="embedded-mpv-player__menu-title">
-                            Audio tracks
-                        </div>
-                        <div class="embedded-mpv-player__audio-track-list">
-                            @for (
-                                track of audioTracks();
-                                track track.id;
-                                let index = $index
-                            ) {
-                                <button
-                                    type="button"
-                                    role="menuitemradio"
-                                    [attr.aria-checked]="track.selected"
-                                    class="embedded-mpv-player__audio-track"
-                                    [class.embedded-mpv-player__audio-track--selected]="
-                                        track.selected
-                                    "
-                                    (click)="selectAudioTrack(track.id)"
-                                >
-                                    <span>{{ trackLabel(track, index) }}</span>
-                                    @if (track.selected) {
-                                        <mat-icon>check</mat-icon>
-                                    }
-                                </button>
-                            }
-                        </div>
-                    </div>
-                </div>
-            } @else {
-                <div class="embedded-mpv-player__transport">
-                    <button
-                        mat-icon-button
-                        type="button"
-                        class="embedded-mpv-player__control-button"
-                        [disabled]="isLoading()"
-                        (click)="togglePaused()"
-                        [attr.aria-label]="isPaused() ? 'Play' : 'Pause'"
-                        [matTooltip]="isPaused() ? 'Play' : 'Pause'"
-                        matTooltipPosition="right"
-                    >
-                        <mat-icon>{{
-                            isPaused() ? 'play_arrow' : 'pause'
-                        }}</mat-icon>
-                    </button>
-
-                    <button
-                        mat-icon-button
-                        type="button"
-                        class="embedded-mpv-player__control-button"
-                        [disabled]="!canSeek()"
-                        (click)="seekBy(-10)"
-                        aria-label="Back 10 seconds"
-                        matTooltip="Back 10 seconds"
-                        matTooltipPosition="right"
-                    >
-                        <mat-icon>replay_10</mat-icon>
-                    </button>
-
-                    <button
-                        mat-icon-button
-                        type="button"
-                        class="embedded-mpv-player__control-button"
-                        [disabled]="!canSeek()"
-                        (click)="seekBy(10)"
-                        aria-label="Forward 10 seconds"
-                        matTooltip="Forward 10 seconds"
-                        matTooltipPosition="right"
-                    >
-                        <mat-icon>forward_10</mat-icon>
-                    </button>
-                </div>
-
-                <div class="embedded-mpv-player__timeline">
-                    <input
-                        class="embedded-mpv-player__slider"
-                        type="range"
-                        min="0"
-                        [max]="session()?.durationSeconds ?? 0"
-                        [value]="timelineValue()"
-                        [disabled]="!canSeek()"
-                        (input)="onTimelineInput($event)"
-                    />
-                    <div class="embedded-mpv-player__time">
-                        <span>{{
-                            formatTime(session()?.positionSeconds)
-                        }}</span>
-                        @if (canSeek()) {
-                            <span>{{
-                                formatTime(session()?.durationSeconds)
-                            }}</span>
-                        } @else {
-                            <span
-                                class="embedded-mpv-player__live-badge"
-                                aria-label="Live stream"
-                            >
-                                <span
-                                    class="embedded-mpv-player__live-dot"
-                                    aria-hidden="true"
-                                ></span>
-                                LIVE
+                    @if (volumePopoverOpen()) {
+                        <div
+                            class="embedded-mpv-player__control-panel embedded-mpv-player__volume-popover"
+                            role="dialog"
+                            aria-label="Volume"
+                        >
+                            <input
+                                class="embedded-mpv-player__slider embedded-mpv-player__slider--volume"
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.01"
+                                [value]="volume()"
+                                [attr.aria-label]="volumeLabel()"
+                                [attr.aria-valuetext]="volumeLabel()"
+                                (input)="onVolumeInput($event)"
+                            />
+                            <span class="embedded-mpv-player__volume-value">
+                                {{ volumeLabel() }}
                             </span>
-                        }
-                    </div>
+                        </div>
+                    }
                 </div>
 
-                <div class="embedded-mpv-player__actions">
+                @if (hasAudioTracks()) {
                     <div class="embedded-mpv-player__popover-anchor">
                         <button
                             mat-icon-button
                             type="button"
                             class="embedded-mpv-player__control-button"
-                            (click)="toggleVolumePopover()"
-                            [attr.aria-label]="volumeLabel()"
-                            [matTooltip]="volumeLabel()"
-                            matTooltipPosition="left"
+                            (click)="toggleAudioMenu()"
+                            [attr.aria-expanded]="audioMenuOpen()"
+                            aria-label="Audio tracks"
+                            matTooltip="Audio tracks"
+                            matTooltipPosition="above"
                         >
-                            <mat-icon>{{ volumeIcon() }}</mat-icon>
+                            <mat-icon>graphic_eq</mat-icon>
                         </button>
-                    </div>
-
-                    @if (hasAudioTracks()) {
-                        <div class="embedded-mpv-player__popover-anchor">
-                            <button
-                                mat-icon-button
-                                type="button"
-                                class="embedded-mpv-player__control-button"
-                                (click)="toggleAudioMenu()"
+                        @if (audioMenuOpen()) {
+                            <div
+                                class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
+                                role="menu"
                                 aria-label="Audio tracks"
-                                matTooltip="Audio tracks"
-                                matTooltipPosition="left"
                             >
-                                <mat-icon>graphic_eq</mat-icon>
-                            </button>
-                        </div>
-                    }
+                                <div class="embedded-mpv-player__menu-title">
+                                    Audio tracks
+                                </div>
+                                <div class="embedded-mpv-player__audio-track-list">
+                                    @for (
+                                        track of audioTracks();
+                                        track track.id;
+                                        let index = $index
+                                    ) {
+                                        <button
+                                            type="button"
+                                            role="menuitemradio"
+                                            [attr.aria-checked]="track.selected"
+                                            class="embedded-mpv-player__audio-track"
+                                            [class.embedded-mpv-player__audio-track--selected]="
+                                                track.selected
+                                            "
+                                            (click)="selectAudioTrack(track.id)"
+                                        >
+                                            <span>{{
+                                                trackLabel(track, index)
+                                            }}</span>
+                                            @if (track.selected) {
+                                                <mat-icon>check</mat-icon>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
 
-                    <button
-                        mat-icon-button
-                        type="button"
-                        class="embedded-mpv-player__control-button"
-                        [disabled]="!canFullscreen()"
-                        (click)="toggleFullscreen()"
-                        [attr.aria-label]="fullscreenLabel()"
-                        [matTooltip]="fullscreenLabel()"
-                        matTooltipPosition="left"
-                    >
-                        <mat-icon>{{
-                            isFullscreen() ? 'fullscreen_exit' : 'fullscreen'
-                        }}</mat-icon>
-                    </button>
-                </div>
-            }
+                <button
+                    mat-icon-button
+                    type="button"
+                    class="embedded-mpv-player__control-button"
+                    [disabled]="!canFullscreen()"
+                    (click)="toggleFullscreen()"
+                    [attr.aria-label]="fullscreenLabel()"
+                    [matTooltip]="fullscreenLabel()"
+                    matTooltipPosition="above"
+                >
+                    <mat-icon>{{
+                        isFullscreen() ? 'fullscreen_exit' : 'fullscreen'
+                    }}</mat-icon>
+                </button>
+            </div>
         </div>
     }
 </div>

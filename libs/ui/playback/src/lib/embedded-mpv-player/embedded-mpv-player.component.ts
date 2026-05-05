@@ -71,6 +71,13 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
     readonly controlsVisible = signal(true);
     readonly volumePopoverOpen = signal(false);
     readonly audioMenuOpen = signal(false);
+    readonly stalled = signal(false);
+    readonly feedbackOverlay = signal<{
+        icon: string;
+        label: string;
+        key: number;
+    } | null>(null);
+    private readonly retryNonce = signal(0);
 
     readonly isSupported = computed(() => this.support()?.supported ?? false);
     readonly canFullscreen = computed(
@@ -174,6 +181,10 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
     private boundsAnimationFrame: number | null = null;
     private controlsHideTimer: number | null = null;
     private activeBoundsSync: (() => void) | null = null;
+    private volumeCloseTimer: number | null = null;
+    private stalledTimer: number | null = null;
+    private feedbackTimer: number | null = null;
+    private feedbackKey = 0;
     private readonly onDocumentPointerDown = (event: PointerEvent) => {
         const playerRoot = this.playerRoot()?.nativeElement;
         const path = event.composedPath();
@@ -280,6 +291,7 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             const viewport = this.viewport();
             const playback = this.playback();
             const support = this.support();
+            this.retryNonce();
 
             if (
                 !viewport ||
@@ -430,6 +442,29 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             this.overlayVisibility.overlayActive();
             untracked(() => this.activeBoundsSync?.());
         });
+
+        effect(() => {
+            const status = this.session()?.status ?? null;
+            untracked(() => {
+                if (status === 'loading') {
+                    if (this.stalledTimer === null) {
+                        this.stalledTimer = window.setTimeout(() => {
+                            this.stalled.set(true);
+                            this.stalledTimer = null;
+                        }, 30000);
+                    }
+                    return;
+                }
+
+                if (this.stalledTimer !== null) {
+                    clearTimeout(this.stalledTimer);
+                    this.stalledTimer = null;
+                }
+                if (this.stalled()) {
+                    this.stalled.set(false);
+                }
+            });
+        });
     }
 
     ngOnDestroy(): void {
@@ -453,6 +488,19 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
         if (this.boundsAnimationFrame !== null) {
             cancelAnimationFrame(this.boundsAnimationFrame);
             this.boundsAnimationFrame = null;
+        }
+
+        if (this.volumeCloseTimer !== null) {
+            clearTimeout(this.volumeCloseTimer);
+            this.volumeCloseTimer = null;
+        }
+        if (this.stalledTimer !== null) {
+            clearTimeout(this.stalledTimer);
+            this.stalledTimer = null;
+        }
+        if (this.feedbackTimer !== null) {
+            clearTimeout(this.feedbackTimer);
+            this.feedbackTimer = null;
         }
 
         this.clearControlsHideTimer();
@@ -505,6 +553,11 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             return;
         }
 
+        this.flashFeedback(
+            deltaSeconds >= 0 ? 'forward_10' : 'replay_10',
+            `${deltaSeconds >= 0 ? '+' : ''}${Math.round(deltaSeconds)}s`
+        );
+
         const nextPosition = Math.max(0, session.positionSeconds + deltaSeconds);
         const updatedSession = await window.electron.seekEmbeddedMpv(
             session.id,
@@ -532,29 +585,12 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
         }
     }
 
-    toggleVolumePopover(): void {
-        this.volumePopoverOpen.update((open) => !open);
-        if (this.volumePopoverOpen()) {
-            this.audioMenuOpen.set(false);
-        }
-        this.revealControls();
-        this.activeBoundsSync?.();
-    }
-
     toggleAudioMenu(): void {
         this.audioMenuOpen.update((open) => !open);
         if (this.audioMenuOpen()) {
             this.volumePopoverOpen.set(false);
         }
         this.revealControls();
-        this.activeBoundsSync?.();
-    }
-
-    showDefaultControls(): void {
-        this.volumePopoverOpen.set(false);
-        this.audioMenuOpen.set(false);
-        this.revealControls();
-        this.activeBoundsSync?.();
     }
 
     onVolumeInput(event: Event): void {
@@ -575,16 +611,83 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
         const next = Math.max(0, Math.min(1, this.volume() + delta));
         this.applyVolume(next);
         this.revealControls();
+        this.flashFeedback(
+            this.volumeIconFor(next),
+            `${Math.round(next * 100)}%`
+        );
     }
 
-    private toggleMute(): void {
+    toggleMute(): void {
         if (this.volume() > 0) {
             this.mutedVolume = this.volume();
             this.applyVolume(0);
+            this.flashFeedback('volume_off', 'Muted');
         } else {
-            this.applyVolume(this.mutedVolume || 0.5);
+            const restored = this.mutedVolume || 0.5;
+            this.applyVolume(restored);
+            this.flashFeedback(
+                this.volumeIconFor(restored),
+                `${Math.round(restored * 100)}%`
+            );
         }
         this.revealControls();
+    }
+
+    onVolumeWheel(event: WheelEvent): void {
+        event.preventDefault();
+        const delta = event.deltaY > 0 ? -0.05 : 0.05;
+        this.adjustVolume(delta);
+    }
+
+    onVolumeHoverEnter(): void {
+        if (this.volumeCloseTimer !== null) {
+            clearTimeout(this.volumeCloseTimer);
+            this.volumeCloseTimer = null;
+        }
+        if (!this.volumePopoverOpen()) {
+            this.volumePopoverOpen.set(true);
+            this.audioMenuOpen.set(false);
+        }
+    }
+
+    onVolumeHoverLeave(): void {
+        if (this.volumeCloseTimer !== null) {
+            clearTimeout(this.volumeCloseTimer);
+        }
+        this.volumeCloseTimer = window.setTimeout(() => {
+            this.volumePopoverOpen.set(false);
+            this.volumeCloseTimer = null;
+        }, 220);
+    }
+
+    retry(): void {
+        this.stalled.set(false);
+        this.session.set(null);
+        this.sessionId.set(null);
+        this.retryNonce.update((n) => n + 1);
+    }
+
+    private volumeIconFor(value: number): string {
+        if (value <= 0) {
+            return 'volume_off';
+        }
+        return value < 0.5 ? 'volume_down' : 'volume_up';
+    }
+
+    private flashFeedback(icon: string, label: string): void {
+        if (this.feedbackTimer !== null) {
+            clearTimeout(this.feedbackTimer);
+        }
+        this.feedbackKey += 1;
+        this.feedbackOverlay.set({
+            icon,
+            label,
+            key: this.feedbackKey,
+        });
+        this.feedbackTimer = window.setTimeout(() => {
+            this.feedbackOverlay.set(null);
+            this.feedbackTimer = null;
+        }, 700);
     }
 
     private applyVolume(nextVolume: number): void {
