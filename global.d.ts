@@ -155,6 +155,18 @@ declare global {
                 sessionId: string,
                 trackId: number
             ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvSubtitleTrack?: (
+                sessionId: string,
+                trackId: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvSpeed?: (
+                sessionId: string,
+                speed: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvAspect?: (
+                sessionId: string,
+                aspect: string
+            ) => Promise<EmbeddedMpvSession | null>;
             disposeEmbeddedMpvSession: (
                 sessionId: string
             ) => Promise<EmbeddedMpvSession | null>;

@@ -6,8 +6,10 @@ import App from '../app';
 import {
     EmbeddedMpvAudioTrack,
     EmbeddedMpvBounds,
+    EmbeddedMpvCapabilities,
     EmbeddedMpvSession,
     EmbeddedMpvSessionStatus,
+    EmbeddedMpvSubtitleTrack,
     EmbeddedMpvSupport,
     EMBEDDED_MPV_SESSION_UPDATE,
     ResolvedPortalPlayback,
@@ -21,6 +23,10 @@ interface NativeEmbeddedMpvSessionSnapshot {
     streamUrl: string;
     audioTracks?: EmbeddedMpvAudioTrack[];
     selectedAudioTrackId?: number | null;
+    subtitleTracks?: EmbeddedMpvSubtitleTrack[];
+    selectedSubtitleTrackId?: number | null;
+    playbackSpeed?: number;
+    aspectOverride?: string;
     error?: string;
 }
 
@@ -38,6 +44,9 @@ interface NativeEmbeddedMpvAddon {
     seek(sessionId: string, seconds: number): void;
     setVolume(sessionId: string, volume: number): void;
     setAudioTrack(sessionId: string, trackId: number): void;
+    setSubtitleTrack?(sessionId: string, trackId: number): void;
+    setSpeed?(sessionId: string, speed: number): void;
+    setAspect?(sessionId: string, aspect: string): void;
     getSessionSnapshot(
         sessionId: string
     ): NativeEmbeddedMpvSessionSnapshot | null;
@@ -69,6 +78,16 @@ export class EmbeddedMpvNativeService {
     private powerBlockerId: number | null = null;
     private readonly loadAddonModule = createRequire(__filename);
 
+    private detectCapabilities(): EmbeddedMpvCapabilities {
+        const addon = this.addon;
+        return {
+            subtitles: typeof addon?.setSubtitleTrack === 'function',
+            playbackSpeed: typeof addon?.setSpeed === 'function',
+            aspectOverride: typeof addon?.setAspect === 'function',
+            screenshot: false,
+        };
+    }
+
     getSupport(): EmbeddedMpvSupport {
         if (process.platform !== 'darwin') {
             return {
@@ -99,6 +118,7 @@ export class EmbeddedMpvNativeService {
                 return {
                     supported: true,
                     platform: process.platform,
+                    capabilities: this.detectCapabilities(),
                 };
             } catch (error) {
                 return {
@@ -153,6 +173,7 @@ export class EmbeddedMpvNativeService {
         return {
             supported: true,
             platform: process.platform,
+            capabilities: this.detectCapabilities(),
         };
     }
 
@@ -175,6 +196,7 @@ export class EmbeddedMpvNativeService {
             return {
                 supported: true,
                 platform: process.platform,
+                capabilities: this.detectCapabilities(),
             };
         } catch (error) {
             return {
@@ -225,6 +247,10 @@ export class EmbeddedMpvNativeService {
             volume: 1,
             audioTracks: [],
             selectedAudioTrackId: null,
+            subtitleTracks: [],
+            selectedSubtitleTrackId: null,
+            playbackSpeed: 1,
+            aspectOverride: 'no',
             startedAt,
             updatedAt: startedAt,
         };
@@ -270,6 +296,45 @@ export class EmbeddedMpvNativeService {
         return this.refreshSession(sessionId);
     }
 
+    setSubtitleTrack(
+        sessionId: string,
+        trackId: number
+    ): EmbeddedMpvSession | null {
+        this.assertEmbeddedMpvEnabled();
+        const addon = this.getAddon();
+        if (typeof addon.setSubtitleTrack !== 'function') {
+            throw new Error(
+                'Embedded MPV addon does not support subtitle tracks. Rebuild the native addon to enable this feature.'
+            );
+        }
+        addon.setSubtitleTrack(sessionId, trackId);
+        return this.refreshSession(sessionId);
+    }
+
+    setSpeed(sessionId: string, speed: number): EmbeddedMpvSession | null {
+        this.assertEmbeddedMpvEnabled();
+        const addon = this.getAddon();
+        if (typeof addon.setSpeed !== 'function') {
+            throw new Error(
+                'Embedded MPV addon does not support playback speed. Rebuild the native addon to enable this feature.'
+            );
+        }
+        addon.setSpeed(sessionId, speed);
+        return this.refreshSession(sessionId);
+    }
+
+    setAspect(sessionId: string, aspect: string): EmbeddedMpvSession | null {
+        this.assertEmbeddedMpvEnabled();
+        const addon = this.getAddon();
+        if (typeof addon.setAspect !== 'function') {
+            throw new Error(
+                'Embedded MPV addon does not support aspect override. Rebuild the native addon to enable this feature.'
+            );
+        }
+        addon.setAspect(sessionId, aspect);
+        return this.refreshSession(sessionId);
+    }
+
     disposeSession(sessionId: string): EmbeddedMpvSession | null {
         const session = this.sessions.get(sessionId);
         if (!session) {
@@ -290,6 +355,10 @@ export class EmbeddedMpvNativeService {
                 volume: 1,
                 audioTracks: [],
                 selectedAudioTrackId: null,
+                subtitleTracks: [],
+                selectedSubtitleTrackId: null,
+                playbackSpeed: 1,
+                aspectOverride: 'no',
                 startedAt: session.startedAt,
                 updatedAt: new Date().toISOString(),
             };
@@ -361,6 +430,21 @@ export class EmbeddedMpvNativeService {
                 typeof snapshot.selectedAudioTrackId === 'number'
                     ? snapshot.selectedAudioTrackId
                     : null,
+            subtitleTracks: Array.isArray(snapshot.subtitleTracks)
+                ? snapshot.subtitleTracks
+                : [],
+            selectedSubtitleTrackId:
+                typeof snapshot.selectedSubtitleTrackId === 'number'
+                    ? snapshot.selectedSubtitleTrackId
+                    : null,
+            playbackSpeed:
+                typeof snapshot.playbackSpeed === 'number'
+                    ? snapshot.playbackSpeed
+                    : 1,
+            aspectOverride:
+                typeof snapshot.aspectOverride === 'string'
+                    ? snapshot.aspectOverride
+                    : 'no',
             startedAt: session.startedAt,
             updatedAt: new Date().toISOString(),
             ...(snapshot.error ? { error: snapshot.error } : {}),

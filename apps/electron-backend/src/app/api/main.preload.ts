@@ -393,6 +393,25 @@ const electronApi = {
         trackId: number
     ): Promise<EmbeddedMpvSession | null> =>
         ipcRenderer.invoke('EMBEDDED_MPV_SET_AUDIO_TRACK', sessionId, trackId),
+    setEmbeddedMpvSubtitleTrack: (
+        sessionId: string,
+        trackId: number
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke(
+            'EMBEDDED_MPV_SET_SUBTITLE_TRACK',
+            sessionId,
+            trackId
+        ),
+    setEmbeddedMpvSpeed: (
+        sessionId: string,
+        speed: number
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_SPEED', sessionId, speed),
+    setEmbeddedMpvAspect: (
+        sessionId: string,
+        aspect: string
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_ASPECT', sessionId, aspect),
     disposeEmbeddedMpvSession: (
         sessionId: string
     ): Promise<EmbeddedMpvSession | null> =>

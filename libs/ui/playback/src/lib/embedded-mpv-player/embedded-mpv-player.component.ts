@@ -71,6 +71,9 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
     readonly controlsVisible = signal(true);
     readonly volumePopoverOpen = signal(false);
     readonly audioMenuOpen = signal(false);
+    readonly subtitleMenuOpen = signal(false);
+    readonly speedMenuOpen = signal(false);
+    readonly aspectMenuOpen = signal(false);
     readonly stalled = signal(false);
     readonly feedbackOverlay = signal<{
         icon: string;
@@ -128,6 +131,50 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
     readonly audioTracks = computed(
         () => this.session()?.audioTracks ?? []
     );
+    readonly subtitleTracks = computed(
+        () => this.session()?.subtitleTracks ?? []
+    );
+    readonly hasSubtitleTracks = computed(
+        () => this.subtitleTracks().length > 0
+    );
+    readonly selectedSubtitleTrackId = computed(
+        () => this.session()?.selectedSubtitleTrackId ?? null
+    );
+    readonly playbackSpeed = computed(
+        () => this.session()?.playbackSpeed ?? 1
+    );
+    readonly aspectOverride = computed(
+        () => this.session()?.aspectOverride ?? 'no'
+    );
+    readonly capabilities = computed(
+        () =>
+            this.support()?.capabilities ?? {
+                subtitles: false,
+                playbackSpeed: false,
+                aspectOverride: false,
+                screenshot: false,
+            }
+    );
+    readonly isErrored = computed(
+        () => this.session()?.status === 'error'
+    );
+
+    readonly speedPresets: ReadonlyArray<{ value: number; label: string }> = [
+        { value: 0.5, label: '0.5×' },
+        { value: 0.75, label: '0.75×' },
+        { value: 1, label: '1×' },
+        { value: 1.25, label: '1.25×' },
+        { value: 1.5, label: '1.5×' },
+        { value: 2, label: '2×' },
+    ];
+
+    readonly aspectPresets: ReadonlyArray<{ value: string; label: string }> = [
+        { value: 'no', label: 'Default' },
+        { value: '16:9', label: '16:9' },
+        { value: '4:3', label: '4:3' },
+        { value: '21:9', label: '21:9' },
+        { value: '2.35:1', label: '2.35:1' },
+    ];
     readonly hasAudioTracks = computed(() => this.audioTracks().length > 1);
     readonly selectedAudioTrack = computed(
         () => this.audioTracks().find((track) => track.selected) ?? null
@@ -141,6 +188,9 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
                 this.isPaused() ||
                 this.volumePopoverOpen() ||
                 this.audioMenuOpen() ||
+                this.subtitleMenuOpen() ||
+                this.speedMenuOpen() ||
+                this.aspectMenuOpen() ||
                 Boolean(this.statusLabel()))
     );
     readonly hideCursor = computed(
@@ -403,6 +453,10 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
                     volume: initialVolume,
                     audioTracks: [],
                     selectedAudioTrackId: null,
+                    subtitleTracks: [],
+                    selectedSubtitleTrackId: null,
+                    playbackSpeed: 1,
+                    aspectOverride: 'no',
                     startedAt,
                     updatedAt: startedAt,
                     error:
@@ -586,11 +640,39 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
     }
 
     toggleAudioMenu(): void {
-        this.audioMenuOpen.update((open) => !open);
-        if (this.audioMenuOpen()) {
-            this.volumePopoverOpen.set(false);
-        }
+        const next = !this.audioMenuOpen();
+        this.closeAllMenus();
+        this.audioMenuOpen.set(next);
         this.revealControls();
+    }
+
+    toggleSubtitleMenu(): void {
+        const next = !this.subtitleMenuOpen();
+        this.closeAllMenus();
+        this.subtitleMenuOpen.set(next);
+        this.revealControls();
+    }
+
+    toggleSpeedMenu(): void {
+        const next = !this.speedMenuOpen();
+        this.closeAllMenus();
+        this.speedMenuOpen.set(next);
+        this.revealControls();
+    }
+
+    toggleAspectMenu(): void {
+        const next = !this.aspectMenuOpen();
+        this.closeAllMenus();
+        this.aspectMenuOpen.set(next);
+        this.revealControls();
+    }
+
+    private closeAllMenus(): void {
+        this.audioMenuOpen.set(false);
+        this.subtitleMenuOpen.set(false);
+        this.speedMenuOpen.set(false);
+        this.aspectMenuOpen.set(false);
+        this.volumePopoverOpen.set(false);
     }
 
     onVolumeInput(event: Event): void {
@@ -742,6 +824,76 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
         this.scheduleControlsHide();
     }
 
+    async selectSubtitleTrack(trackId: number): Promise<void> {
+        const session = this.session();
+        if (!session?.id || !window.electron?.setEmbeddedMpvSubtitleTrack) {
+            return;
+        }
+
+        this.revealControls(false);
+        const updatedSession =
+            await window.electron.setEmbeddedMpvSubtitleTrack(
+                session.id,
+                trackId
+            );
+        if (updatedSession) {
+            this.session.set(updatedSession);
+        }
+        this.subtitleMenuOpen.set(false);
+        this.scheduleControlsHide();
+    }
+
+    async selectSpeed(speed: number): Promise<void> {
+        const session = this.session();
+        if (!session?.id || !window.electron?.setEmbeddedMpvSpeed) {
+            return;
+        }
+
+        this.revealControls(false);
+        const updatedSession = await window.electron.setEmbeddedMpvSpeed(
+            session.id,
+            speed
+        );
+        if (updatedSession) {
+            this.session.set(updatedSession);
+        }
+        this.speedMenuOpen.set(false);
+        this.scheduleControlsHide();
+    }
+
+    async selectAspect(aspect: string): Promise<void> {
+        const session = this.session();
+        if (!session?.id || !window.electron?.setEmbeddedMpvAspect) {
+            return;
+        }
+
+        this.revealControls(false);
+        const updatedSession = await window.electron.setEmbeddedMpvAspect(
+            session.id,
+            aspect
+        );
+        if (updatedSession) {
+            this.session.set(updatedSession);
+        }
+        this.aspectMenuOpen.set(false);
+        this.scheduleControlsHide();
+    }
+
+    speedLabel(speed: number): string {
+        const value = Math.round(speed * 100) / 100;
+        return Number.isInteger(value) ? `${value}×` : `${value}×`;
+    }
+
+    aspectLabel(aspect: string): string {
+        const preset = this.aspectPresets.find((p) => p.value === aspect);
+        return preset?.label ?? aspect;
+    }
+
+    subtitleLabel(track: EmbeddedMpvAudioTrack, index: number): string {
+        const label = track.title || track.language || `Subtitle ${index + 1}`;
+        return track.defaultTrack ? `${label} · Default` : label;
+    }
+
     formatTime(value: number | null | undefined): string {
         const safeValue = Math.max(0, Math.floor(value ?? 0));
         const hours = Math.floor(safeValue / 3600);
@@ -761,12 +913,17 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
     }
 
     private closePopovers(): void {
-        if (!this.volumePopoverOpen() && !this.audioMenuOpen()) {
+        if (
+            !this.volumePopoverOpen() &&
+            !this.audioMenuOpen() &&
+            !this.subtitleMenuOpen() &&
+            !this.speedMenuOpen() &&
+            !this.aspectMenuOpen()
+        ) {
             return;
         }
 
-        this.volumePopoverOpen.set(false);
-        this.audioMenuOpen.set(false);
+        this.closeAllMenus();
         this.activeBoundsSync?.();
         this.scheduleControlsHide();
     }
@@ -860,6 +1017,10 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             volume,
             audioTracks: [],
             selectedAudioTrackId: null,
+            subtitleTracks: [],
+            selectedSubtitleTrackId: null,
+            playbackSpeed: 1,
+            aspectOverride: 'no',
             startedAt: now,
             updatedAt: now,
         };

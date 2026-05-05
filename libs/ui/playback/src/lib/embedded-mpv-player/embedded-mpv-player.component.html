@@ -14,7 +14,20 @@
     (focusin)="onPlayerInteraction()"
 >
     <div #viewport class="embedded-mpv-player__viewport">
-        @if (isLoading() && !stalled()) {
+        @if (isErrored()) {
+            <div
+                class="embedded-mpv-player__stalled"
+                role="alert"
+                aria-live="assertive"
+            >
+                <mat-icon>error_outline</mat-icon>
+                <p>{{ statusLabel() }}</p>
+                <button mat-stroked-button type="button" (click)="retry()">
+                    <mat-icon>refresh</mat-icon>
+                    <span>Retry</span>
+                </button>
+            </div>
+        } @else if (isLoading() && !stalled()) {
             <div
                 class="embedded-mpv-player__loader"
                 role="status"
@@ -231,6 +244,196 @@
                                                 trackLabel(track, index)
                                             }}</span>
                                             @if (track.selected) {
+                                                <mat-icon>check</mat-icon>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (capabilities().subtitles && hasSubtitleTracks()) {
+                    <div class="embedded-mpv-player__popover-anchor">
+                        <button
+                            mat-icon-button
+                            type="button"
+                            class="embedded-mpv-player__control-button"
+                            (click)="toggleSubtitleMenu()"
+                            [attr.aria-expanded]="subtitleMenuOpen()"
+                            aria-label="Subtitles"
+                            matTooltip="Subtitles"
+                            matTooltipPosition="above"
+                        >
+                            <mat-icon>{{
+                                selectedSubtitleTrackId() === null
+                                    ? 'subtitles_off'
+                                    : 'subtitles'
+                            }}</mat-icon>
+                        </button>
+                        @if (subtitleMenuOpen()) {
+                            <div
+                                class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
+                                role="menu"
+                                aria-label="Subtitles"
+                            >
+                                <div class="embedded-mpv-player__menu-title">
+                                    Subtitles
+                                </div>
+                                <div class="embedded-mpv-player__audio-track-list">
+                                    <button
+                                        type="button"
+                                        role="menuitemradio"
+                                        [attr.aria-checked]="
+                                            selectedSubtitleTrackId() === null
+                                        "
+                                        class="embedded-mpv-player__audio-track"
+                                        [class.embedded-mpv-player__audio-track--selected]="
+                                            selectedSubtitleTrackId() === null
+                                        "
+                                        (click)="selectSubtitleTrack(-1)"
+                                    >
+                                        <span>Off</span>
+                                        @if (
+                                            selectedSubtitleTrackId() === null
+                                        ) {
+                                            <mat-icon>check</mat-icon>
+                                        }
+                                    </button>
+                                    @for (
+                                        track of subtitleTracks();
+                                        track track.id;
+                                        let index = $index
+                                    ) {
+                                        <button
+                                            type="button"
+                                            role="menuitemradio"
+                                            [attr.aria-checked]="track.selected"
+                                            class="embedded-mpv-player__audio-track"
+                                            [class.embedded-mpv-player__audio-track--selected]="
+                                                track.selected
+                                            "
+                                            (click)="
+                                                selectSubtitleTrack(track.id)
+                                            "
+                                        >
+                                            <span>{{
+                                                subtitleLabel(track, index)
+                                            }}</span>
+                                            @if (track.selected) {
+                                                <mat-icon>check</mat-icon>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (capabilities().playbackSpeed) {
+                    <div class="embedded-mpv-player__popover-anchor">
+                        <button
+                            mat-icon-button
+                            type="button"
+                            class="embedded-mpv-player__control-button"
+                            (click)="toggleSpeedMenu()"
+                            [attr.aria-expanded]="speedMenuOpen()"
+                            [attr.aria-label]="
+                                'Playback speed ' + speedLabel(playbackSpeed())
+                            "
+                            [matTooltip]="
+                                'Speed: ' + speedLabel(playbackSpeed())
+                            "
+                            matTooltipPosition="above"
+                        >
+                            <mat-icon>speed</mat-icon>
+                        </button>
+                        @if (speedMenuOpen()) {
+                            <div
+                                class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
+                                role="menu"
+                                aria-label="Playback speed"
+                            >
+                                <div class="embedded-mpv-player__menu-title">
+                                    Speed
+                                </div>
+                                <div class="embedded-mpv-player__audio-track-list">
+                                    @for (preset of speedPresets; track preset.value) {
+                                        <button
+                                            type="button"
+                                            role="menuitemradio"
+                                            [attr.aria-checked]="
+                                                preset.value === playbackSpeed()
+                                            "
+                                            class="embedded-mpv-player__audio-track"
+                                            [class.embedded-mpv-player__audio-track--selected]="
+                                                preset.value === playbackSpeed()
+                                            "
+                                            (click)="selectSpeed(preset.value)"
+                                        >
+                                            <span>{{ preset.label }}</span>
+                                            @if (
+                                                preset.value === playbackSpeed()
+                                            ) {
+                                                <mat-icon>check</mat-icon>
+                                            }
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (capabilities().aspectOverride) {
+                    <div class="embedded-mpv-player__popover-anchor">
+                        <button
+                            mat-icon-button
+                            type="button"
+                            class="embedded-mpv-player__control-button"
+                            (click)="toggleAspectMenu()"
+                            [attr.aria-expanded]="aspectMenuOpen()"
+                            [attr.aria-label]="
+                                'Aspect ratio ' + aspectLabel(aspectOverride())
+                            "
+                            [matTooltip]="
+                                'Aspect: ' + aspectLabel(aspectOverride())
+                            "
+                            matTooltipPosition="above"
+                        >
+                            <mat-icon>aspect_ratio</mat-icon>
+                        </button>
+                        @if (aspectMenuOpen()) {
+                            <div
+                                class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
+                                role="menu"
+                                aria-label="Aspect ratio"
+                            >
+                                <div class="embedded-mpv-player__menu-title">
+                                    Aspect
+                                </div>
+                                <div class="embedded-mpv-player__audio-track-list">
+                                    @for (preset of aspectPresets; track preset.value) {
+                                        <button
+                                            type="button"
+                                            role="menuitemradio"
+                                            [attr.aria-checked]="
+                                                preset.value === aspectOverride()
+                                            "
+                                            class="embedded-mpv-player__audio-track"
+                                            [class.embedded-mpv-player__audio-track--selected]="
+                                                preset.value ===
+                                                aspectOverride()
+                                            "
+                                            (click)="selectAspect(preset.value)"
+                                        >
+                                            <span>{{ preset.label }}</span>
+                                            @if (
+                                                preset.value ===
+                                                aspectOverride()
+                                            ) {
                                                 <mat-icon>check</mat-icon>
                                             }
                                         </button>

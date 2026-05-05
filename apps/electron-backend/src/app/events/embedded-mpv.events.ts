@@ -5,9 +5,12 @@ import {
     EMBEDDED_MPV_LOAD_PLAYBACK,
     EMBEDDED_MPV_PREPARE,
     EMBEDDED_MPV_SEEK,
+    EMBEDDED_MPV_SET_ASPECT,
     EMBEDDED_MPV_SET_AUDIO_TRACK,
     EMBEDDED_MPV_SET_BOUNDS,
     EMBEDDED_MPV_SET_PAUSED,
+    EMBEDDED_MPV_SET_SPEED,
+    EMBEDDED_MPV_SET_SUBTITLE_TRACK,
     EMBEDDED_MPV_SET_VOLUME,
     EMBEDDED_MPV_SUPPORT,
     EmbeddedMpvBounds,
@@ -74,6 +77,24 @@ ipcMain.handle(
     EMBEDDED_MPV_SET_AUDIO_TRACK,
     (_event, sessionId: string, trackId: number) =>
         getService().setAudioTrack(sessionId, trackId)
+);
+
+ipcMain.handle(
+    EMBEDDED_MPV_SET_SUBTITLE_TRACK,
+    (_event, sessionId: string, trackId: number) =>
+        getService().setSubtitleTrack(sessionId, trackId)
+);
+
+ipcMain.handle(
+    EMBEDDED_MPV_SET_SPEED,
+    (_event, sessionId: string, speed: number) =>
+        getService().setSpeed(sessionId, speed)
+);
+
+ipcMain.handle(
+    EMBEDDED_MPV_SET_ASPECT,
+    (_event, sessionId: string, aspect: string) =>
+        getService().setAspect(sessionId, aspect)
 );
 
 ipcMain.handle(EMBEDDED_MPV_DISPOSE_SESSION, (_event, sessionId: string) =>

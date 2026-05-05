@@ -96,6 +96,10 @@ struct SessionSnapshot {
     std::string error;
     std::vector<AudioTrack> audioTracks;
     int64_t selectedAudioTrackId = -1;
+    std::vector<AudioTrack> subtitleTracks;
+    int64_t selectedSubtitleTrackId = -1;
+    double playbackSpeed = 1.0;
+    std::string aspectOverride = "no";
 };
 
 struct Session {
@@ -880,16 +884,30 @@ void updateSelectedAudioTrack(SessionSnapshot& snapshot, int64_t selectedTrackId
     }
 }
 
-void updateAudioTracksFromNode(SessionSnapshot& snapshot, const mpv_node& node)
+void updateSelectedSubtitleTrack(SessionSnapshot& snapshot, int64_t selectedTrackId)
 {
+    snapshot.selectedSubtitleTrackId =
+        selectedTrackId >= 0 ? selectedTrackId : -1;
+    for (auto& track : snapshot.subtitleTracks) {
+        track.selected = track.id == snapshot.selectedSubtitleTrackId;
+    }
+}
+
+void updateTracksFromNode(
+    SessionSnapshot& snapshot,
+    const mpv_node& node,
+    const std::string& typeFilter,
+    std::vector<AudioTrack>& outTracks,
+    int64_t& outSelectedId)
+{
+    outTracks.clear();
+    outSelectedId = -1;
+
     if (node.format != MPV_FORMAT_NODE_ARRAY ||
         !node.u.list ||
         !node.u.list->values) {
         return;
     }
-
-    std::vector<AudioTrack> audioTracks;
-    int64_t selectedTrackId = -1;
 
     for (int index = 0; index < node.u.list->num; index += 1) {
         const mpv_node& trackNode = node.u.list->values[index];
@@ -898,7 +916,7 @@ void updateAudioTracksFromNode(SessionSnapshot& snapshot, const mpv_node& node)
         }
 
         const mpv_node* typeNode = getNodeMapValue(trackNode, "type");
-        if (!typeNode || readNodeString(*typeNode) != "audio") {
+        if (!typeNode || readNodeString(*typeNode) != typeFilter) {
             continue;
         }
 
@@ -908,32 +926,51 @@ void updateAudioTracksFromNode(SessionSnapshot& snapshot, const mpv_node& node)
             continue;
         }
 
-        AudioTrack audioTrack;
-        audioTrack.id = id;
+        AudioTrack track;
+        track.id = id;
         if (const mpv_node* titleNode = getNodeMapValue(trackNode, "title")) {
-            audioTrack.title = readNodeString(*titleNode);
+            track.title = readNodeString(*titleNode);
         }
         if (const mpv_node* languageNode = getNodeMapValue(trackNode, "lang")) {
-            audioTrack.language = readNodeString(*languageNode);
+            track.language = readNodeString(*languageNode);
         }
         if (const mpv_node* selectedNode = getNodeMapValue(trackNode, "selected")) {
-            audioTrack.selected = readNodeFlag(*selectedNode);
+            track.selected = readNodeFlag(*selectedNode);
         }
         if (const mpv_node* defaultNode = getNodeMapValue(trackNode, "default")) {
-            audioTrack.defaultTrack = readNodeFlag(*defaultNode);
+            track.defaultTrack = readNodeFlag(*defaultNode);
         }
         if (const mpv_node* forcedNode = getNodeMapValue(trackNode, "forced")) {
-            audioTrack.forced = readNodeFlag(*forcedNode);
+            track.forced = readNodeFlag(*forcedNode);
         }
 
-        if (audioTrack.selected) {
-            selectedTrackId = audioTrack.id;
+        if (track.selected) {
+            outSelectedId = track.id;
         }
-        audioTracks.push_back(audioTrack);
+        outTracks.push_back(track);
     }
+}
 
-    snapshot.audioTracks = std::move(audioTracks);
-    snapshot.selectedAudioTrackId = selectedTrackId;
+void updateAudioTracksFromNode(SessionSnapshot& snapshot, const mpv_node& node)
+{
+    updateTracksFromNode(
+        snapshot,
+        node,
+        "audio",
+        snapshot.audioTracks,
+        snapshot.selectedAudioTrackId
+    );
+}
+
+void updateSubtitleTracksFromNode(SessionSnapshot& snapshot, const mpv_node& node)
+{
+    updateTracksFromNode(
+        snapshot,
+        node,
+        "sub",
+        snapshot.subtitleTracks,
+        snapshot.selectedSubtitleTrackId
+    );
 }
 
 void updateSessionError(const std::shared_ptr<Session>& session, const std::string& error)
@@ -969,6 +1006,8 @@ void runEventLoop(const std::shared_ptr<Session>& session)
                 session->snapshot.error.clear();
                 session->snapshot.audioTracks.clear();
                 session->snapshot.selectedAudioTrackId = -1;
+                session->snapshot.subtitleTracks.clear();
+                session->snapshot.selectedSubtitleTrackId = -1;
                 session->loadedPath = false;
                 break;
             case MPV_EVENT_FILE_LOADED:
@@ -1050,9 +1089,15 @@ void runEventLoop(const std::shared_ptr<Session>& session)
                 if (propertyName == "track-list" &&
                     property->format == MPV_FORMAT_NODE &&
                     property->data) {
+                    const auto& trackListNode =
+                        *static_cast<mpv_node*>(property->data);
                     updateAudioTracksFromNode(
                         session->snapshot,
-                        *static_cast<mpv_node*>(property->data)
+                        trackListNode
+                    );
+                    updateSubtitleTracksFromNode(
+                        session->snapshot,
+                        trackListNode
                     );
                     break;
                 }
@@ -1068,6 +1113,40 @@ void runEventLoop(const std::shared_ptr<Session>& session)
                             selectedTrackId
                         );
                     }
+                    break;
+                }
+
+                if (propertyName == "sid" &&
+                    property->format == MPV_FORMAT_STRING &&
+                    property->data) {
+                    const auto* sidValue = static_cast<char*>(property->data);
+                    int64_t selectedTrackId = -1;
+                    if (sidValue && parseIntegerString(sidValue, selectedTrackId)) {
+                        updateSelectedSubtitleTrack(
+                            session->snapshot,
+                            selectedTrackId
+                        );
+                    } else {
+                        updateSelectedSubtitleTrack(session->snapshot, -1);
+                    }
+                    break;
+                }
+
+                if (propertyName == "speed" &&
+                    property->format == MPV_FORMAT_DOUBLE &&
+                    property->data) {
+                    session->snapshot.playbackSpeed =
+                        *static_cast<double*>(property->data);
+                    break;
+                }
+
+                if (propertyName == "video-aspect-override" &&
+                    property->format == MPV_FORMAT_STRING &&
+                    property->data) {
+                    const auto* aspectValue =
+                        static_cast<char*>(property->data);
+                    session->snapshot.aspectOverride =
+                        aspectValue ? aspectValue : "no";
                     break;
                 }
 
@@ -1488,6 +1567,14 @@ Napi::Value CreateSession(const Napi::CallbackInfo& info)
     mpv_observe_property(session->handle, 5, "path", MPV_FORMAT_STRING);
     mpv_observe_property(session->handle, 6, "track-list", MPV_FORMAT_NODE);
     mpv_observe_property(session->handle, 7, "aid", MPV_FORMAT_STRING);
+    mpv_observe_property(session->handle, 8, "sid", MPV_FORMAT_STRING);
+    mpv_observe_property(session->handle, 9, "speed", MPV_FORMAT_DOUBLE);
+    mpv_observe_property(
+        session->handle,
+        10,
+        "video-aspect-override",
+        MPV_FORMAT_STRING
+    );
 
     session->running.store(true);
     session->eventThread = std::thread(runEventLoop, session);
@@ -1788,6 +1875,135 @@ Napi::Value SetAudioTrack(const Napi::CallbackInfo& info)
     return env.Undefined();
 }
 
+Napi::Value SetSubtitleTrack(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsNumber()) {
+        throw Napi::TypeError::New(
+            env,
+            "Expected session id and subtitle track id."
+        );
+    }
+
+    const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
+    const auto session = getSessionOrThrow(sessionId);
+    int64_t trackId = info[1].As<Napi::Number>().Int64Value();
+
+    int result = -1;
+    if (trackId < 0) {
+        const char* disabledValue = "no";
+        std::string disabled = disabledValue;
+        result = mpv_set_property_async(
+            session->handle,
+            nextAsyncRequestId(),
+            "sid",
+            MPV_FORMAT_STRING,
+            const_cast<char**>(&disabledValue)
+        );
+    } else {
+        result = mpv_set_property_async(
+            session->handle,
+            nextAsyncRequestId(),
+            "sid",
+            MPV_FORMAT_INT64,
+            &trackId
+        );
+    }
+
+    if (result < 0) {
+        throw Napi::Error::New(
+            env,
+            std::string("Failed to update subtitle track: ") +
+                mpv_error_string(result)
+        );
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(session->mutex);
+        updateSelectedSubtitleTrack(session->snapshot, trackId);
+    }
+
+    return env.Undefined();
+}
+
+Napi::Value SetSpeed(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsNumber()) {
+        throw Napi::TypeError::New(env, "Expected session id and speed.");
+    }
+
+    const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
+    const auto session = getSessionOrThrow(sessionId);
+    double speed = info[1].As<Napi::Number>().DoubleValue();
+    speed = std::clamp(speed, 0.25, 4.0);
+
+    const int result = mpv_set_property_async(
+        session->handle,
+        nextAsyncRequestId(),
+        "speed",
+        MPV_FORMAT_DOUBLE,
+        &speed
+    );
+
+    if (result < 0) {
+        throw Napi::Error::New(
+            env,
+            std::string("Failed to update playback speed: ") +
+                mpv_error_string(result)
+        );
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(session->mutex);
+        session->snapshot.playbackSpeed = speed;
+    }
+
+    return env.Undefined();
+}
+
+Napi::Value SetAspect(const Napi::CallbackInfo& info)
+{
+    Napi::Env env = info.Env();
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString()) {
+        throw Napi::TypeError::New(
+            env,
+            "Expected session id and aspect override."
+        );
+    }
+
+    const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
+    const auto session = getSessionOrThrow(sessionId);
+    std::string aspect = info[1].As<Napi::String>().Utf8Value();
+    if (aspect.empty()) {
+        aspect = "no";
+    }
+
+    const char* aspectValue = aspect.c_str();
+    const int result = mpv_set_property_async(
+        session->handle,
+        nextAsyncRequestId(),
+        "video-aspect-override",
+        MPV_FORMAT_STRING,
+        const_cast<char**>(&aspectValue)
+    );
+
+    if (result < 0) {
+        throw Napi::Error::New(
+            env,
+            std::string("Failed to update aspect override: ") +
+                mpv_error_string(result)
+        );
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(session->mutex);
+        session->snapshot.aspectOverride = aspect;
+    }
+
+    return env.Undefined();
+}
+
 Napi::Value GetSessionSnapshot(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
@@ -1857,6 +2073,47 @@ Napi::Value GetSessionSnapshot(const Napi::CallbackInfo& info)
         audioTracks.Set(index, trackObject);
     }
     result.Set("audioTracks", audioTracks);
+
+    if (snapshot.selectedSubtitleTrackId >= 0) {
+        result.Set(
+            "selectedSubtitleTrackId",
+            Napi::Number::New(env, snapshot.selectedSubtitleTrackId)
+        );
+    } else {
+        result.Set("selectedSubtitleTrackId", env.Null());
+    }
+    auto subtitleTracks =
+        Napi::Array::New(env, snapshot.subtitleTracks.size());
+    for (size_t index = 0; index < snapshot.subtitleTracks.size();
+         index += 1) {
+        const AudioTrack& track = snapshot.subtitleTracks[index];
+        auto trackObject = Napi::Object::New(env);
+        trackObject.Set("id", Napi::Number::New(env, track.id));
+        if (!track.title.empty()) {
+            trackObject.Set("title", Napi::String::New(env, track.title));
+        }
+        if (!track.language.empty()) {
+            trackObject.Set("language", Napi::String::New(env, track.language));
+        }
+        trackObject.Set("selected", Napi::Boolean::New(env, track.selected));
+        trackObject.Set(
+            "defaultTrack",
+            Napi::Boolean::New(env, track.defaultTrack)
+        );
+        trackObject.Set("forced", Napi::Boolean::New(env, track.forced));
+        subtitleTracks.Set(index, trackObject);
+    }
+    result.Set("subtitleTracks", subtitleTracks);
+
+    result.Set(
+        "playbackSpeed",
+        Napi::Number::New(env, snapshot.playbackSpeed)
+    );
+    result.Set(
+        "aspectOverride",
+        Napi::String::New(env, snapshot.aspectOverride)
+    );
+
     if (!snapshot.error.empty()) {
         result.Set("error", Napi::String::New(env, snapshot.error));
     }
@@ -1898,6 +2155,12 @@ Napi::Object Init(Napi::Env env, Napi::Object exports)
     exports.Set("seek", Napi::Function::New(env, Seek));
     exports.Set("setVolume", Napi::Function::New(env, SetVolume));
     exports.Set("setAudioTrack", Napi::Function::New(env, SetAudioTrack));
+    exports.Set(
+        "setSubtitleTrack",
+        Napi::Function::New(env, SetSubtitleTrack)
+    );
+    exports.Set("setSpeed", Napi::Function::New(env, SetSpeed));
+    exports.Set("setAspect", Napi::Function::New(env, SetAspect));
     exports.Set(
         "getSessionSnapshot",
         Napi::Function::New(env, GetSessionSnapshot)
