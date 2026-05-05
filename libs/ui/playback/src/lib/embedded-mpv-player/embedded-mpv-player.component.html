@@ -65,7 +65,7 @@
             </div>
         }
 
-        @if (feedbackOverlay(); as feedback) {
+        @if (feedback.current(); as feedback) {
             <div
                 class="embedded-mpv-player__feedback"
                 [attr.data-feedback-key]="feedback.key"
@@ -177,7 +177,7 @@
                     >
                         <mat-icon>{{ volumeIcon() }}</mat-icon>
                     </button>
-                    @if (volumePopoverOpen()) {
+                    @if (menus.volumeOpen()) {
                         <div
                             class="embedded-mpv-player__control-panel embedded-mpv-player__volume-popover"
                             role="dialog"
@@ -208,14 +208,14 @@
                             type="button"
                             class="embedded-mpv-player__control-button"
                             (click)="toggleAudioMenu()"
-                            [attr.aria-expanded]="audioMenuOpen()"
+                            [attr.aria-expanded]="menus.audioOpen()"
                             aria-label="Audio tracks"
                             matTooltip="Audio tracks"
                             matTooltipPosition="above"
                         >
                             <mat-icon>graphic_eq</mat-icon>
                         </button>
-                        @if (audioMenuOpen()) {
+                        @if (menus.audioOpen()) {
                             <div
                                 class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
                                 role="menu"
@@ -261,7 +261,7 @@
                             type="button"
                             class="embedded-mpv-player__control-button"
                             (click)="toggleSubtitleMenu()"
-                            [attr.aria-expanded]="subtitleMenuOpen()"
+                            [attr.aria-expanded]="menus.subtitleOpen()"
                             aria-label="Subtitles"
                             matTooltip="Subtitles"
                             matTooltipPosition="above"
@@ -272,7 +272,7 @@
                                     : 'subtitles'
                             }}</mat-icon>
                         </button>
-                        @if (subtitleMenuOpen()) {
+                        @if (menus.subtitleOpen()) {
                             <div
                                 class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
                                 role="menu"
@@ -339,7 +339,7 @@
                             type="button"
                             class="embedded-mpv-player__control-button"
                             (click)="toggleSpeedMenu()"
-                            [attr.aria-expanded]="speedMenuOpen()"
+                            [attr.aria-expanded]="menus.speedOpen()"
                             [attr.aria-label]="
                                 'Playback speed ' + speedLabel(playbackSpeed())
                             "
@@ -350,7 +350,7 @@
                         >
                             <mat-icon>speed</mat-icon>
                         </button>
-                        @if (speedMenuOpen()) {
+                        @if (menus.speedOpen()) {
                             <div
                                 class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
                                 role="menu"
@@ -394,7 +394,7 @@
                             type="button"
                             class="embedded-mpv-player__control-button"
                             (click)="toggleAspectMenu()"
-                            [attr.aria-expanded]="aspectMenuOpen()"
+                            [attr.aria-expanded]="menus.aspectOpen()"
                             [attr.aria-label]="
                                 'Aspect ratio ' + aspectLabel(aspectOverride())
                             "
@@ -405,7 +405,7 @@
                         >
                             <mat-icon>aspect_ratio</mat-icon>
                         </button>
-                        @if (aspectMenuOpen()) {
+                        @if (menus.aspectOpen()) {
                             <div
                                 class="embedded-mpv-player__control-panel embedded-mpv-player__audio-popover"
                                 role="menu"
