@@ -7,11 +7,20 @@ import {
     Output,
     computed,
     effect,
+    inject,
     input,
     signal,
     untracked,
     viewChild,
 } from '@angular/core';
+import { EmbeddedMpvOverlayVisibilityService } from './embedded-mpv-overlay-visibility.service';
+
+const HIDDEN_BOUNDS = Object.freeze({
+    x: -100000,
+    y: -100000,
+    width: 1,
+    height: 1,
+});
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -41,6 +50,10 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
         currentTime: number;
         duration: number;
     }>();
+
+    private readonly overlayVisibility = inject(
+        EmbeddedMpvOverlayVisibilityService
+    );
 
     readonly viewport = viewChild<ElementRef<HTMLDivElement>>('viewport');
     readonly playerRoot = viewChild<ElementRef<HTMLDivElement>>('playerRoot');
@@ -242,11 +255,14 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
                     return;
                 }
 
+                const bounds = untracked(() =>
+                    this.overlayVisibility.overlayActive()
+                )
+                    ? HIDDEN_BOUNDS
+                    : this.measureBounds(host);
+
                 void window.electron
-                    .setEmbeddedMpvBounds(
-                        activeSessionId,
-                        this.measureBounds(host)
-                    )
+                    .setEmbeddedMpvBounds(activeSessionId, bounds)
                     .catch(() => undefined);
             };
 
@@ -363,6 +379,11 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
                     void window.electron?.disposeEmbeddedMpvSession(sessionId);
                 }
             });
+        });
+
+        effect(() => {
+            this.overlayVisibility.overlayActive();
+            untracked(() => this.activeBoundsSync?.());
         });
     }
 
