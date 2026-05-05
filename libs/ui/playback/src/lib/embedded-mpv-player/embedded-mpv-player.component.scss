@@ -46,6 +46,14 @@
     background: var(--mat-sys-surface);
 }
 
+/* The native MPV NSView sits above the WebContents and is sized to the
+   viewport rect, so any region it covers cannot receive pointer events.
+   Reserve the control-bar height as a DOM-only strip at the bottom so
+   moving the cursor toward the bottom of the player wakes the controls. */
+.embedded-mpv-player--controls-enabled .embedded-mpv-player__viewport {
+    bottom: var(--embedded-mpv-controls-height);
+}
+
 .embedded-mpv-player__loader {
     position: absolute;
     inset: 0;
@@ -96,12 +104,9 @@
     opacity: 0;
     pointer-events: none;
     transform: translateY(8px);
-    background: linear-gradient(
-        180deg,
-        transparent 0%,
-        rgba(0, 0, 0, 0.55) 50%,
-        rgba(0, 0, 0, 0.78) 100%
-    );
+    background: var(--embedded-mpv-glass);
+    border-top: 1px solid var(--embedded-mpv-border);
+    backdrop-filter: blur(18px);
     transition:
         opacity 180ms ease-out,
         transform 200ms ease-out;
