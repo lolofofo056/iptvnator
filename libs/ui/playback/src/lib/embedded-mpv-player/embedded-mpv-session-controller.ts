@@ -194,13 +194,16 @@ export class EmbeddedMpvSessionController {
     }
 
     async togglePaused(): Promise<void> {
+        const id = this.sessionId();
         const session = this.session();
-        if (!session?.id || !window.electron?.setEmbeddedMpvPaused) {
+        if (!id || !session || !window.electron?.setEmbeddedMpvPaused) {
             return;
         }
-        const updated = await window.electron.setEmbeddedMpvPaused(
-            session.id,
-            session.status !== 'paused'
+        const updated = await this.guardIpc(() =>
+            window.electron!.setEmbeddedMpvPaused(
+                id,
+                session.status !== 'paused'
+            )
         );
         if (updated) {
             this.session.set(updated);
@@ -208,12 +211,15 @@ export class EmbeddedMpvSessionController {
     }
 
     async seekBy(deltaSeconds: number): Promise<boolean> {
+        const id = this.sessionId();
         const session = this.session();
-        if (!session?.id || !window.electron?.seekEmbeddedMpv) {
+        if (!id || !session || !window.electron?.seekEmbeddedMpv) {
             return false;
         }
         const next = Math.max(0, session.positionSeconds + deltaSeconds);
-        const updated = await window.electron.seekEmbeddedMpv(session.id, next);
+        const updated = await this.guardIpc(() =>
+            window.electron!.seekEmbeddedMpv(id, next)
+        );
         if (updated) {
             this.session.set(updated);
         }
@@ -221,35 +227,38 @@ export class EmbeddedMpvSessionController {
     }
 
     async seekTo(seconds: number): Promise<void> {
-        const session = this.session();
-        if (!session?.id || !window.electron?.seekEmbeddedMpv) {
+        const id = this.sessionId();
+        if (!id || !window.electron?.seekEmbeddedMpv) {
             return;
         }
-        const updated = await window.electron.seekEmbeddedMpv(session.id, seconds);
+        const updated = await this.guardIpc(() =>
+            window.electron!.seekEmbeddedMpv(id, seconds)
+        );
         if (updated) {
             this.session.set(updated);
         }
     }
 
     async applyVolume(value: number): Promise<void> {
-        const session = this.session();
-        if (!session?.id || !window.electron?.setEmbeddedMpvVolume) {
+        const id = this.sessionId();
+        if (!id || !window.electron?.setEmbeddedMpvVolume) {
             return;
         }
-        const updated = await window.electron.setEmbeddedMpvVolume(session.id, value);
+        const updated = await this.guardIpc(() =>
+            window.electron!.setEmbeddedMpvVolume(id, value)
+        );
         if (updated) {
             this.session.set(updated);
         }
     }
 
     async setAudioTrack(trackId: number): Promise<void> {
-        const session = this.session();
-        if (!session?.id || !window.electron?.setEmbeddedMpvAudioTrack) {
+        const id = this.sessionId();
+        if (!id || !window.electron?.setEmbeddedMpvAudioTrack) {
             return;
         }
-        const updated = await window.electron.setEmbeddedMpvAudioTrack(
-            session.id,
-            trackId
+        const updated = await this.guardIpc(() =>
+            window.electron!.setEmbeddedMpvAudioTrack(id, trackId)
         );
         if (updated) {
             this.session.set(updated);
@@ -257,13 +266,12 @@ export class EmbeddedMpvSessionController {
     }
 
     async setSubtitleTrack(trackId: number): Promise<void> {
-        const session = this.session();
-        if (!session?.id || !window.electron?.setEmbeddedMpvSubtitleTrack) {
+        const id = this.sessionId();
+        if (!id || !window.electron?.setEmbeddedMpvSubtitleTrack) {
             return;
         }
-        const updated = await window.electron.setEmbeddedMpvSubtitleTrack(
-            session.id,
-            trackId
+        const updated = await this.guardIpc(() =>
+            window.electron!.setEmbeddedMpvSubtitleTrack!(id, trackId)
         );
         if (updated) {
             this.session.set(updated);
@@ -271,27 +279,40 @@ export class EmbeddedMpvSessionController {
     }
 
     async setSpeed(speed: number): Promise<void> {
-        const session = this.session();
-        if (!session?.id || !window.electron?.setEmbeddedMpvSpeed) {
+        const id = this.sessionId();
+        if (!id || !window.electron?.setEmbeddedMpvSpeed) {
             return;
         }
-        const updated = await window.electron.setEmbeddedMpvSpeed(session.id, speed);
+        const updated = await this.guardIpc(() =>
+            window.electron!.setEmbeddedMpvSpeed!(id, speed)
+        );
         if (updated) {
             this.session.set(updated);
         }
     }
 
     async setAspect(aspect: string): Promise<void> {
-        const session = this.session();
-        if (!session?.id || !window.electron?.setEmbeddedMpvAspect) {
+        const id = this.sessionId();
+        if (!id || !window.electron?.setEmbeddedMpvAspect) {
             return;
         }
-        const updated = await window.electron.setEmbeddedMpvAspect(
-            session.id,
-            aspect
+        const updated = await this.guardIpc(() =>
+            window.electron!.setEmbeddedMpvAspect!(id, aspect)
         );
         if (updated) {
             this.session.set(updated);
+        }
+    }
+
+    private async guardIpc<T>(
+        call: () => Promise<T>
+    ): Promise<T | null> {
+        try {
+            return await call();
+        } catch {
+            // The session may have been torn down or an addon-side throw
+            // raced the IPC. Swallow — the next snapshot will resync state.
+            return null;
         }
     }
 

@@ -166,16 +166,25 @@ void runOnMainSync(dispatch_block_t block)
     dispatch_sync(dispatch_get_main_queue(), block);
 }
 
-std::shared_ptr<Session> getSessionOrThrow(const std::string& sessionId)
+std::shared_ptr<Session> findSession(const std::string& sessionId)
 {
     std::lock_guard<std::mutex> sessionsLock(gSessionsMutex);
     const auto iterator = gSessions.find(sessionId);
-
     if (iterator == gSessions.end()) {
-        throw std::runtime_error("Embedded MPV session not found.");
+        return nullptr;
     }
-
     return iterator->second;
+}
+
+std::shared_ptr<Session> getSessionOrThrow(
+    Napi::Env env,
+    const std::string& sessionId)
+{
+    auto session = findSession(sessionId);
+    if (!session) {
+        throw Napi::Error::New(env, "Embedded MPV session not found.");
+    }
+    return session;
 }
 
 void scheduleRender(const std::shared_ptr<Session>& session);
@@ -1604,7 +1613,7 @@ Napi::Value LoadPlayback(const Napi::CallbackInfo& info)
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
     const auto playback = info[1].As<Napi::Object>();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     const std::string streamUrl = readOptionalString(playback, "streamUrl");
     if (streamUrl.empty()) {
         throw Napi::Error::New(env, "Embedded MPV playback requires a stream URL.");
@@ -1713,7 +1722,7 @@ Napi::Value SetBounds(const Napi::CallbackInfo& info)
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
     const auto bounds = info[1].As<Napi::Object>();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
 
     setSessionFrame(
         session,
@@ -1734,7 +1743,7 @@ Napi::Value SetPaused(const Napi::CallbackInfo& info)
     }
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     int paused = info[1].As<Napi::Boolean>().Value() ? 1 : 0;
     const int result = mpv_set_property_async(
         session->handle,
@@ -1774,7 +1783,7 @@ Napi::Value Seek(const Napi::CallbackInfo& info)
     }
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     const auto target = info[1].As<Napi::Number>().DoubleValue();
     const std::string targetValue = std::to_string(target);
     const char* command[] = {
@@ -1813,7 +1822,7 @@ Napi::Value SetVolume(const Napi::CallbackInfo& info)
     }
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     double volume = clampVolumePercent(
         info[1].As<Napi::Number>().DoubleValue()
     );
@@ -1849,7 +1858,7 @@ Napi::Value SetAudioTrack(const Napi::CallbackInfo& info)
     }
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     int64_t trackId = info[1].As<Napi::Number>().Int64Value();
     const int result = mpv_set_property_async(
         session->handle,
@@ -1886,7 +1895,7 @@ Napi::Value SetSubtitleTrack(const Napi::CallbackInfo& info)
     }
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     int64_t trackId = info[1].As<Napi::Number>().Int64Value();
 
     int result = -1;
@@ -1934,7 +1943,7 @@ Napi::Value SetSpeed(const Napi::CallbackInfo& info)
     }
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     double speed = info[1].As<Napi::Number>().DoubleValue();
     speed = std::clamp(speed, 0.25, 4.0);
 
@@ -1973,7 +1982,7 @@ Napi::Value SetAspect(const Napi::CallbackInfo& info)
     }
 
     const std::string sessionId = info[0].As<Napi::String>().Utf8Value();
-    const auto session = getSessionOrThrow(sessionId);
+    const auto session = getSessionOrThrow(env, sessionId);
     std::string aspect = info[1].As<Napi::String>().Utf8Value();
     if (aspect.empty()) {
         aspect = "no";
