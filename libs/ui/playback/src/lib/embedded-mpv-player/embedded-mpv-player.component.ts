@@ -29,10 +29,13 @@ import {
 } from './embedded-mpv-ui-state';
 import {
     ASPECT_PRESETS,
+    HIDDEN_BOUNDS,
+    MENU_OPEN_BOTTOM_CUTOUT_PX,
     SPEED_PRESETS,
     aspectLabel,
     audioTrackLabel,
     formatTime,
+    measureBounds,
     persistVolume,
     readStoredVolume,
     speedLabel,
@@ -226,9 +229,22 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             );
         }
 
-        this.controller.setOverlayActiveProvider(() =>
-            this.overlayVisibility.overlayActive()
-        );
+        this.controller.setBoundsProvider((host) => {
+            if (this.overlayVisibility.overlayActive()) {
+                return HIDDEN_BOUNDS;
+            }
+            const rect = measureBounds(host);
+            if (this.menus.anyOpen()) {
+                return {
+                    ...rect,
+                    height: Math.max(
+                        1,
+                        rect.height - MENU_OPEN_BOTTOM_CUTOUT_PX
+                    ),
+                };
+            }
+            return rect;
+        });
 
         this.shortcuts.attach({
             isAvailable: () => !this.overlayVisibility.overlayActive(),
@@ -265,6 +281,7 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
 
         effect(() => {
             this.overlayVisibility.overlayActive();
+            this.menus.anyOpen();
             this.controller.triggerBoundsSync();
         });
 

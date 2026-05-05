@@ -7,11 +7,14 @@ import {
     untracked,
 } from '@angular/core';
 import {
+    EmbeddedMpvBounds,
     EmbeddedMpvSession,
     EmbeddedMpvSupport,
     ResolvedPortalPlayback,
 } from 'shared-interfaces';
-import { HIDDEN_BOUNDS, measureBounds } from './embedded-mpv-format.utils';
+import { measureBounds } from './embedded-mpv-format.utils';
+
+export type EmbeddedMpvBoundsProvider = (host: HTMLElement) => EmbeddedMpvBounds;
 
 const STALLED_TIMEOUT_MS = 30_000;
 
@@ -26,7 +29,8 @@ export class EmbeddedMpvSessionController {
     private readonly destroyRef = inject(DestroyRef);
     private readonly unsubscribeSessionUpdate?: () => void;
 
-    private overlayActiveProvider: () => boolean = () => false;
+    private boundsProvider: EmbeddedMpvBoundsProvider = (host) =>
+        measureBounds(host);
     private activeBoundsSync: (() => void) | null = null;
     private boundsAnimationFrame: number | null = null;
     private stalledTimer: number | null = null;
@@ -65,8 +69,8 @@ export class EmbeddedMpvSessionController {
         });
     }
 
-    setOverlayActiveProvider(provider: () => boolean): void {
-        this.overlayActiveProvider = provider;
+    setBoundsProvider(provider: EmbeddedMpvBoundsProvider): void {
+        this.boundsProvider = provider;
     }
 
     triggerBoundsSync(): void {
@@ -98,9 +102,7 @@ export class EmbeddedMpvSessionController {
             if (!activeSessionId) {
                 return;
             }
-            const bounds = this.overlayActiveProvider()
-                ? HIDDEN_BOUNDS
-                : measureBounds(host);
+            const bounds = this.boundsProvider(host);
             void window.electron
                 ?.setEmbeddedMpvBounds(activeSessionId, bounds)
                 .catch(() => undefined);
