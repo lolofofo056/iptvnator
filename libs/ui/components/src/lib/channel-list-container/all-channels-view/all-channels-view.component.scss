@@ -32,6 +32,47 @@
     }
 }
 
+.all-channels-header {
+    padding: 12px 16px 8px;
+    flex-shrink: 0;
+}
+
+.all-channels-header__top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    h2 {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        margin: 0;
+        color: var(--mat-sys-on-surface);
+        font-size: 0.94rem;
+        font-weight: 600;
+        letter-spacing: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.all-channels-sort-button {
+    flex: 0 0 auto;
+}
+
+.all-channels-sidebar-toggle {
+    flex: 0 0 auto;
+    margin-right: -4px;
+}
+
+.all-channels-divider {
+    height: 1px;
+    background: var(--mat-sys-outline-variant);
+    margin: 0 0 6px;
+    opacity: 0.6;
+    flex-shrink: 0;
+}
+
 #all-channels {
     flex: 1;
     min-height: 0;

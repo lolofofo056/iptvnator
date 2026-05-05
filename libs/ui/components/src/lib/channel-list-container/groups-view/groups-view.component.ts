@@ -21,14 +21,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
-import {
-    PortalChannelSortMode,
-    getPortalChannelSortModeLabel,
-    persistPortalChannelSortMode,
-    restorePortalChannelSortMode,
-    sortPortalChannelItems,
-} from '@iptvnator/portal/shared/util';
 import { ChannelEpgMetadata } from '../all-channels-view/all-channels-view.component';
+import {
+    PlaylistChannelSortMode,
+    getPlaylistChannelSortModeLabel,
+    persistPlaylistChannelSortMode,
+    restorePlaylistChannelSortMode,
+    sortPlaylistChannelItems,
+} from '../channel-list-sort.util';
 import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
@@ -125,11 +125,11 @@ export class GroupsViewComponent {
     readonly isGroupSearchOpen = signal(false);
     readonly localGroupSearchTerm = signal('');
     readonly selectedGroupKey = signal<string | null>(null);
-    readonly groupChannelSortMode = signal<PortalChannelSortMode>(
-        restorePortalChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY)
+    readonly groupChannelSortMode = signal<PlaylistChannelSortMode>(
+        restorePlaylistChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY)
     );
     readonly groupChannelSortLabel = computed(() =>
-        getPortalChannelSortModeLabel(this.groupChannelSortMode())
+        getPlaylistChannelSortModeLabel(this.groupChannelSortMode())
     );
     readonly hasSearchQuery = computed(
         () =>
@@ -329,7 +329,7 @@ export class GroupsViewComponent {
             return [];
         }
 
-        return sortPortalChannelItems(
+        return sortPlaylistChannelItems(
             group.channels,
             sortMode,
             (channel) => channel?.name
@@ -439,9 +439,9 @@ export class GroupsViewComponent {
         });
     }
 
-    setGroupChannelSortMode(mode: PortalChannelSortMode): void {
+    setGroupChannelSortMode(mode: PlaylistChannelSortMode): void {
         this.groupChannelSortMode.set(mode);
-        persistPortalChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY, mode);
+        persistPlaylistChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY, mode);
     }
 
     onGroupsNavResizeStart(): void {

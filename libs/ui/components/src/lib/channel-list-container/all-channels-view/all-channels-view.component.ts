@@ -10,15 +10,26 @@ import {
     signal,
     viewChild,
 } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
+import {
+    PlaylistChannelSortMode,
+    getPlaylistChannelSortModeLabel,
+    persistPlaylistChannelSortMode,
+    restorePlaylistChannelSortMode,
+    sortPlaylistChannelItems,
+} from '../channel-list-sort.util';
 import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
+
+const ALL_CHANNELS_SORT_STORAGE_KEY = 'm3u-all-channels-sort-mode';
 
 /**
  * Per-channel EPG metadata stored in a side-car map keyed by EPG lookup key.
@@ -37,8 +48,10 @@ export interface ChannelEpgMetadata {
     changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         ChannelListItemComponent,
+        MatButtonModule,
         MatIconModule,
         MatMenuModule,
+        MatTooltipModule,
         ScrollingModule,
         TranslatePipe,
     ],
@@ -46,9 +59,8 @@ export interface ChannelEpgMetadata {
 export class AllChannelsViewComponent {
     private readonly dialog = inject(MatDialog);
 
-    readonly contextMenuTrigger = viewChild.required<MatMenuTrigger>(
-        'contextMenuTrigger'
-    );
+    readonly contextMenuTrigger =
+        viewChild.required<MatMenuTrigger>('contextMenuTrigger');
 
     /** All channels (will be filtered by search) */
     readonly channels = input.required<Channel[]>();
@@ -82,24 +94,36 @@ export class AllChannelsViewComponent {
         event: MouseEvent;
     }>();
 
+    /** Emits when the user clicks the inline collapse toggle in the list header */
+    readonly sidebarToggleRequested = output<void>();
+
     readonly contextMenuChannel = signal<Channel | null>(null);
     readonly contextMenuPosition = signal({
         x: '0px',
         y: '0px',
     });
+    readonly allChannelsSortMode = signal<PlaylistChannelSortMode>(
+        restorePlaylistChannelSortMode(ALL_CHANNELS_SORT_STORAGE_KEY)
+    );
+    readonly allChannelsSortLabel = computed(() =>
+        getPlaylistChannelSortModeLabel(this.allChannelsSortMode())
+    );
 
     /**
-     * Filtered channels — just a subset reference, no cloning.
-     * Recomputes only when the source list or the search term changes.
+     * Filtered and sorted channels. Playlist order keeps the original input
+     * reference when there is no search term, so large lists avoid cloning.
      */
     readonly filteredChannels = computed(() => {
         const term = this.searchTerm().trim().toLowerCase();
         const channels = this.channels();
-        if (!term) {
-            return channels;
-        }
-        return channels.filter((ch) =>
-            ch.name?.toLowerCase().includes(term)
+        const filteredChannels = term
+            ? channels.filter((ch) => ch.name?.toLowerCase().includes(term))
+            : channels;
+
+        return sortPlaylistChannelItems(
+            filteredChannels,
+            this.allChannelsSortMode(),
+            (channel) => channel?.name
         );
     });
 
@@ -181,6 +205,11 @@ export class AllChannelsViewComponent {
 
     onFavoriteToggle(channel: Channel, event: MouseEvent): void {
         this.favoriteToggled.emit({ channel, event });
+    }
+
+    setAllChannelsSortMode(mode: PlaylistChannelSortMode): void {
+        this.allChannelsSortMode.set(mode);
+        persistPlaylistChannelSortMode(ALL_CHANNELS_SORT_STORAGE_KEY, mode);
     }
 
     onChannelContextMenu(channel: Channel, event: MouseEvent): void {

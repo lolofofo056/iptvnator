@@ -9,7 +9,7 @@ The M3U playlist module provides:
 - Channel list display with virtual scrolling (90,000+ channels support)
 - EPG (Electronic Program Guide) integration
 - Favorites management with drag-and-drop reordering
-- Channel grouping and search
+- Channel grouping, search, and per-list channel sorting
 - Per-playlist group visibility management in the groups view
 - Video playback with multiple player backends
 
@@ -209,6 +209,19 @@ channel-list-container/
   hidden by separating "playlist has no groups" from "no visible/search-matching
   groups" empty states.
 
+### Channel Sorting
+
+- `AllChannelsViewComponent` owns sorting for the all-channels list and
+  persists the selected mode under `m3u-all-channels-sort-mode`.
+- `GroupsViewComponent` owns sorting for the selected group's channel pane and
+  persists the selected mode under `m3u-groups-channel-sort-mode`.
+- Both views support three modes: `Playlist Order`, `Name A-Z`, and `Name Z-A`.
+  `Playlist Order` is the default and preserves the original channel order from
+  the M3U playlist.
+- Sorting is applied after the current search filter and before virtual-scroll
+  rendering. Playlist order avoids cloning the full list when no search term is
+  active.
+
 ### EnrichedChannel Pattern
 
 For performance optimization, channels are pre-enriched with EPG data:
@@ -252,25 +265,25 @@ EPG lookup keys use the same precedence in both program and icon paths:
 
 ### Tab Components
 
-#### AllChannelsTabComponent
+#### AllChannelsViewComponent
 
 - **Inputs**: `channels`, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `itemSize`, `activeChannelUrl`, `favoriteIds`
 - **Outputs**: `channelSelected`, `favoriteToggled`
-- **Features**: Search with 300ms debounce, virtual scrolling, no-results placeholder
+- **Features**: Workspace search, persisted channel sorting, virtual scrolling, no-results placeholder
 
-#### GroupsTabComponent
+#### GroupsViewComponent
 
 - **Inputs**: Same as AllChannelsTab + `groupedChannels`
 - **Outputs**: `channelSelected`, `favoriteToggled`
-- **Features**: Expansion panels, infinite scroll with IntersectionObserver, lazy loading
+- **Features**: Resizable groups rail, local group search, group visibility management, persisted selected-group channel sorting
 
-#### FavoritesTabComponent
+#### FavoritesViewComponent
 
 - **Inputs**: `favorites`, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
 - **Outputs**: `channelSelected`, `favoriteToggled`, `favoritesReordered`
 - **Features**: Drag-and-drop reordering with CDK DragDrop, read-only channel details context menu
 
-#### RecentTabComponent
+#### RecentViewComponent
 
 - **Inputs**: recent channels, `channelEpgMap`, `channelIconMap`, `progressTick`, `shouldShowEpg`, `activeChannelUrl`
 - **Outputs**: `channelSelected`, `favoriteToggled`, `recentItemRemoved`

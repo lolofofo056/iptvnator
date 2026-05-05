@@ -10,7 +10,7 @@
     (widthChange)="onSidebarWidthChange($event)"
     (resizeEnd)="onSidebarResizeEnd($event)"
 >
-    @if (activeView() !== 'groups') {
+    @if (activeView() !== 'groups' && activeView() !== 'all') {
         <button
             mat-icon-button
             type="button"

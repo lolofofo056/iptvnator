@@ -208,9 +208,9 @@ describe('GroupsViewComponent', () => {
         ]);
     });
 
-    it('defaults to server order when no saved sort mode exists', () => {
+    it('defaults to playlist order when no saved sort mode exists', () => {
         expect(component.groupChannelSortMode()).toBe('server');
-        expect(component.groupChannelSortLabel()).toBe('Server Order');
+        expect(component.groupChannelSortLabel()).toBe('Playlist Order');
     });
 
     it('restores a saved valid sort mode and ignores invalid stored values', () => {
@@ -264,7 +264,7 @@ describe('GroupsViewComponent', () => {
         );
     });
 
-    it('sorts selected group channels by server order, name ascending, and name descending', () => {
+    it('sorts selected group channels by playlist order, name ascending, and name descending', () => {
         const alphaSignal = createChannel(
             'sort-1',
             'Alpha Signal',
