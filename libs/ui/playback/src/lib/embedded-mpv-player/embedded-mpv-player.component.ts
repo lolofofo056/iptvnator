@@ -295,12 +295,18 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
             if (!session) {
                 return;
             }
-            this.volume.set(session.volume);
-            this.timeUpdate.emit({
-                currentTime: session.positionSeconds,
-                duration: session.durationSeconds ?? 0,
+            // Side effects must not pull in transitive signal deps via
+            // scheduleControlsHide — otherwise opening a popover, pausing, or
+            // hovering would re-run this body and re-emit timeUpdate (which
+            // could feed back into playback inputs and restart the stream).
+            untracked(() => {
+                this.volume.set(session.volume);
+                this.timeUpdate.emit({
+                    currentTime: session.positionSeconds,
+                    duration: session.durationSeconds ?? 0,
+                });
+                this.scheduleControlsHide();
             });
-            this.scheduleControlsHide();
         });
     }
 

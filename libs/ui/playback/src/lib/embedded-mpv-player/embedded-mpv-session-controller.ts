@@ -1,6 +1,7 @@
 import {
     DestroyRef,
     Injectable,
+    computed,
     effect,
     inject,
     signal,
@@ -25,6 +26,10 @@ export class EmbeddedMpvSessionController {
     readonly sessionId = signal<string | null>(null);
     readonly stalled = signal(false);
     readonly retryToken = signal(0);
+
+    private readonly sessionStatus = computed(
+        () => this.session()?.status ?? null
+    );
 
     private readonly destroyRef = inject(DestroyRef);
     private readonly unsubscribeSessionUpdate?: () => void;
@@ -54,8 +59,11 @@ export class EmbeddedMpvSessionController {
             });
         }
 
+        // Track the narrowest possible signal — status only — so this effect
+        // does not re-run on every position-poll snapshot (~2 Hz during play)
+        // even though handleStalledTracking would be a no-op for those.
         effect(() => {
-            const status = this.session()?.status ?? null;
+            const status = this.sessionStatus();
             untracked(() => this.handleStalledTracking(status));
         });
 
