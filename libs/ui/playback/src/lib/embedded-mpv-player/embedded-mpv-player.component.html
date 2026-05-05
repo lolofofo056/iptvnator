@@ -128,6 +128,13 @@
             <div class="embedded-mpv-player__timeline">
                 <input
                     class="embedded-mpv-player__slider"
+                    [style.--slider-progress.%]="
+                        canSeek()
+                            ? (timelineValue() /
+                                  ((session()?.durationSeconds ?? 0) || 1)) *
+                              100
+                            : 0
+                    "
                     type="range"
                     min="0"
                     [max]="session()?.durationSeconds ?? 0"
@@ -185,6 +192,7 @@
                         >
                             <input
                                 class="embedded-mpv-player__slider embedded-mpv-player__slider--volume"
+                                [style.--slider-progress.%]="volume() * 100"
                                 type="range"
                                 min="0"
                                 max="1"
