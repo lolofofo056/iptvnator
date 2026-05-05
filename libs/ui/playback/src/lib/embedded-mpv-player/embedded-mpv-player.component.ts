@@ -10,6 +10,7 @@ import {
     inject,
     input,
     signal,
+    untracked,
     viewChild,
 } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
@@ -271,10 +272,14 @@ export class EmbeddedMpvPlayerComponent implements OnDestroy {
                 return;
             }
 
+            // volume is read untracked so adjusting it during playback does
+            // not re-trigger this effect (which would tear down and recreate
+            // the session, restarting the stream from the beginning).
+            // Subsequent volume changes flow through controller.applyVolume.
             const teardown = this.controller.startSession(
                 viewport.nativeElement,
                 playback,
-                this.volume()
+                untracked(() => this.volume())
             );
             onCleanup(teardown);
         });
