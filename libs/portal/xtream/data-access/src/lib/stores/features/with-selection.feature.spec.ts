@@ -9,8 +9,37 @@ const TestSelectionStore = signalStore(
             vod: 'ready',
             series: 'ready',
         },
-        liveCategories: [],
-        liveStreams: [],
+        liveCategories: [
+            {
+                id: 50,
+                category_id: '50',
+                category_name: 'News',
+                type: 'live',
+            },
+            {
+                id: 60,
+                category_id: '60',
+                category_name: 'Sports',
+                type: 'live',
+            },
+        ],
+        liveStreams: [
+            {
+                xtream_id: 201,
+                category_id: '50',
+                title: 'World News',
+            },
+            {
+                xtream_id: 202,
+                category_id: '60',
+                title: 'World Sports',
+            },
+            {
+                xtream_id: 203,
+                category_id: '60',
+                title: 'Match Day',
+            },
+        ],
         vodCategories: [
             {
                 id: 10,
@@ -175,7 +204,7 @@ describe('withSelection', () => {
         ).toEqual(['Stargate SG-1', 'Stargate Atlantis']);
     });
 
-    it('keeps VOD search scoped to the selected category', () => {
+    it('keeps VOD category route search scoped to the selected category', () => {
         store.setSelectedContentType('vod');
         store.setSelectedCategory(10);
 
@@ -184,5 +213,38 @@ describe('withSelection', () => {
         expect(
             store.selectItemsFromSelectedCategory().map((item) => item.title)
         ).toEqual(['First']);
+    });
+
+    it('keeps series category route search scoped to the selected category', () => {
+        store.setSelectedContentType('series');
+        store.setSelectedCategory(30);
+
+        store.setCategorySearchTerm('stargate');
+
+        expect(
+            store.selectItemsFromSelectedCategory().map((item) => item.title)
+        ).toEqual(['Stargate SG-1']);
+    });
+
+    it('keeps live category route search scoped to the selected category', () => {
+        store.setSelectedContentType('live');
+        store.setSelectedCategory(50);
+
+        store.setCategorySearchTerm('world');
+
+        expect(
+            store.selectItemsFromSelectedCategory().map((item) => item.title)
+        ).toEqual(['World News']);
+    });
+
+    it('filters all live items across categories when no category is selected', () => {
+        store.setSelectedContentType('live');
+        store.setSelectedCategory(null);
+
+        store.setCategorySearchTerm('world');
+
+        expect(
+            store.selectItemsFromSelectedCategory().map((item) => item.title)
+        ).toEqual(['World News', 'World Sports']);
     });
 });

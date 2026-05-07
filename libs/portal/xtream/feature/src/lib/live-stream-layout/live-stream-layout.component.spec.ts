@@ -1,10 +1,11 @@
 import { Directive, Component, input, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { MockPipe } from 'ng-mocks';
 import { TranslatePipe } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import {
     LIVE_EPG_PANEL_STATE_STORAGE_KEY,
     LIVE_SIDEBAR_STATE_STORAGE_KEY,
@@ -103,6 +104,9 @@ class StubResizableDirective {}
 describe('LiveStreamLayoutComponent', () => {
     let fixture: ComponentFixture<LiveStreamLayoutComponent>;
     let component: LiveStreamLayoutComponent;
+    let routeQueryParamMap: BehaviorSubject<
+        ReturnType<typeof convertToParamMap>
+    >;
     const fixedNow = new Date('2026-04-05T12:00:00.000Z');
 
     const sampleChannel = {
@@ -188,6 +192,7 @@ describe('LiveStreamLayoutComponent', () => {
         selectedContentType.set('live');
         selectedItem.set(sampleChannel);
         currentPlaylist.set(playlist);
+        routeQueryParamMap = new BehaviorSubject(convertToParamMap({}));
 
         await TestBed.configureTestingModule({
             imports: [LiveStreamLayoutComponent, NoopAnimationsModule],
@@ -199,11 +204,11 @@ describe('LiveStreamLayoutComponent', () => {
                             data: {},
                             queryParamMap: convertToParamMap({}),
                         },
-                        queryParamMap: of(convertToParamMap({})),
+                        queryParamMap: routeQueryParamMap.asObservable(),
                         pathFromRoot: [
                             {
                                 snapshot: {
-                                    data: {},
+                                    data: { layout: 'workspace' },
                                 },
                             },
                         ],
@@ -338,6 +343,26 @@ describe('LiveStreamLayoutComponent', () => {
                 '[data-test-id="portal-channels-list-stub"]'
             )
         ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-portal-empty-state')
+        ).toBeNull();
+    });
+
+    it('shows the cross-category live channel list while searching from the live root', () => {
+        selectedCategoryId.set(null);
+        selectedTypeContentLoading.set(false);
+        routeQueryParamMap.next(convertToParamMap({ q: 'world' }));
+
+        fixture.detectChanges();
+
+        const list = fixture.debugElement.query(
+            By.directive(StubPortalChannelsListComponent)
+        );
+
+        expect(list).not.toBeNull();
+        expect(list.componentInstance.searchTermInput() as string).toBe(
+            'world'
+        );
         expect(
             fixture.nativeElement.querySelector('app-portal-empty-state')
         ).toBeNull();

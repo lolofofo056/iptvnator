@@ -92,7 +92,7 @@
         </button>
     }
     @if (!selectedCategoryId()) {
-        @if (isSelectedTypeContentLoading()) {
+        @if (isSelectedTypeContentLoading() || workspaceSearchTerm()) {
             <div class="live-loading-content">
                 <app-portal-channels-list
                     [sortMode]="liveChannelSortMode()"
