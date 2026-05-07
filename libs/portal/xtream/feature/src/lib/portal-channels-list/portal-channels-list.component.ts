@@ -226,11 +226,11 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
         }
 
         if (uncachedEntries.length > 0) {
-            this.epgQueueService.enqueue(
-                uncachedEntries,
-                visibleIds,
-                credentials
-            );
+            this.epgQueueService
+                .enqueue(uncachedEntries, visibleIds, credentials)
+                .catch((error) => {
+                    console.warn('EPG enqueue failed', error);
+                });
         }
     }
 

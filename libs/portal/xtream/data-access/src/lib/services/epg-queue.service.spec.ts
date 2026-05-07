@@ -276,6 +276,34 @@ describe('EpgQueueService', () => {
         expect(priv().epgChannelByStreamId.has(100)).toBe(false);
     });
 
+    it('prunes XMLTV preview when its cache entry has expired (TTL-aware)', async () => {
+        fallback.getCurrentProgramsBatch.mockResolvedValueOnce({
+            'rtl.de': makeEpgItem('rtl.de', 'Tagesschau'),
+        });
+        xtreamApi.getShortEpg.mockResolvedValue([]);
+
+        // Initial enqueue: stream 100 visible, gets cached.
+        await service.enqueue(
+            [{ streamId: 100, epgChannelId: 'rtl.de' }],
+            new Set([100]),
+            credentials
+        );
+        expect(priv().xmltvPreviewByStreamId.has(100)).toBe(true);
+
+        // Stream 100 leaves the viewport but still has a (live) cache entry,
+        // so prune keeps the preview alive — by design.
+        await service.enqueue([], new Set([]), credentials);
+        expect(priv().xmltvPreviewByStreamId.has(100)).toBe(true);
+
+        // Advance past the 5-minute cache TTL. Now the cache entry is stale;
+        // prune must drop the preview rather than cling to an expired hit.
+        jest.advanceTimersByTime(5 * 60 * 1000 + 1);
+        await service.enqueue([], new Set([]), credentials);
+
+        expect(priv().xmltvPreviewByStreamId.has(100)).toBe(false);
+        expect(priv().epgChannelByStreamId.has(100)).toBe(false);
+    });
+
     it('does not re-emit on empty→empty transitions', async () => {
         xtreamApi.getShortEpg.mockResolvedValue([]);
         const events: number[] = [];

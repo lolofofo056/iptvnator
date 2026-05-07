@@ -189,8 +189,10 @@ export class EpgQueueService implements OnDestroy {
     }
 
     private pruneEphemeralMaps(visibleIds: Set<number>): void {
-        for (const id of this.epgChannelByStreamId.keys()) {
-            if (!visibleIds.has(id) && !this.cache.has(id)) {
+        for (const id of [...this.epgChannelByStreamId.keys()]) {
+            // getCached() honors TTL and lazily evicts expired entries;
+            // a raw cache.has() would keep stale previews alive forever.
+            if (!visibleIds.has(id) && this.getCached(id) === null) {
                 this.epgChannelByStreamId.delete(id);
                 this.xmltvPreviewByStreamId.delete(id);
             }

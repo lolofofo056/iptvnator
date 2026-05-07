@@ -43,7 +43,7 @@ export class XtreamXmltvFallbackService {
         if (typeof fn !== 'function') return [];
 
         try {
-            const programs = await fn(id);
+            const programs = await fn.call(this.bridge, id);
             return (programs ?? []).map((p) => mapEpgProgramToEpgItem(p, id));
         } catch (error) {
             this.logger.error(
@@ -70,7 +70,7 @@ export class XtreamXmltvFallbackService {
         if (ids.length === 0) return {};
 
         try {
-            const rows = await fn(ids);
+            const rows = await fn.call(this.bridge, ids);
             const out: Record<string, EpgItem> = {};
             for (const id of ids) {
                 const row = rows?.[id];
