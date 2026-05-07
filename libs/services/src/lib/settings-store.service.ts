@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS: Settings = {
     epgUrl: [],
     downloadFolder: '',
     coverSize: 'medium',
+    preferUploadedEpgOverXtream: false,
 };
 
 let embeddedMpvPrepareScheduled = false;
@@ -140,6 +141,8 @@ export const SettingsStore = signalStore(
                 epgUrl: store.epgUrl(),
                 downloadFolder: store.downloadFolder!(),
                 coverSize: store.coverSize!(),
+                preferUploadedEpgOverXtream:
+                    store.preferUploadedEpgOverXtream!(),
             };
         },
 

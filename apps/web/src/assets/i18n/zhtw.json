@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "新增一個或多個網址作為 EPG 來源",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "為 Xtream 播放清單優先使用上傳的 EPG",
+        "PREFER_UPLOADED_EPG_HINT": "預設情況下,Xtream 播放清單會使用供應商的節目表,您上傳的 EPG 僅用於補足缺少的頻道。開啟此選項以優先使用您上傳的 EPG。",
         "DATA": "資料",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

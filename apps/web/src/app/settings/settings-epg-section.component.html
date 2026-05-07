@@ -89,6 +89,19 @@
         </div>
     </div>
 
+    <div class="setting-item">
+        <div class="setting-item__meta">
+            <h4>{{ 'SETTINGS.PREFER_UPLOADED_EPG_TITLE' | translate }}</h4>
+            <p>{{ 'SETTINGS.PREFER_UPLOADED_EPG_HINT' | translate }}</p>
+        </div>
+        <div class="setting-item__control setting-item__toggle">
+            <mat-checkbox
+                formControlName="preferUploadedEpgOverXtream"
+                data-test-id="toggle-prefer-uploaded-epg"
+            ></mat-checkbox>
+        </div>
+    </div>
+
     <footer class="settings-group__footer">
         <div class="inline-actions">
             <button mat-button type="button" (click)="addEpgSource.emit()">

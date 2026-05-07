@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "Agrega una o varias URL como fuentes EPG",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Preferir tus fuentes EPG para listas Xtream",
+        "PREFER_UPLOADED_EPG_HINT": "De forma predeterminada, las listas Xtream usan la guía de programas de tu proveedor, y tus fuentes EPG solo rellenan los canales que faltan. Activa esta opción para usar antes tu EPG.",
         "DATA": "Datos",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

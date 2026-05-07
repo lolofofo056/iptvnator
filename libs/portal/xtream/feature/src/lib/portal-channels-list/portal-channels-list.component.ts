@@ -48,6 +48,7 @@ export interface XtreamChannelListItem {
     readonly title?: string;
     readonly type?: 'live' | 'movie' | 'series' | 'vod';
     readonly xtream_id: number;
+    readonly epg_channel_id?: string | null;
 }
 
 interface XtreamCategoryLike {
@@ -200,7 +201,7 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
         };
 
         const visibleIds = new Set<number>(channels.map((ch) => ch.xtream_id));
-        const uncachedIds: number[] = [];
+        const uncachedEntries: { streamId: number; epgChannelId?: string | null }[] = [];
 
         // Apply cached results immediately
         for (const channel of channels) {
@@ -217,12 +218,19 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
             }
 
             if (!this.epgPrograms.has(channel.xtream_id)) {
-                uncachedIds.push(channel.xtream_id);
+                uncachedEntries.push({
+                    streamId: channel.xtream_id,
+                    epgChannelId: channel.epg_channel_id ?? null,
+                });
             }
         }
 
-        if (uncachedIds.length > 0) {
-            this.epgQueueService.enqueue(uncachedIds, visibleIds, credentials);
+        if (uncachedEntries.length > 0) {
+            this.epgQueueService.enqueue(
+                uncachedEntries,
+                visibleIds,
+                credentials
+            );
         }
     }
 

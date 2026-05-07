@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "Voeg een of meer URL's toe als EPG-bron",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Eigen EPG-bronnen verkiezen voor Xtream-afspeellijsten",
+        "PREFER_UPLOADED_EPG_HINT": "Standaard gebruiken Xtream-afspeellijsten de programmagids van je provider, en je EPG-bronnen vullen alleen ontbrekende kanalen aan. Schakel dit in om eerst je geüploade EPG te gebruiken.",
         "DATA": "Gegevens",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

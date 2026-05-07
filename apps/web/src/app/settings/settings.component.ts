@@ -200,6 +200,9 @@ export class SettingsComponent implements OnInit, OnDestroy {
             ],
         ],
         coverSize: 'medium' as CoverSize,
+        ...(this.isDesktop
+            ? { preferUploadedEpgOverXtream: false }
+            : {}),
     });
 
     /** Form array with epg sources */

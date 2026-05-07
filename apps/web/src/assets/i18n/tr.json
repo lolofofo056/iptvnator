@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "EPG kaynağı olarak bir veya daha fazla URL ekleyin",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Xtream oynatma listeleri için yüklediğin EPG'yi tercih et",
+        "PREFER_UPLOADED_EPG_HINT": "Varsayılan olarak Xtream oynatma listeleri sağlayıcının yayın akışını kullanır ve yüklediğin EPG yalnızca eksik kanalları doldurur. Bunu açarak yüklediğin EPG'yi önce kullanabilirsin.",
         "DATA": "Veri",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

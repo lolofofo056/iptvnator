@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "زيد رابط ولا أكثر كمصادر EPG",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "فضّل مصادر EPG ديالك ل Xtream",
+        "PREFER_UPLOADED_EPG_HINT": "افتراضياً، قوائم Xtream كتستعمل دليل البرامج ديال المزود ديالك، ومصادر EPG ديالك كتعمر غير القنوات اللي ناقصة. فعّل هاد الخيار باش يتستعمل EPG ديالك الأول.",
         "DATA": "البيانات",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

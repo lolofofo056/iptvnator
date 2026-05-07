@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "하나 이상의 URL을 EPG 소스로 추가합니다",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Xtream 재생 목록에서 업로드한 EPG 우선 사용",
+        "PREFER_UPLOADED_EPG_HINT": "기본적으로 Xtream 재생 목록은 공급자의 프로그램 가이드를 사용하며, 업로드한 EPG는 누락된 채널만 채웁니다. 이 옵션을 켜면 업로드한 EPG를 먼저 사용합니다.",
         "DATA": "데이터",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",
