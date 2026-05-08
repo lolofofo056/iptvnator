@@ -576,7 +576,11 @@ export class WorkspaceShellFacade {
                 return;
             }
 
-            if (section === 'vod' || section === 'series') {
+            if (
+                section === 'vod' ||
+                section === 'series' ||
+                section === 'live'
+            ) {
                 this.xtreamStore.setCategorySearchTerm(term);
             }
         });
@@ -617,8 +621,8 @@ export class WorkspaceShellFacade {
     }
 
     openActiveExternalSessionTarget(): void {
-        const playlistId = this.externalPlaybackSession()?.contentInfo
-            ?.playlistId;
+        const playlistId =
+            this.externalPlaybackSession()?.contentInfo?.playlistId;
         if (!playlistId) return;
 
         const playlist = this.playlists().find((p) => p._id === playlistId);
@@ -792,7 +796,8 @@ export class WorkspaceShellFacade {
     }
 
     private readonly commandBuilderActions: CommandBuilderActions = {
-        openPlaylistSearch: (query) => this.openPlaylistSearchFromPalette(query),
+        openPlaylistSearch: (query) =>
+            this.openPlaylistSearchFromPalette(query),
         refreshCurrentPlaylist: () => this.refreshCurrentPlaylist(),
         openPlaylistInfo: () => this.openPlaylistInfo(),
         openAccountInfo: () => this.openAccountInfo(),
@@ -805,7 +810,6 @@ export class WorkspaceShellFacade {
                 ? this.workspaceActions.openAddPlaylistDialog(kind)
                 : this.workspaceActions.openAddPlaylistDialog(),
     };
-
 
     private openPlaylistSearchFromPalette(query: string): void {
         const effectiveContext =
@@ -905,5 +909,4 @@ export class WorkspaceShellFacade {
     ): string {
         return this.translate.instant(key, params);
     }
-
 }

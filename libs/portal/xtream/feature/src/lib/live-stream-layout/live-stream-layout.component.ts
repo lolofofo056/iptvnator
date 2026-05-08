@@ -53,11 +53,7 @@ import {
     LiveEpgPanelSummary,
     WebPlayerViewComponent,
 } from 'shared-portals';
-import {
-    EpgItem,
-    EpgProgram,
-    ResolvedPortalPlayback,
-} from 'shared-interfaces';
+import { EpgItem, EpgProgram, ResolvedPortalPlayback } from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { ActivatedRoute } from '@angular/router';
 import { SettingsStore } from 'services';
@@ -125,6 +121,9 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     );
     readonly workspaceSearchTerm = computed(() =>
         this.isWorkspaceLayout ? this.routeSearchTerm() : ''
+    );
+    readonly showLiveChannelSidebar = computed(
+        () => !!this.selectedCategoryId() || !!this.workspaceSearchTerm()
     );
     private readonly pendingAutoOpenLiveItemId = signal<number | null>(null);
     readonly selectedLiveItem = computed<XtreamLiveChannelItem | null>(() => {

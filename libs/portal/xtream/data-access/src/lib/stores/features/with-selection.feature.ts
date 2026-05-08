@@ -276,19 +276,19 @@ export function withSelection() {
                         : sortedContent();
 
                     filtered = filterBySearchTerm(filtered, searchTerm);
-                    return categoryId
+                    return categoryId || searchTerm
                         ? sortByMode(filtered, sortMode, categoryType)
                         : filtered;
                 }
 
                 if (!categoryId) {
-                    return sortedContent();
+                    return filterBySearchTerm(sortedContent(), searchTerm);
                 }
 
                 const filtered = content.filter(
                     (item) => Number(item.category_id) === categoryId
                 );
-                return filtered;
+                return filterBySearchTerm(filtered, searchTerm);
             });
 
             return {

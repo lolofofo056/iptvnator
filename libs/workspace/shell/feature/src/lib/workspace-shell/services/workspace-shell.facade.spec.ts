@@ -17,10 +17,7 @@ import {
 } from '@iptvnator/portal/shared/util';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
-import {
-    PlaylistsService,
-    SettingsStore,
-} from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import { PlaylistMeta } from 'shared-interfaces';
 import {
     WorkspaceStartupPreferencesService,
@@ -285,7 +282,8 @@ describe('WorkspaceShellFacade', () => {
                             params?: Record<string, string | number>
                         ) => {
                             if (
-                                key === 'WORKSPACE.SHELL.XTREAM_IMPORT_PROGRESS' &&
+                                key ===
+                                    'WORKSPACE.SHELL.XTREAM_IMPORT_PROGRESS' &&
                                 params
                             ) {
                                 return `${params.type} imported: ${params.current} / ${params.total}`;
@@ -325,7 +323,9 @@ describe('WorkspaceShellFacade', () => {
     });
 
     it('routes dashboard search Enter into the active Xtream playlist search', () => {
-        const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamStore = TestBed.inject(
+            XtreamStore
+        ) as unknown as MockXtreamStore;
 
         facade.currentUrl.set('/workspace/dashboard');
         router.navigate.mockClear();
@@ -342,7 +342,9 @@ describe('WorkspaceShellFacade', () => {
     });
 
     it('uses a loading label for remote Xtream fetch phases', () => {
-        const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamStore = TestBed.inject(
+            XtreamStore
+        ) as unknown as MockXtreamStore;
         const xtreamImport = TestBed.inject(WorkspaceShellXtreamImportService);
 
         xtreamStore.currentImportPhase.set('loading-categories');
@@ -446,7 +448,9 @@ describe('WorkspaceShellFacade', () => {
     });
 
     it('builds a type-aware xtream import progress label', () => {
-        const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamStore = TestBed.inject(
+            XtreamStore
+        ) as unknown as MockXtreamStore;
         const xtreamImport = TestBed.inject(WorkspaceShellXtreamImportService);
 
         xtreamStore.activeImportContentType.set('vod');
@@ -486,9 +490,12 @@ describe('WorkspaceShellFacade', () => {
         facade.onSearchEnter('');
         TestBed.flushEffects();
 
-        expect(router.navigateByUrl).toHaveBeenCalledWith('/workspace/sources', {
-            replaceUrl: true,
-        });
+        expect(router.navigateByUrl).toHaveBeenCalledWith(
+            '/workspace/sources',
+            {
+                replaceUrl: true,
+            }
+        );
     });
 
     it('navigates to the global favorites route', () => {
@@ -513,7 +520,9 @@ describe('WorkspaceShellFacade', () => {
         );
         expect(storeDispatch).toHaveBeenCalled();
         expect(router.navigateByUrl).toHaveBeenCalledWith(
-            expect.stringMatching(/^\/workspace\/stalker\/pl-1\/recent\?refresh=/),
+            expect.stringMatching(
+                /^\/workspace\/stalker\/pl-1\/recent\?refresh=/
+            ),
             {
                 replaceUrl: true,
             }
@@ -533,13 +542,28 @@ describe('WorkspaceShellFacade', () => {
     });
 
     it('applies q to Xtream category search on vod routes', () => {
-        const xtreamStore = TestBed.inject(XtreamStore) as unknown as MockXtreamStore;
+        const xtreamStore = TestBed.inject(
+            XtreamStore
+        ) as unknown as MockXtreamStore;
 
         facade.currentUrl.set('/workspace/xtreams/pl-1/vod?q=neo');
         (facade as { syncSearchFromRoute: () => void }).syncSearchFromRoute();
         TestBed.flushEffects();
 
         expect(xtreamStore.setCategorySearchTerm).toHaveBeenCalledWith('neo');
+        expect(xtreamStore.setSearchTerm).not.toHaveBeenCalled();
+    });
+
+    it('applies q to Xtream category search on live routes', () => {
+        const xtreamStore = TestBed.inject(
+            XtreamStore
+        ) as unknown as MockXtreamStore;
+
+        facade.currentUrl.set('/workspace/xtreams/pl-1/live?q=world');
+        (facade as { syncSearchFromRoute: () => void }).syncSearchFromRoute();
+        TestBed.flushEffects();
+
+        expect(xtreamStore.setCategorySearchTerm).toHaveBeenCalledWith('world');
         expect(xtreamStore.setSearchTerm).not.toHaveBeenCalled();
     });
 
@@ -586,9 +610,9 @@ describe('WorkspaceShellFacade', () => {
     });
 
     it('persists the last restorable route from navigation events', () => {
-        expect(startupPreferences.persistLastRestorablePath).toHaveBeenCalledWith(
-            '/workspace/xtreams/pl-1/vod'
-        );
+        expect(
+            startupPreferences.persistLastRestorablePath
+        ).toHaveBeenCalledWith('/workspace/xtreams/pl-1/vod');
     });
 
     it('uses the translated recent scope label on the global recent route', () => {
@@ -689,9 +713,9 @@ describe('WorkspaceShellFacade', () => {
 
         expect(commands[0]?.id).toBe('clear-current-favorites');
         expect(commands[0]?.group).toBe('view');
-        expect(commands.some((command) => command.id === 'playlist-search')).toBe(
-            false
-        );
+        expect(
+            commands.some((command) => command.id === 'playlist-search')
+        ).toBe(false);
 
         unregister();
     });
@@ -701,8 +725,7 @@ describe('WorkspaceShellFacade', () => {
             open: jest.Mock;
         };
         dialog.open.mockReturnValueOnce({
-            afterClosed: () =>
-                of({ commandId: 'open-settings', query: '' }),
+            afterClosed: () => of({ commandId: 'open-settings', query: '' }),
         });
 
         facade.openCommandPalette();
