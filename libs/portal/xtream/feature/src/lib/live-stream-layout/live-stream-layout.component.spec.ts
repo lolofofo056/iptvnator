@@ -355,17 +355,47 @@ describe('LiveStreamLayoutComponent', () => {
 
         fixture.detectChanges();
 
-        const list = fixture.debugElement.query(
+        const lists = fixture.debugElement.queryAll(
             By.directive(StubPortalChannelsListComponent)
         );
+        const list = lists[0];
 
         expect(list).not.toBeNull();
+        expect(lists).toHaveLength(1);
         expect(list.componentInstance.searchTermInput() as string).toBe(
             'world'
         );
         expect(
-            fixture.nativeElement.querySelector('app-portal-empty-state')
-        ).toBeNull();
+            fixture.nativeElement.querySelector(
+                '.sidebar [data-test-id="portal-channels-list-stub"]'
+            )
+        ).not.toBeNull();
+    });
+
+    it('shows embedded playback after selecting a channel from live root search results', () => {
+        selectedCategoryId.set(null);
+        selectedTypeContentLoading.set(false);
+        routeQueryParamMap.next(convertToParamMap({ q: 'world' }));
+        fixture.detectChanges();
+
+        const list = fixture.debugElement.query(
+            By.directive(StubPortalChannelsListComponent)
+        );
+
+        list.componentInstance.playClicked.emit(sampleChannel);
+        fixture.detectChanges();
+
+        expect(xtreamStore.constructStreamUrl).toHaveBeenCalledWith(
+            sampleChannel
+        );
+        expect(
+            fixture.debugElement.query(By.directive(StubWebPlayerViewComponent))
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector(
+                '.sidebar [data-test-id="portal-channels-list-stub"]'
+            )
+        ).not.toBeNull();
     });
 
     it('renders the current EPG program in the collapsible panel summary', () => {
