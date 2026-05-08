@@ -25,6 +25,7 @@
                     'WORKSPACE.DASHBOARD.REMOVE_FROM_HISTORY' | translate
                 "
                 (clicked)="onChannelClick(item.channel)"
+                (activated)="onChannelActivate(item.channel)"
                 (contextMenuRequested)="
                     onChannelContextMenu(item.channel, $event)
                 "

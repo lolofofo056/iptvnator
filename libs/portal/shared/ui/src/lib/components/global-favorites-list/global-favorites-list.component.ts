@@ -20,6 +20,7 @@ import {
     ChannelDetailsDialogComponent,
     ChannelListItemComponent,
 } from 'components';
+import { SettingsStore } from 'services';
 import { EpgProgram } from 'shared-interfaces';
 import {
     DEFAULT_FAVORITES_CHANNEL_SORT_MODE,
@@ -51,9 +52,13 @@ export type GlobalFavoritesListMode = 'favorites' | 'recent';
 })
 export class GlobalFavoritesListComponent {
     private readonly dialog = inject(MatDialog);
+    private readonly settingsStore = inject(SettingsStore);
 
     readonly contextMenuTrigger =
         viewChild.required<MatMenuTrigger>('contextMenuTrigger');
+    readonly openStreamOnDoubleClick = computed(() =>
+        this.settingsStore.openStreamOnDoubleClick()
+    );
 
     readonly channels = input.required<UnifiedFavoriteChannel[]>();
     readonly mode = input<GlobalFavoritesListMode>('favorites');
@@ -68,6 +73,7 @@ export class GlobalFavoritesListComponent {
     );
 
     readonly channelSelected = output<UnifiedFavoriteChannel>();
+    readonly playbackRequested = output<UnifiedFavoriteChannel>();
     readonly channelsReordered = output<UnifiedFavoriteChannel[]>();
     readonly favoriteToggled = output<UnifiedFavoriteChannel>();
     readonly removeRequested = output<UnifiedFavoriteChannel>();
@@ -124,6 +130,12 @@ export class GlobalFavoritesListComponent {
 
     onChannelClick(channel: UnifiedFavoriteChannel): void {
         this.channelSelected.emit(channel);
+    }
+
+    onChannelActivate(channel: UnifiedFavoriteChannel): void {
+        if (this.openStreamOnDoubleClick()) {
+            this.playbackRequested.emit(channel);
+        }
     }
 
     onFavoriteToggled(channel: UnifiedFavoriteChannel): void {

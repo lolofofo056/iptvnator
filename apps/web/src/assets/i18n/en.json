@@ -244,6 +244,8 @@
         "NEW_VERSION_AVAILABLE": "There is a new version available",
         "LATEST_VERSION": "You are using the latest version",
         "STREAM_FORMAT": "Stream Format",
+        "OPEN_STREAM_ON_DOUBLE_CLICK": "Open streams with double-click",
+        "OPEN_STREAM_ON_DOUBLE_CLICK_DESCRIPTION": "Require a double-click on channel rows before playback starts.",
         "LANGUAGE": "Language",
         "SETTINGS_SAVED": "Success! Configuration was saved.",
         "THEME": "Visual theme",

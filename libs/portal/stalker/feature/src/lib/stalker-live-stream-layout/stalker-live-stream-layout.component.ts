@@ -25,7 +25,7 @@ import {
     ChannelListSkeletonComponent,
     ResizableDirective,
 } from 'components';
-import { PlaylistsService } from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import {
     Channel,
     EpgItem,
@@ -86,6 +86,7 @@ import {
 export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly stalkerStore = inject(StalkerStore);
     private readonly playlistService = inject(PlaylistsService);
+    private readonly settingsStore = inject(SettingsStore);
     private readonly portalPlayer = inject(PORTAL_PLAYER);
     private readonly snackBar = inject(MatSnackBar);
     private readonly translate = inject(TranslateService);
@@ -125,6 +126,9 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
 
     readonly selectedChannelId = this.stalkerStore.selectedItvId;
     protected readonly normalizeStalkerEntityId = normalizeStalkerEntityId;
+    readonly openStreamOnDoubleClick = computed(() =>
+        this.settingsStore.openStreamOnDoubleClick()
+    );
 
     /** Player */
     readonly usesEmbeddedPlayer = computed(() =>
@@ -207,6 +211,13 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     private unsubscribeRemoteChannelChange?: () => void;
     private unsubscribeRemoteCommand?: () => void;
     private epgLoadRequestId = 0;
+    private playbackRequestId = 0;
+    private playbackResolution:
+        | {
+              channelId: string;
+              promise: Promise<ResolvedPortalPlayback>;
+          }
+        | null = null;
     private lastPlaylistId: string | null | undefined = undefined;
 
     constructor() {
@@ -341,19 +352,38 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         );
     }
 
-    async playChannel(item: StalkerItvChannel) {
+    async playChannel(
+        item: StalkerItvChannel,
+        startPlayback = !this.settingsStore.openStreamOnDoubleClick()
+    ) {
+        const requestId = ++this.playbackRequestId;
+        const channelId = normalizeStalkerEntityId(item.id);
         this.stalkerStore.setSelectedItem(item);
 
         try {
-            const playback = await this.stalkerStore.resolveItvPlayback(item);
+            const playback = await this.resolvePlaybackForChannel(
+                item,
+                channelId
+            );
+            if (
+                requestId !== this.playbackRequestId ||
+                this.selectedChannelId() !== channelId
+            ) {
+                return;
+            }
+
             void this.loadEpgForChannel(item);
 
             if (this.usesEmbeddedPlayer()) {
                 this.activePlayback.set(playback);
-            } else {
+            } else if (startPlayback) {
                 void this.portalPlayer.openResolvedPlayback(playback, true);
             }
         } catch (error) {
+            if (requestId !== this.playbackRequestId) {
+                return;
+            }
+
             this.logger.error('Playback failed', error);
             const errorMessage =
                 error?.message === 'nothing_to_play'
@@ -361,6 +391,26 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                     : this.translate.instant('PORTALS.PLAYBACK_ERROR');
             this.snackBar.open(errorMessage, null, { duration: 3000 });
         }
+    }
+
+    private resolvePlaybackForChannel(
+        item: StalkerItvChannel,
+        channelId: string
+    ): Promise<ResolvedPortalPlayback> {
+        if (this.playbackResolution?.channelId === channelId) {
+            return this.playbackResolution.promise;
+        }
+
+        const promise = this.stalkerStore.resolveItvPlayback(item);
+        this.playbackResolution = { channelId, promise };
+
+        void promise.finally(() => {
+            if (this.playbackResolution?.promise === promise) {
+                this.playbackResolution = null;
+            }
+        });
+
+        return promise;
     }
 
     toggleFavorite(item: StalkerItvChannel) {
@@ -680,7 +730,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             return;
         }
 
-        void this.playChannel(nextItem);
+        void this.playChannel(nextItem, true);
     }
 
     private handleRemoteControlCommand(command: {
@@ -703,6 +753,6 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             return;
         }
 
-        void this.playChannel(channel);
+        void this.playChannel(channel, true);
     }
 }

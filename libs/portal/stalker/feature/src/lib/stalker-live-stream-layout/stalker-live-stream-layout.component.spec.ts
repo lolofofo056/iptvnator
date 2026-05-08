@@ -14,7 +14,7 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ChannelListItemComponent } from 'components';
 import { MockPipe } from 'ng-mocks';
 import { of } from 'rxjs';
-import { PlaylistsService } from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import { EpgProgram } from 'shared-interfaces';
 import {
     LiveEpgPanelComponent,
@@ -38,6 +38,7 @@ class StubChannelListItemComponent {
     readonly showProgramInfoButton = input(false);
     readonly isFavorite = input(false);
     readonly clicked = output<void>();
+    readonly activated = output<void>();
     readonly favoriteToggled = output<void>();
 }
 
@@ -194,6 +195,9 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         isEmbeddedPlayer: jest.fn(() => true),
         openResolvedPlayback: jest.fn(),
     };
+    const settingsStore = {
+        openStreamOnDoubleClick: signal(false),
+    };
 
     beforeEach(async () => {
         fetchChannelEpg = stalkerStore.fetchChannelEpg;
@@ -213,6 +217,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         hasMoreChannels.set(false);
         page.set(0);
         localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
+        settingsStore.openStreamOnDoubleClick.set(false);
 
         resolveItvPlayback.mockReset();
         resolveItvPlayback.mockResolvedValue({
@@ -254,6 +259,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             providers: [
                 { provide: StalkerStore, useValue: stalkerStore },
                 { provide: PlaylistsService, useValue: playlistService },
+                { provide: SettingsStore, useValue: settingsStore },
                 { provide: PORTAL_PLAYER, useValue: portalPlayer },
                 {
                     provide: TranslateService,
@@ -366,6 +372,77 @@ describe('StalkerLiveStreamLayoutComponent', () => {
                 .querySelector('.epg')
                 .classList.contains('epg-collapsed')
         ).toBe(false);
+    });
+
+    it('reuses a pending playback resolution during double-click activation', async () => {
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        let resolvePlayback!: (value: { streamUrl: string }) => void;
+        resolveItvPlayback.mockReturnValue(
+            new Promise((resolve) => {
+                resolvePlayback = resolve;
+            })
+        );
+
+        const firstClick = component.playChannel(itvChannels()[0], false);
+        const secondClick = component.playChannel(itvChannels()[0], false);
+        const doubleClick = component.playChannel(itvChannels()[0], true);
+
+        expect(resolveItvPlayback).toHaveBeenCalledTimes(1);
+
+        resolvePlayback({
+            streamUrl: 'https://example.com/alpha.m3u8',
+        });
+        await Promise.all([firstClick, secondClick, doubleClick]);
+
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledTimes(1);
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledWith(
+            { streamUrl: 'https://example.com/alpha.m3u8' },
+            true
+        );
+    });
+
+    it('starts external playback from remote channel navigation when double-click opening is enabled', async () => {
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+        selectedItem.set(itvChannels()[0]);
+        selectedItvId.set('10001');
+
+        (
+            component as unknown as {
+                handleRemoteChannelChange(direction: 'up' | 'down'): void;
+            }
+        ).handleRemoteChannelChange('down');
+        await fixture.whenStable();
+
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledWith(
+            { streamUrl: 'https://example.com/alpha.m3u8' },
+            true
+        );
+    });
+
+    it('starts external playback from remote number selection when double-click opening is enabled', async () => {
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        (
+            component as unknown as {
+                handleRemoteControlCommand(command: {
+                    type: 'channel-select-number';
+                    number: number;
+                }): void;
+            }
+        ).handleRemoteControlCommand({
+            type: 'channel-select-number',
+            number: 2,
+        });
+        await fixture.whenStable();
+
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledWith(
+            { streamUrl: 'https://example.com/alpha.m3u8' },
+            true
+        );
     });
 
     it('renders the current EPG program in the collapsible panel summary', async () => {

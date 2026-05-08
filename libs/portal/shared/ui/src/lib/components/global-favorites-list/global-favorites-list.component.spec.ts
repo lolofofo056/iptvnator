@@ -1,10 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { MatDialog } from '@angular/material/dialog';
 import { TranslateModule } from '@ngx-translate/core';
 import { ChannelDetailsDialogComponent } from 'components';
 import { UnifiedFavoriteChannel } from '@iptvnator/portal/shared/util';
 import { Channel } from 'shared-interfaces';
+import { SettingsStore } from 'services';
 import { GlobalFavoritesListComponent } from './global-favorites-list.component';
 
 describe('GlobalFavoritesListComponent', () => {
@@ -26,6 +28,12 @@ describe('GlobalFavoritesListComponent', () => {
                 {
                     provide: MatDialog,
                     useValue: dialog,
+                },
+                {
+                    provide: SettingsStore,
+                    useValue: {
+                        openStreamOnDoubleClick: signal(false),
+                    },
                 },
             ],
         }).compileComponents();

@@ -69,6 +69,21 @@
         </div>
     </div>
 
+    <div class="setting-item">
+        <div class="setting-item__meta">
+            <h4>{{ 'SETTINGS.OPEN_STREAM_ON_DOUBLE_CLICK' | translate }}</h4>
+            <p>
+                {{
+                    'SETTINGS.OPEN_STREAM_ON_DOUBLE_CLICK_DESCRIPTION'
+                        | translate
+                }}
+            </p>
+        </div>
+        <div class="setting-item__control setting-item__toggle">
+            <mat-checkbox formControlName="openStreamOnDoubleClick"></mat-checkbox>
+        </div>
+    </div>
+
     @if (isDesktop()) {
         <div class="setting-item">
             <div class="setting-item__meta">

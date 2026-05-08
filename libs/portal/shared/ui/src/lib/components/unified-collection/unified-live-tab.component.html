@@ -18,6 +18,7 @@
         [draggable]="mode() === 'favorites'"
         [sortMode]="sortMode()"
         (channelSelected)="onChannelSelected($event)"
+        (playbackRequested)="onChannelPlaybackRequested($event)"
         (channelsReordered)="onReorder($event)"
         (favoriteToggled)="onFavoriteToggled($event)"
         (removeRequested)="onRemoveRequested($event)"

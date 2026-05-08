@@ -28,6 +28,7 @@ export interface Settings {
     player: VideoPlayer;
     epgUrl: string[];
     streamFormat: StreamFormat;
+    openStreamOnDoubleClick: boolean;
     language: Language;
     showCaptions: boolean;
     showDashboard: boolean;

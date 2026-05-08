@@ -68,6 +68,7 @@ export class MockRouter {
 const DEFAULT_SETTINGS = {
     player: VideoPlayer.VideoJs,
     streamFormat: StreamFormat.M3u8StreamFormat,
+    openStreamOnDoubleClick: false,
     language: Language.ENGLISH,
     showCaptions: false,
     showDashboard: true,

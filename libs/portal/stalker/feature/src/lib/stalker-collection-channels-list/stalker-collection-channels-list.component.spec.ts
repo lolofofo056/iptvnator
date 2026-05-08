@@ -39,7 +39,9 @@ describe('StalkerCollectionChannelsListComponent', () => {
 
         await TestBed.configureTestingModule({
             imports: [StalkerCollectionChannelsListComponent],
-            providers: [{ provide: StalkerStore, useValue: stalkerStore }],
+            providers: [
+                { provide: StalkerStore, useValue: stalkerStore },
+            ],
         })
             .overrideComponent(StalkerCollectionChannelsListComponent, {
                 remove: {

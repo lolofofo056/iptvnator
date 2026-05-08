@@ -39,6 +39,7 @@
                 [showProgramInfoButton]="false"
                 [isFavorite]="favorites.get(favoriteKeyFor(item)) ?? false"
                 (clicked)="playClicked.emit(item)"
+                (activated)="playbackRequested.emit(item)"
                 (favoriteToggled)="toggleFavorite($event, item)"
             />
         </cdk-virtual-scroll-viewport>
