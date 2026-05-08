@@ -1,13 +1,18 @@
 import { Page } from '@playwright/test';
 import {
     addXtreamPortal,
+    channelItemByTitle,
     clickCategoryByNameExact,
     clickFirstGridListCard,
     closeElectronApp,
     createMutableTextServer,
     enableRemoteControl,
     expect,
+    goToDashboard,
+    importM3uPlaylistFromNativeDialog,
     launchElectronApp,
+    LaunchedElectronApp,
+    m3uFixturePath,
     openGlobalRecent,
     openSettings,
     openWorkspaceSection,
@@ -36,6 +41,86 @@ const epgFixtureXml = `<?xml version="1.0" encoding="UTF-8"?>
 `;
 
 test.describe('Electron Settings', () => {
+    test('gates external MPV playback behind double-click when enabled', async ({
+        dataDir,
+    }) => {
+        const app = await launchElectronApp(dataDir);
+
+        try {
+            await installExternalPlayerLaunchCapture(app);
+
+            await openSettings(app.mainWindow);
+            await expect(
+                app.mainWindow.getByTestId(
+                    'external-player-double-click-setting'
+                )
+            ).toHaveCount(0);
+
+            await selectSettingsOption(
+                app.mainWindow,
+                'select-video-player',
+                'mpv'
+            );
+
+            const doubleClickSetting = app.mainWindow.getByTestId(
+                'external-player-double-click-setting'
+            );
+            const doubleClickCheckbox = doubleClickSetting.locator(
+                'input[type="checkbox"]'
+            );
+
+            await expect(doubleClickSetting).toBeVisible();
+            await expect(doubleClickCheckbox).not.toBeChecked();
+            await saveSettings(app.mainWindow);
+
+            await goToDashboard(app.mainWindow);
+            await importM3uPlaylistFromNativeDialog(app, m3uFixturePath);
+            await app.mainWindow.waitForURL(/\/workspace\/playlists\/.+/);
+
+            const firstChannel = channelItemByTitle(
+                app.mainWindow,
+                'Channel 1'
+            ).first();
+
+            await expect(firstChannel).toBeVisible({ timeout: 20000 });
+            await firstChannel.click();
+            await expectExternalPlayerLaunchCount(app, 1);
+            await expectExternalPlayerLaunch(app, 0, {
+                player: 'mpv',
+                title: 'Channel 1',
+                url: 'https://example.channels/path-to-file/1.m3u8',
+            });
+
+            await openSettings(app.mainWindow);
+            await expect(doubleClickSetting).toBeVisible();
+            await doubleClickCheckbox.check();
+            await saveSettings(app.mainWindow);
+            await app.mainWindow.goBack();
+            await app.mainWindow.waitForURL(/\/workspace\/playlists\/.+/);
+            await resetExternalPlayerLaunches(app);
+
+            const secondChannel = channelItemByTitle(
+                app.mainWindow,
+                'Positive News TV'
+            ).first();
+
+            await expect(secondChannel).toBeVisible({ timeout: 20000 });
+            await secondChannel.click();
+            await expect(secondChannel).toHaveClass(/active/);
+            await expectNoExternalPlayerLaunchesAfterSettled(app);
+
+            await secondChannel.dblclick();
+            await expectExternalPlayerLaunchCount(app, 1);
+            await expectExternalPlayerLaunch(app, 0, {
+                player: 'mpv',
+                title: 'Positive News TV',
+                url: 'https://example.channels/path-to-file/2.m3u8',
+            });
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
+
     test('persists changed desktop settings across app restart', async ({
         dataDir,
     }) => {
@@ -235,4 +320,113 @@ async function selectSettingsOption(
 ): Promise<void> {
     await page.getByTestId(selectTestId).click();
     await page.getByTestId(optionTestId).click();
+}
+
+type CapturedExternalPlayerLaunch = {
+    player: 'mpv' | 'vlc';
+    title: string;
+    url: string;
+};
+
+const externalPlayerLaunchCaptureKey =
+    '__iptvnatorE2eExternalPlayerLaunches';
+
+async function installExternalPlayerLaunchCapture(
+    app: LaunchedElectronApp
+): Promise<void> {
+    await app.electronApp.evaluate(({ ipcMain }, captureKey) => {
+        const globalRef = globalThis as typeof globalThis &
+            Record<string, CapturedExternalPlayerLaunch[] | undefined>;
+        globalRef[captureKey] = [];
+
+        const captureLaunch =
+            (player: 'mpv' | 'vlc') =>
+            async (
+                _event: unknown,
+                url: string,
+                title: string,
+                thumbnail?: string | null
+            ) => {
+                const launches = globalRef[captureKey] ?? [];
+                const now = new Date().toISOString();
+
+                launches.push({
+                    player,
+                    title,
+                    url,
+                });
+                globalRef[captureKey] = launches;
+
+                return {
+                    canClose: false,
+                    id: `e2e-${player}-${launches.length}`,
+                    player,
+                    startedAt: now,
+                    status: 'opened',
+                    streamUrl: url,
+                    thumbnail: thumbnail ?? null,
+                    title,
+                    updatedAt: now,
+                };
+            };
+
+        ipcMain.removeHandler('OPEN_MPV_PLAYER');
+        ipcMain.removeHandler('OPEN_VLC_PLAYER');
+        ipcMain.handle('OPEN_MPV_PLAYER', captureLaunch('mpv'));
+        ipcMain.handle('OPEN_VLC_PLAYER', captureLaunch('vlc'));
+    }, externalPlayerLaunchCaptureKey);
+}
+
+async function getExternalPlayerLaunches(
+    app: LaunchedElectronApp
+): Promise<CapturedExternalPlayerLaunch[]> {
+    return app.electronApp.evaluate((_, captureKey) => {
+        const globalRef = globalThis as typeof globalThis &
+            Record<string, CapturedExternalPlayerLaunch[] | undefined>;
+
+        return globalRef[captureKey] ?? [];
+    }, externalPlayerLaunchCaptureKey);
+}
+
+async function resetExternalPlayerLaunches(
+    app: LaunchedElectronApp
+): Promise<void> {
+    await app.electronApp.evaluate((_, captureKey) => {
+        const globalRef = globalThis as typeof globalThis &
+            Record<string, CapturedExternalPlayerLaunch[] | undefined>;
+
+        globalRef[captureKey] = [];
+    }, externalPlayerLaunchCaptureKey);
+}
+
+async function expectExternalPlayerLaunchCount(
+    app: LaunchedElectronApp,
+    count: number
+): Promise<void> {
+    await expect
+        .poll(async () => (await getExternalPlayerLaunches(app)).length, {
+            timeout: 10000,
+        })
+        .toBe(count);
+}
+
+async function expectExternalPlayerLaunch(
+    app: LaunchedElectronApp,
+    index: number,
+    expected: CapturedExternalPlayerLaunch
+): Promise<void> {
+    const launches = await getExternalPlayerLaunches(app);
+
+    expect(launches[index]).toMatchObject({
+        player: expected.player,
+        url: expected.url,
+    });
+    expect(launches[index]?.title.trim()).toBe(expected.title);
+}
+
+async function expectNoExternalPlayerLaunchesAfterSettled(
+    app: LaunchedElectronApp
+): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    expect(await getExternalPlayerLaunches(app)).toHaveLength(0);
 }
