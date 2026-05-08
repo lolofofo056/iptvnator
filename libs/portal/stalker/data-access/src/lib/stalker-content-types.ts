@@ -23,10 +23,10 @@ export const StalkerContentTypes = {
         getCategoryAction: StalkerPortalActions.GetCategories,
         getLink: StalkerPortalActions.CreateLink,
     },
-    /* radio: {
+    radio: {
         title: 'Radio',
         getContentAction: StalkerPortalActions.GetOrderedList,
-        getCategoryAction: StalkerPortalActions.GetOrderedList,
+        getCategoryAction: StalkerPortalActions.GetCategories,
         getLink: StalkerPortalActions.CreateLink,
-    }, */
+    },
 };

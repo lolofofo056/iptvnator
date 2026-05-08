@@ -690,7 +690,8 @@
         "CONTENT_NOT_AVAILABLE": "Гэты кантэнт недаступны на дадзеным серверы",
         "PLAYBACK_ERROR": "Не ўдалося атрымаць URL для прайгравання",
         "LOADING_SEASONS": "Загрузка сезонаў...",
-        "NO_EPISODES": "Няма даступных эпізодаў"
+        "NO_EPISODES": "Няма даступных эпізодаў",
+        "ALL_RADIO": "Усе радыё"
     },
     "INFORMATION": "Інфармацыя",
     "DOWNLOADS": {
@@ -899,7 +900,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "Выдаленне кэшаваных патокаў...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "Выдаленне кэшаваных катэгорый...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "Выбранае, гісторыя прагляду, схаваныя катэгорыі і прагрэс прайгравання будуць падрыхтаваны для аднаўлення пасля сінхранізацыі.",
-            "XTREAM_REFRESH_PROGRESS": "Апрацавана лакальных запісаў: {{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "Апрацавана лакальных запісаў: {{current}} / {{total}}",
+            "RAIL_RADIO": "Радыё"
         },
         "SOURCES": {
             "TITLE": "Крыніцы",
@@ -930,7 +932,8 @@
             "ITEM_COUNT_ONE": "1 элемент",
             "ITEM_COUNT_OTHER": "{{count}} элементаў",
             "SEARCH": "Пошук",
-            "SEARCH_CATEGORIES": "Пошук катэгорый"
+            "SEARCH_CATEGORIES": "Пошук катэгорый",
+            "RADIO_CATEGORIES": "Катэгорыі радыё"
         },
         "COMMAND_PALETTE": {
             "TITLE": "Палітра каманд",

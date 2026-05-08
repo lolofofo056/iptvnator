@@ -690,7 +690,8 @@
         "CONTENT_NOT_AVAILABLE": "Αυτό το περιεχόμενο δεν είναι διαθέσιμο σε αυτόν τον διακομιστή",
         "PLAYBACK_ERROR": "Αποτυχία λήψης διεύθυνσης URL αναπαραγωγής",
         "LOADING_SEASONS": "Φόρτωση σεζόν...",
-        "NO_EPISODES": "Δεν υπάρχουν διαθέσιμα επεισόδια"
+        "NO_EPISODES": "Δεν υπάρχουν διαθέσιμα επεισόδια",
+        "ALL_RADIO": "Όλα τα ραδιόφωνα"
     },
     "INFORMATION": "Πληροφορίες",
     "DOWNLOADS": {
@@ -899,7 +900,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "Αφαίρεση αποθηκευμένων ροών...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "Αφαίρεση αποθηκευμένων κατηγοριών...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "Τα αγαπημένα, το ιστορικό προβολής, οι κρυφές κατηγορίες και η πρόοδος αναπαραγωγής ετοιμάζονται για επαναφορά μετά τον συγχρονισμό.",
-            "XTREAM_REFRESH_PROGRESS": "Τοπικές εγγραφές που επεξεργάστηκαν: {{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "Τοπικές εγγραφές που επεξεργάστηκαν: {{current}} / {{total}}",
+            "RAIL_RADIO": "Ραδιόφωνο"
         },
         "SOURCES": {
             "TITLE": "Πηγές",
@@ -930,7 +932,8 @@
             "ITEM_COUNT_ONE": "1 στοιχείο",
             "ITEM_COUNT_OTHER": "{{count}} στοιχεία",
             "SEARCH": "Αναζήτηση",
-            "SEARCH_CATEGORIES": "Αναζήτηση κατηγοριών"
+            "SEARCH_CATEGORIES": "Αναζήτηση κατηγοριών",
+            "RADIO_CATEGORIES": "Κατηγορίες ραδιοφώνου"
         },
         "COMMAND_PALETTE": {
             "TITLE": "Παλέτα εντολών",

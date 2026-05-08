@@ -690,7 +690,8 @@
         "CONTENT_NOT_AVAILABLE": "هاد المحتوى ما متوفرش على هاد السيرفر",
         "PLAYBACK_ERROR": "فشل جلب رابط التشغيل",
         "LOADING_SEASONS": "جاري تشريج المواسم...",
-        "NO_EPISODES": "ما كاينش حلقات متوفرة"
+        "NO_EPISODES": "ما كاينش حلقات متوفرة",
+        "ALL_RADIO": "All radio"
     },
     "INFORMATION": "معلومات",
     "DOWNLOADS": {
@@ -899,7 +900,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "كنحيدو الستريمات المخزنة...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "كنحيدو التصنيفات المخزنة...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "كنخليو المفضلات، تاريخ المشاهدة، التصنيفات المخفية، وتقدم التشغيل واجدين باش يرجعو من بعد المزامنة.",
-            "XTREAM_REFRESH_PROGRESS": "السجلات المحلية اللي تجهزات: {{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "السجلات المحلية اللي تجهزات: {{current}} / {{total}}",
+            "RAIL_RADIO": "Radio"
         },
         "SOURCES": {
             "TITLE": "المصادر",
@@ -930,7 +932,8 @@
             "ITEM_COUNT_ONE": "عنصر واحد",
             "ITEM_COUNT_OTHER": "{{count}} ديال العناصر",
             "SEARCH": "بحث",
-            "SEARCH_CATEGORIES": "قلب على فئات"
+            "SEARCH_CATEGORIES": "قلب على فئات",
+            "RADIO_CATEGORIES": "Radio Categories"
         },
         "COMMAND_PALETTE": {
             "TITLE": "لوحة الأوامر",

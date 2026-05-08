@@ -47,6 +47,9 @@ faker.seed(macToNumber(mac))
 │     └── generateChannels()      → channels Map<categoryId, channel[]>
 │           └── generateEpg()     → epg Map<channelId, program[]>
 │
+├── generateCategories('radio', N) → radioCategories[]
+│     └── generateRadioStations()  → radio Map<categoryId, station[]>
+│
 ├── generateCategories('vod', N)  → vodCategories[]
 │     └── generateVodItems()      → vod Map<categoryId, item[]>
 │           ├── normal VOD items
@@ -106,6 +109,10 @@ All responses follow the Stalker `portal.php` envelope:
   }
 }
 ```
+
+For `type=radio`, items use the same paginated response envelope as live TV
+channels, but each item is generated as a radio station with a `radio: true`
+marker and an `ffrt4://radio/...` command.
 
 ### `get_ordered_list` (seasons — when `movie_id` is present)
 
@@ -204,7 +211,7 @@ interface ScenarioConfig {
   name: string;
   description: string;
   seed: number;
-  categoryCount: { itv: number; vod: number; series: number };
+  categoryCount: { itv: number; radio: number; vod: number; series: number };
   itemsPerCategory: number;
   seasonsPerSeries: number;
   episodesPerSeason: number;

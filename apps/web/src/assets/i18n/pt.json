@@ -690,7 +690,8 @@
         "CONTENT_NOT_AVAILABLE": "Este conteúdo não está disponível neste servidor",
         "PLAYBACK_ERROR": "Falha ao obter URL de reprodução",
         "LOADING_SEASONS": "Carregando temporadas...",
-        "NO_EPISODES": "Nenhum episódio disponível"
+        "NO_EPISODES": "Nenhum episódio disponível",
+        "ALL_RADIO": "Todas as rádios"
     },
     "INFORMATION": "Informação",
     "DOWNLOADS": {
@@ -899,7 +900,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "Removendo streams em cache...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "Removendo categorias em cache...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "Favoritos, histórico de visualização, categorias ocultas e progresso de reprodução serão mantidos para restauração após a sincronização.",
-            "XTREAM_REFRESH_PROGRESS": "Registros locais processados: {{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "Registros locais processados: {{current}} / {{total}}",
+            "RAIL_RADIO": "Rádio"
         },
         "SOURCES": {
             "TITLE": "Fontes",
@@ -930,7 +932,8 @@
             "ITEM_COUNT_ONE": "1 item",
             "ITEM_COUNT_OTHER": "{{count}} itens",
             "SEARCH": "Pesquisar",
-            "SEARCH_CATEGORIES": "Pesquisar categorias"
+            "SEARCH_CATEGORIES": "Pesquisar categorias",
+            "RADIO_CATEGORIES": "Categorias de rádio"
         },
         "COMMAND_PALETTE": {
             "TITLE": "Paleta de comandos",

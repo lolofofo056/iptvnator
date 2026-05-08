@@ -1,17 +1,22 @@
 import { Request, Response } from 'express';
 import { getPortalData } from '../data-store.js';
 import { extractMac } from './get-categories.handler.js';
-import { RawChannel, RawSeriesItem, RawVodItem } from '../data-generator.js';
+import {
+    RawChannel,
+    RawRadioStation,
+    RawSeriesItem,
+    RawVodItem,
+} from '../data-generator.js';
 
 const PAGE_SIZE = 14;
 
-type AnyItem = RawChannel | RawVodItem | RawSeriesItem;
+type AnyItem = RawChannel | RawRadioStation | RawVodItem | RawSeriesItem;
 
 /**
  * Stalker get_ordered_list — returns paginated content for a category.
  *
  * Query params:
- *   type:     itv | vod | series
+ *   type:     itv | vod | series | radio
  *   category: category_id (or "*" for all)
  *   genre:    same as category for itv
  *   p:        page number (1-based)
@@ -34,6 +39,14 @@ export function handleGetOrderedList(req: Request, res: Response): void {
             }
         } else {
             allItems = data.channels.get(categoryId) ?? [];
+        }
+    } else if (type === 'radio') {
+        if (categoryId === '*') {
+            for (const items of data.radio.values()) {
+                allItems.push(...items);
+            }
+        } else {
+            allItems = data.radio.get(categoryId) ?? [];
         }
     } else if (type === 'series') {
         if (categoryId === '*') {

@@ -24,6 +24,7 @@ import {
     createStalkerInlineDetailState,
     isSelectedStalkerVodFavorite,
     isStalkerSeriesFlag,
+    StalkerContentType,
     StalkerSelectedVodItem,
     StalkerStore,
     toggleStalkerVodFavorite,
@@ -35,7 +36,7 @@ import { StalkerInlineDetailComponent } from './stalker-inline-detail/stalker-in
 
 interface StalkerCollectionStateSnapshot {
     currentPlaylist: Playlist | undefined;
-    selectedContentType: 'vod' | 'itv' | 'series';
+    selectedContentType: StalkerContentType;
     selectedCategoryId: string | null | undefined;
     selectedItem: unknown;
 }

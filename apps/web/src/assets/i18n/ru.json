@@ -690,7 +690,8 @@
         "CONTENT_NOT_AVAILABLE": "Этот контент недоступен на этом сервере",
         "PLAYBACK_ERROR": "Не удалось получить URL для воспроизведения",
         "LOADING_SEASONS": "Загрузка сезонов…",
-        "NO_EPISODES": "Нет доступных эпизодов"
+        "NO_EPISODES": "Нет доступных эпизодов",
+        "ALL_RADIO": "Все радио"
     },
     "INFORMATION": "Инфо",
     "DOWNLOADS": {
@@ -899,7 +900,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "Удаляем кэшированные потоки...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "Удаляем кэшированные категории...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "Избранное, история просмотра, скрытые категории и прогресс воспроизведения будут подготовлены для восстановления после синхронизации.",
-            "XTREAM_REFRESH_PROGRESS": "Обработано локальных записей: {{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "Обработано локальных записей: {{current}} / {{total}}",
+            "RAIL_RADIO": "Радио"
         },
         "SOURCES": {
             "TITLE": "Источники",
@@ -930,7 +932,8 @@
             "ITEM_COUNT_ONE": "1 элемент",
             "ITEM_COUNT_OTHER": "{{count}} элементов",
             "SEARCH": "Поиск",
-            "SEARCH_CATEGORIES": "Поиск категорий"
+            "SEARCH_CATEGORIES": "Поиск категорий",
+            "RADIO_CATEGORIES": "Категории радио"
         },
         "COMMAND_PALETTE": {
             "TITLE": "Палитра команд",

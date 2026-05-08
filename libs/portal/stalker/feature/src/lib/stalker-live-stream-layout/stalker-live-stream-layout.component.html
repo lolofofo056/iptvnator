@@ -108,48 +108,64 @@
             [message]="'PORTALS.SELECT_CATEGORY' | translate"
         />
     } @else if (stalkerStore.selectedItem()) {
-        @if (streamUrl() && isEmbeddedPlayer) {
+        @if (streamUrl() && (isEmbeddedPlayer || isRadioMode())) {
             <div class="video-player">
-                <app-web-player-view
-                    [streamUrl]="streamUrl()"
-                    [title]="activePlayback()?.title ?? ''"
-                    [playback]="activePlayback()"
-                />
+                @if (isRadioMode()) {
+                    <app-audio-player
+                        [url]="streamUrl()"
+                        [icon]="activePlaybackArtwork()"
+                        [channelName]="activePlaybackTitle()"
+                        [dispatchAdjacentChannelAction]="false"
+                        (channelSwitchRequested)="
+                            handleRadioChannelSwitch($event)
+                        "
+                    />
+                } @else {
+                    <app-web-player-view
+                        [streamUrl]="streamUrl()"
+                        [title]="activePlayback()?.title ?? ''"
+                        [playback]="activePlayback()"
+                    />
+                }
             </div>
         }
-        @let canCollapseEpgPanel = !!streamUrl() && isEmbeddedPlayer;
-        <div
-            class="epg"
-            [class.epg-collapsed]="
-                canCollapseEpgPanel && isLiveEpgPanelCollapsed()
-            "
-        >
-            @if (canCollapseEpgPanel) {
-                <app-live-epg-panel
-                    [collapsed]="isLiveEpgPanelCollapsed()"
-                    [summary]="liveEpgPanelSummary()"
-                    [loading]="isLoadingEpg()"
-                    [showDateNavigator]="true"
-                    [selectedDate]="selectedLiveEpgDate()"
-                    (collapsedChange)="onLiveEpgPanelCollapsedChange($event)"
-                    (dateNavigation)="onLiveEpgDateNavigation($event)"
-                >
+        @if (!isRadioMode()) {
+            @let canCollapseEpgPanel = !!streamUrl() && isEmbeddedPlayer;
+            <div
+                class="epg"
+                [class.epg-collapsed]="
+                    canCollapseEpgPanel && isLiveEpgPanelCollapsed()
+                "
+            >
+                @if (canCollapseEpgPanel) {
+                    <app-live-epg-panel
+                        [collapsed]="isLiveEpgPanelCollapsed()"
+                        [summary]="liveEpgPanelSummary()"
+                        [loading]="isLoadingEpg()"
+                        [showDateNavigator]="true"
+                        [selectedDate]="selectedLiveEpgDate()"
+                        (collapsedChange)="
+                            onLiveEpgPanelCollapsedChange($event)
+                        "
+                        (dateNavigation)="onLiveEpgDateNavigation($event)"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="
+                                epgPanelContent;
+                                context: { unifiedDateNavigator: true }
+                            "
+                        />
+                    </app-live-epg-panel>
+                } @else {
                     <ng-container
                         *ngTemplateOutlet="
                             epgPanelContent;
-                            context: { unifiedDateNavigator: true }
+                            context: { unifiedDateNavigator: false }
                         "
                     />
-                </app-live-epg-panel>
-            } @else {
-                <ng-container
-                    *ngTemplateOutlet="
-                        epgPanelContent;
-                        context: { unifiedDateNavigator: false }
-                    "
-                />
-            }
-        </div>
+                }
+            </div>
+        }
     } @else {
         <app-portal-empty-state
             icon="live_tv"

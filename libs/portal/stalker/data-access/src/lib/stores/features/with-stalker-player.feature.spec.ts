@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { signalStore, withState } from '@ngrx/signals';
+import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { PORTAL_PLAYER } from '@iptvnator/portal/shared/util';
@@ -34,15 +34,41 @@ const PLAYLIST = {
 const TestPlayerStore = signalStore(
     withState({
         currentPlaylist: PLAYLIST,
-        selectedContentType: 'vod' as 'vod' | 'series' | 'itv',
+        selectedContentType: 'vod' as 'vod' | 'series' | 'itv' | 'radio',
         selectedItem: {
             id: '22',
             cmd: '/media/source_22.mpg',
             has_files: true,
             title: 'Original Title',
             category_id: 'vod',
+        } as {
+            id: string;
+            cmd: string;
+            has_files?: boolean;
+            title?: string;
+            name?: string;
+            o_name?: string;
+            logo?: string;
+            category_id?: string;
+            cover?: string;
         },
     }),
+    withMethods((store) => ({
+        setSelectedContentType(type: 'vod' | 'series' | 'itv' | 'radio') {
+            patchState(store, { selectedContentType: type });
+        },
+        setSelectedItem(item: {
+            id: string;
+            cmd: string;
+            title?: string;
+            name?: string;
+            o_name?: string;
+            logo?: string;
+            category_id?: string;
+        }) {
+            patchState(store, { selectedItem: item });
+        },
+    })),
     withStalkerPlayer()
 );
 
@@ -174,5 +200,45 @@ describe('withStalkerPlayer', () => {
             contentType: 'vod',
             seriesXtreamId: undefined,
         });
+    });
+
+    it('resolves direct radio stream commands without external player side effects', async () => {
+        store.setSelectedContentType('radio');
+        store.setSelectedItem({
+            id: 'radio-1',
+            cmd: 'ifm https://stream.example/jazz.mp3',
+            name: 'Jazz FM',
+            o_name: 'Jazz FM',
+            logo: 'jazz.png',
+            category_id: '4001',
+        });
+
+        const playback = await store.resolveRadioPlayback({
+            id: 'radio-1',
+            cmd: 'ifm https://stream.example/jazz.mp3',
+            name: 'Jazz FM',
+            o_name: 'Jazz FM',
+            logo: 'jazz.png',
+            category_id: '4001',
+        });
+
+        expect(dataService.sendIpcEvent).not.toHaveBeenCalled();
+        expect(playlistService.addPortalRecentlyViewed).toHaveBeenCalledWith(
+            PLAYLIST._id,
+            expect.objectContaining({
+                id: 'radio-1',
+                title: 'Jazz FM',
+                category_id: '4001',
+                cover: 'jazz.png',
+                added_at: expect.any(Number),
+            })
+        );
+        expect(playback).toEqual(
+            expect.objectContaining({
+                streamUrl: 'https://stream.example/jazz.mp3',
+                title: 'Jazz FM',
+                thumbnail: 'jazz.png',
+            })
+        );
     });
 });

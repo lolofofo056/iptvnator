@@ -14,7 +14,7 @@ import { PortalRailSection } from '@iptvnator/portal/shared/util';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import { PlaylistsService } from 'services';
 
-type StalkerContentType = 'vod' | 'series' | 'itv';
+type StalkerContentType = 'vod' | 'series' | 'itv' | 'radio';
 
 @Injectable()
 export class StalkerWorkspaceRouteSession {
@@ -85,13 +85,21 @@ export class StalkerWorkspaceRouteSession {
             this.currentSection.set(section);
         }
 
-        if (section === 'vod' || section === 'series' || section === 'itv') {
+        if (
+            section === 'vod' ||
+            section === 'series' ||
+            section === 'itv' ||
+            section === 'radio'
+        ) {
             this.stalkerStore.setSelectedContentType(
                 section as StalkerContentType
             );
         }
 
-        if (section === 'itv' && previousSection !== 'itv') {
+        if (
+            (section === 'itv' || section === 'radio') &&
+            previousSection !== section
+        ) {
             this.stalkerStore.setSelectedCategory(null);
             this.stalkerStore.clearSelectedItem();
             this.stalkerStore.setSearchPhrase('');

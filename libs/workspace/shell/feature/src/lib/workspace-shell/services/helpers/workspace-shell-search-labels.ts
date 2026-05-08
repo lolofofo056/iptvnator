@@ -81,7 +81,8 @@ export function resolveSearchPlaceholderKey(
         (section === 'vod' ||
             section === 'series' ||
             section === 'live' ||
-            section === 'itv')
+            section === 'itv' ||
+            section === 'radio')
     ) {
         return SEARCH_SECTION_PLACEHOLDER;
     }
@@ -145,7 +146,8 @@ export function resolveSearchScopeLabel(ctx: SearchScopeContext): string {
         section === 'vod' ||
         section === 'series' ||
         section === 'live' ||
-        section === 'itv'
+        section === 'itv' ||
+        section === 'radio'
     ) {
         const categoryLabel = resolveActiveCategoryLabel(ctx);
         const sectionLabel = translateRailSection(section, translate);
