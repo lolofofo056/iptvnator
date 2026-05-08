@@ -74,6 +74,7 @@
             [sortMode]="liveChannelSortMode()"
             [searchTermInput]="workspaceSearchTerm()"
             (playClicked)="playLive($event)"
+            (playbackRequested)="playLive($event, true)"
         />
     </div>
 }
@@ -98,6 +99,7 @@
                     [sortMode]="liveChannelSortMode()"
                     [searchTermInput]="workspaceSearchTerm()"
                     (playClicked)="playLive($event)"
+                    (playbackRequested)="playLive($event, true)"
                 />
             </div>
         } @else {

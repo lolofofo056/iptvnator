@@ -89,6 +89,7 @@
                         ?.progressPercentage ?? 0
                 "
                 (clicked)="onChannelClick(channel)"
+                (activated)="onChannelActivate(channel)"
                 (contextMenuRequested)="onChannelContextMenu(channel, $event)"
                 [selected]="activeChannelUrl() === channel?.url"
                 [showFavoriteButton]="true"

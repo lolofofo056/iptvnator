@@ -54,6 +54,7 @@ export class ChannelListItemComponent {
     readonly auxActionTooltip = input('');
 
     readonly clicked = output<void>();
+    readonly activated = output<void>();
     readonly favoriteToggled = output<MouseEvent>();
     readonly auxActionClicked = output<MouseEvent>();
     readonly contextMenuRequested = output<MouseEvent>();
@@ -85,6 +86,18 @@ export class ChannelListItemComponent {
     onAuxActionClick(event: MouseEvent): void {
         event.stopPropagation();
         this.auxActionClicked.emit(event);
+    }
+
+    onClick(event?: MouseEvent): void {
+        if ((event?.detail ?? 1) > 1) {
+            return;
+        }
+
+        this.clicked.emit();
+    }
+
+    onDoubleClick(): void {
+        this.activated.emit();
     }
 
     onContextMenu(event: MouseEvent): void {

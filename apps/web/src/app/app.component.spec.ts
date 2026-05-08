@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS: Settings = {
     player: VideoPlayer.VideoJs,
     epgUrl: [],
     streamFormat: StreamFormat.M3u8StreamFormat,
+    openStreamOnDoubleClick: false,
     language: Language.ENGLISH,
     showCaptions: false,
     showDashboard: true,

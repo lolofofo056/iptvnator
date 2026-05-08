@@ -21,6 +21,7 @@ import {
 const DEFAULT_SETTINGS: Settings = {
     player: VideoPlayer.VideoJs,
     streamFormat: StreamFormat.M3u8StreamFormat,
+    openStreamOnDoubleClick: false,
     language: Language.ENGLISH,
     showCaptions: false,
     showDashboard: true,
@@ -125,6 +126,7 @@ export const SettingsStore = signalStore(
             return {
                 player: store.player(),
                 streamFormat: store.streamFormat(),
+                openStreamOnDoubleClick: store.openStreamOnDoubleClick(),
                 language: store.language(),
                 showCaptions: store.showCaptions(),
                 showDashboard: store.showDashboard(),

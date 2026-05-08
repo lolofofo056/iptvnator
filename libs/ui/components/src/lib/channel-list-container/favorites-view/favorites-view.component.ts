@@ -56,12 +56,14 @@ export class FavoritesViewComponent {
 
     /** Whether to show EPG data */
     readonly shouldShowEpg = input.required<boolean>();
+    readonly openOnDoubleClick = input(false);
 
     /** Currently active channel URL */
     readonly activeChannelUrl = input<string | undefined>();
 
     /** Emits when a channel is selected */
     readonly channelSelected = output<Channel>();
+    readonly channelPlaybackRequested = output<Channel>();
 
     /** Emits when favorite is toggled (removed) */
     readonly favoriteToggled = output<{
@@ -149,6 +151,12 @@ export class FavoritesViewComponent {
 
     onChannelClick(channel: Channel): void {
         this.channelSelected.emit(channel);
+    }
+
+    onChannelActivate(channel: Channel): void {
+        if (this.openOnDoubleClick()) {
+            this.channelPlaybackRequested.emit(channel);
+        }
     }
 
     onFavoriteToggle(channel: Channel, event: MouseEvent): void {

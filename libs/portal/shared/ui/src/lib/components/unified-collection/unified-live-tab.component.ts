@@ -269,6 +269,17 @@ export class UnifiedLiveTabComponent {
         }
     }
 
+    async onChannelPlaybackRequested(
+        channel: UnifiedFavoriteChannel
+    ): Promise<void> {
+        const item = this.items().find(
+            (candidate) => candidate.uid === channel.uid
+        );
+        if (item) {
+            await this.activateItem(item, false, true);
+        }
+    }
+
     onFavoriteToggled(channel: UnifiedFavoriteChannel): void {
         const item = this.items().find(
             (candidate) => candidate.uid === channel.uid
@@ -330,9 +341,18 @@ export class UnifiedLiveTabComponent {
 
     private async activateItem(
         item: UnifiedCollectionItem,
-        isAutoOpen = false
+        isAutoOpen = false,
+        startPlayback = false
     ): Promise<void> {
         if (this.activeUid() === item.uid && this.activeDetail()) {
+            if (
+                startPlayback &&
+                this.shouldOpenExternalPlayback(this.activeDetail()!, true)
+            ) {
+                void this.portalPlayer.openResolvedPlayback(
+                    this.activeDetail()!.playback
+                );
+            }
             if (isAutoOpen) {
                 this.autoOpenHandled.emit();
             }
@@ -359,7 +379,7 @@ export class UnifiedLiveTabComponent {
                 void this.hydrateSelectedM3uPrograms(item, detail, requestId);
             }
 
-            if (this.shouldOpenExternalPlayback(detail)) {
+            if (this.shouldOpenExternalPlayback(detail, startPlayback)) {
                 void this.portalPlayer.openResolvedPlayback(detail.playback);
             }
 
@@ -389,10 +409,15 @@ export class UnifiedLiveTabComponent {
     }
 
     private shouldOpenExternalPlayback(
-        detail: ResolvedLiveCollectionDetail
+        detail: ResolvedLiveCollectionDetail,
+        startPlayback = false
     ): boolean {
+        if (this.isRadioDetail(detail) || this.portalPlayer.isEmbeddedPlayer()) {
+            return false;
+        }
+
         return (
-            !this.isRadioDetail(detail) && !this.portalPlayer.isEmbeddedPlayer()
+            !this.settingsStore.openStreamOnDoubleClick() || startPlayback
         );
     }
 

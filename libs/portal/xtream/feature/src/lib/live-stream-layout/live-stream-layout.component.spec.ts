@@ -27,6 +27,7 @@ import {
 import { EpgItem, EpgProgram } from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { LiveStreamLayoutComponent } from './live-stream-layout.component';
+import { SettingsStore } from 'services';
 
 const LIVE_CHANNEL_SORT_STORAGE_KEY = 'xtream-live-channel-sort-mode';
 
@@ -39,6 +40,7 @@ class StubPortalChannelsListComponent {
     readonly sortMode = input<'server' | 'name-asc' | 'name-desc'>('server');
     readonly searchTermInput = input('');
     readonly playClicked = output<unknown>();
+    readonly playbackRequested = output<unknown>();
 }
 
 @Component({
@@ -156,6 +158,9 @@ describe('LiveStreamLayoutComponent', () => {
     const portalPlayer = {
         isEmbeddedPlayer: jest.fn().mockReturnValue(true),
     };
+    const settingsStore = {
+        openStreamOnDoubleClick: signal(false),
+    };
 
     const originalElectron = window.electron;
 
@@ -165,6 +170,7 @@ describe('LiveStreamLayoutComponent', () => {
         localStorage.removeItem(LIVE_CHANNEL_SORT_STORAGE_KEY);
         localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
         localStorage.removeItem(LIVE_SIDEBAR_STATE_STORAGE_KEY);
+        settingsStore.openStreamOnDoubleClick.set(false);
 
         window.electron = {
             updateRemoteControlStatus: jest.fn(),
@@ -212,6 +218,7 @@ describe('LiveStreamLayoutComponent', () => {
                 { provide: XtreamStore, useValue: xtreamStore },
                 { provide: FavoritesService, useValue: favoritesService },
                 { provide: XtreamUrlService, useValue: xtreamUrlService },
+                { provide: SettingsStore, useValue: settingsStore },
                 { provide: PORTAL_PLAYER, useValue: portalPlayer },
             ],
         })
@@ -420,6 +427,33 @@ describe('LiveStreamLayoutComponent', () => {
         expect(xtreamStore.openPlayer).toHaveBeenCalledWith(
             'https://example.com/timeshift.ts',
             'Channel 101 - Archived Show',
+            'channel-101.png'
+        );
+    });
+
+    it('starts external playback from remote channel navigation when double-click opening is enabled', () => {
+        const nextChannel = {
+            ...sampleChannel,
+            xtream_id: 102,
+            name: 'Channel 102',
+        };
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+        selectedItem.set(sampleChannel);
+        xtreamStore.selectItemsFromSelectedCategory.mockReturnValue([
+            sampleChannel,
+            nextChannel,
+        ]);
+
+        (
+            component as unknown as {
+                handleRemoteChannelChange(direction: 'up' | 'down'): void;
+            }
+        ).handleRemoteChannelChange('down');
+
+        expect(xtreamStore.openPlayer).toHaveBeenCalledWith(
+            'https://example.com/live.ts',
+            'Channel 102',
             'channel-101.png'
         );
     });

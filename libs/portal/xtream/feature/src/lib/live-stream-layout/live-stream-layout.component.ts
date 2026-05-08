@@ -60,6 +60,7 @@ import {
 } from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { ActivatedRoute } from '@angular/router';
+import { SettingsStore } from 'services';
 
 const LIVE_CHANNEL_SORT_STORAGE_KEY = 'xtream-live-channel-sort-mode';
 
@@ -100,6 +101,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     private readonly favoritesService = inject(FavoritesService);
     private readonly xtreamStore = inject(XtreamStore);
     private readonly xtreamUrlService = inject(XtreamUrlService);
+    private readonly settingsStore = inject(SettingsStore);
     private readonly portalPlayer = inject(PORTAL_PLAYER);
     private readonly liveSidebarStateService = inject(
         LiveLayoutSidebarStateService
@@ -332,14 +334,17 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         }
     }
 
-    playLive(item: XtreamLiveChannelItem) {
+    playLive(
+        item: XtreamLiveChannelItem,
+        startPlayback = !this.settingsStore.openStreamOnDoubleClick()
+    ) {
         const streamUrl = this.xtreamStore.constructStreamUrl(item);
         this.activePlayback.set({
             streamUrl,
             title: item.title ?? item.name ?? '',
             thumbnail: item.poster_url ?? item.stream_icon ?? null,
         });
-        if (this.usesEmbeddedPlayer()) {
+        if (this.usesEmbeddedPlayer() || !startPlayback) {
             return;
         }
         this.xtreamStore.openPlayer(
@@ -356,7 +361,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         }
 
         if (event.type === 'live') {
-            this.playLive(selectedItem);
+            this.playLive(selectedItem, true);
             return;
         }
 
@@ -423,7 +428,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             return;
         }
 
-        this.playLive(nextItem);
+        this.playLive(nextItem, true);
     }
 
     private handleRemoteControlCommand(command: {
@@ -444,7 +449,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             return;
         }
 
-        this.playLive(channel);
+        this.playLive(channel, true);
     }
 
     private getVisibleChannels(): XtreamLiveChannelItem[] {
