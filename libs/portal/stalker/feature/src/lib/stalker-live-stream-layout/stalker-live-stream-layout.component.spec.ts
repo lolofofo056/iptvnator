@@ -403,6 +403,17 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         );
     });
 
+    it('does not attach a dangling finally cleanup to failed playback resolution', async () => {
+        const playbackError = new Error('nothing_to_play');
+        const playbackPromise = Promise.reject(playbackError);
+        const finallySpy = jest.spyOn(playbackPromise, 'finally');
+        resolveItvPlayback.mockReturnValue(playbackPromise);
+
+        await component.playChannel(itvChannels()[0]);
+
+        expect(finallySpy).not.toHaveBeenCalled();
+    });
+
     it('starts external playback from remote channel navigation when double-click opening is enabled', async () => {
         settingsStore.openStreamOnDoubleClick.set(true);
         portalPlayer.isEmbeddedPlayer.mockReturnValue(false);

@@ -119,6 +119,7 @@ Implemented behavior:
   - `onRemoteControlCommand` (number + volume)
 - Applies channel up/down by active channel URL over `channels$`
 - Applies number select through existing `switchToChannelByNumber(...)`
+- Dispatches remote channel changes as explicit playback requests so MPV/VLC starts immediately even when mouse channel rows require double-click before external playback.
 - Applies volume commands:
   - up/down in 0.1 increments
   - toggle mute with last non-zero volume restore
@@ -143,10 +144,10 @@ Implemented behavior:
 - Up/down:
   - Uses selected live item `selectedItem().xtream_id`
   - Navigates inside `selectItemsFromSelectedCategory()`
-  - Calls `playLive(nextItem)`
+  - Calls `playLive(nextItem, true)` so remote actions explicitly start playback
 - Number select:
   - Maps number to item in current category list
-  - Calls `playLive(channel)`
+  - Calls `playLive(channel, true)` so remote actions explicitly start playback
 - Publishes status via effect:
   - `portal: 'xtream'`
   - `isLiveView` only when selected content type is `live` and item is selected
@@ -166,10 +167,10 @@ Implemented behavior:
 - Up/down:
   - Uses `selectedItem().id`
   - Navigates inside `itvChannels()`
-  - Calls `playChannel(nextItem)`
+  - Calls `playChannel(nextItem, true)` so remote actions explicitly start playback
 - Number select:
   - Maps number into `itvChannels()`
-  - Calls `playChannel(channel)`
+  - Calls `playChannel(channel, true)` so remote actions explicitly start playback
 - Publishes status via effect:
   - `portal: 'stalker'`
   - `isLiveView` only for selected content type `itv` with active item

@@ -404,11 +404,13 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         const promise = this.stalkerStore.resolveItvPlayback(item);
         this.playbackResolution = { channelId, promise };
 
-        void promise.finally(() => {
+        const cleanup = () => {
             if (this.playbackResolution?.promise === promise) {
                 this.playbackResolution = null;
             }
-        });
+        };
+
+        void promise.then(cleanup, cleanup);
 
         return promise;
     }

@@ -495,14 +495,44 @@ describe('VideoPlayerComponent', () => {
         expect(overlayRef.attach).toHaveBeenCalledTimes(1);
     });
 
-    it('switches channels by number through the store action', () => {
+    it('switches channels by number through a playback request', () => {
         syncStoreState(sampleChannel);
         fixture.detectChanges();
 
         component.switchToChannelByNumber(1);
 
         expect(storeMock.dispatch).toHaveBeenCalledWith(
-            ChannelActions.setActiveChannel({ channel: sampleChannel })
+            ChannelActions.setActiveChannel({
+                channel: sampleChannel,
+                startPlayback: true,
+            })
+        );
+    });
+
+    it('changes channels from remote navigation through a playback request', () => {
+        const nextChannel = {
+            ...sampleChannel,
+            id: 'channel-2',
+            url: 'http://localhost/next.m3u8',
+            name: 'Next TV',
+        };
+        activeChannel.set(sampleChannel);
+        activeChannel$.next(sampleChannel);
+        channels.set([sampleChannel, nextChannel]);
+        channels$.next([sampleChannel, nextChannel]);
+        fixture.detectChanges();
+
+        (
+            component as unknown as {
+                handleRemoteChannelChange(direction: 'up' | 'down'): void;
+            }
+        ).handleRemoteChannelChange('down');
+
+        expect(storeMock.dispatch).toHaveBeenCalledWith(
+            ChannelActions.setActiveChannel({
+                channel: nextChannel,
+                startPlayback: true,
+            })
         );
     });
 });
