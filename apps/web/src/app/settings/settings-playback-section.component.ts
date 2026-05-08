@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { TranslateModule } from '@ngx-translate/core';
-import { StreamFormat } from 'shared-interfaces';
+import { StreamFormat, VideoPlayer } from 'shared-interfaces';
 import { SettingsPlayerOption } from './settings.models';
 
 @Component({
@@ -32,4 +32,9 @@ export class SettingsPlaybackSectionComponent {
     readonly players = input.required<SettingsPlayerOption[]>();
     readonly streamFormatEnum = input.required<typeof StreamFormat>();
     readonly isDesktop = input(false);
+
+    isExternalPlayerSelected(): boolean {
+        const player = this.form().value.player;
+        return player === VideoPlayer.MPV || player === VideoPlayer.VLC;
+    }
 }

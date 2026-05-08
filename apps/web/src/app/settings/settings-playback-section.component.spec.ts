@@ -35,6 +35,7 @@ describe('SettingsPlaybackSectionComponent', () => {
     });
 
     it('hides the external-player double-click option outside desktop builds', () => {
+        fixture.componentRef.setInput('form', createForm(VideoPlayer.MPV));
         fixture.componentRef.setInput('isDesktop', false);
         fixture.detectChanges();
 
@@ -48,7 +49,7 @@ describe('SettingsPlaybackSectionComponent', () => {
         );
     });
 
-    it('labels the double-click option as external-player behavior on desktop', () => {
+    it('hides the external-player double-click option for embedded players', () => {
         fixture.componentRef.setInput('isDesktop', true);
         fixture.detectChanges();
 
@@ -56,18 +57,59 @@ describe('SettingsPlaybackSectionComponent', () => {
             fixture.nativeElement.querySelector(
                 '[data-test-id="external-player-double-click-setting"]'
             )
+        ).toBeNull();
+    });
+
+    it.each([VideoPlayer.MPV, VideoPlayer.VLC])(
+        'labels the double-click option as external-player behavior on desktop for %s',
+        (player) => {
+            fixture.componentRef.setInput('form', createForm(player));
+            fixture.componentRef.setInput('isDesktop', true);
+            fixture.detectChanges();
+
+            expect(
+                fixture.nativeElement.querySelector(
+                    '[data-test-id="external-player-double-click-setting"]'
+                )
+            ).not.toBeNull();
+            expect(fixture.nativeElement.textContent).toContain(
+                'SETTINGS.OPEN_EXTERNAL_PLAYER_ON_DOUBLE_CLICK'
+            );
+        }
+    );
+
+    it('updates the double-click option visibility when the selected player changes', () => {
+        const form = createForm();
+        fixture.componentRef.setInput('form', form);
+        fixture.componentRef.setInput('isDesktop', true);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="external-player-double-click-setting"]'
+            )
+        ).toBeNull();
+
+        form.controls['player'].setValue(VideoPlayer.MPV);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="external-player-double-click-setting"]'
+            )
         ).not.toBeNull();
-        expect(fixture.nativeElement.textContent).toContain(
-            'SETTINGS.OPEN_EXTERNAL_PLAYER_ON_DOUBLE_CLICK'
-        );
     });
 });
 
-function createForm(): FormGroup {
+function createForm(player = VideoPlayer.VideoJs): FormGroup {
     return new FormGroup({
-        player: new FormControl(VideoPlayer.VideoJs),
+        player: new FormControl(player),
         streamFormat: new FormControl(StreamFormat.M3u8StreamFormat),
         openStreamOnDoubleClick: new FormControl(false),
         showExternalPlaybackBar: new FormControl(true),
+        mpvPlayerPath: new FormControl(''),
+        mpvReuseInstance: new FormControl(false),
+        vlcPlayerPath: new FormControl(''),
+        vlcReuseInstance: new FormControl(false),
     });
 }
