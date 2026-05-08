@@ -89,6 +89,29 @@ describe('ChannelListItemComponent', () => {
         expect(fixture.nativeElement.querySelector('.channel-logo')).toBeNull();
     });
 
+    it('emits clicked on a single click by default', () => {
+        const clicked = jest.fn();
+        fixture.componentInstance.clicked.subscribe(clicked);
+
+        fixture.componentInstance.onClick({ detail: 1 } as MouseEvent);
+
+        expect(clicked).toHaveBeenCalledTimes(1);
+    });
+
+    it('suppresses the second browser click and emits activation on double click', () => {
+        const clicked = jest.fn();
+        const activated = jest.fn();
+        fixture.componentInstance.clicked.subscribe(clicked);
+        fixture.componentInstance.activated.subscribe(activated);
+
+        fixture.componentInstance.onClick({ detail: 1 } as MouseEvent);
+        fixture.componentInstance.onClick({ detail: 2 } as MouseEvent);
+        fixture.componentInstance.onDoubleClick();
+
+        expect(clicked).toHaveBeenCalledTimes(1);
+        expect(activated).toHaveBeenCalledTimes(1);
+    });
+
     it('emits a context menu request on right click when details are enabled', () => {
         fixture.componentRef.setInput('name', 'News One');
         fixture.componentRef.setInput('showDetailsContextMenu', true);

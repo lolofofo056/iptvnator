@@ -12,7 +12,7 @@ import { BehaviorSubject, firstValueFrom, of, Subject } from 'rxjs';
 import { EpgService } from '@iptvnator/epg/data-access';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import { ChannelActions, PlaylistActions } from 'm3u-state';
-import { PlaylistsService } from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import { Channel, PlaylistMeta } from 'shared-interfaces';
 import { ChannelListContainerComponent } from './channel-list-container.component';
 
@@ -114,6 +114,12 @@ describe('ChannelListContainerComponent', () => {
                 {
                     provide: PlaylistsService,
                     useValue: {},
+                },
+                {
+                    provide: SettingsStore,
+                    useValue: {
+                        openStreamOnDoubleClick: signal(false),
+                    },
                 },
                 {
                     provide: StorageMap,

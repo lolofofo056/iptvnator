@@ -5,7 +5,8 @@
     [cdkDragDisabled]="!isDraggable()"
     cdkDragPreviewContainer="parent"
     [class.active]="selected()"
-    (click)="clicked.emit()"
+    (click)="onClick($event)"
+    (dblclick)="onDoubleClick()"
     (contextmenu)="onContextMenu($event)"
     data-test-id="channel-item"
 >

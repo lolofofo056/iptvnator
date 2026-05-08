@@ -74,6 +74,7 @@
             [sortMode]="liveChannelSortMode()"
             [searchTermInput]="workspaceSearchTerm()"
             (playClicked)="playLive($event)"
+            (playbackRequested)="playLive($event, true)"
         />
     </div>
 }
@@ -134,12 +135,13 @@
             }
         </div>
     } @else if (!showLiveChannelSidebar()) {
-        @if (isSelectedTypeContentLoading() || workspaceSearchTerm()) {
+        @if (isSelectedTypeContentLoading()) {
             <div class="live-loading-content">
                 <app-portal-channels-list
                     [sortMode]="liveChannelSortMode()"
                     [searchTermInput]="workspaceSearchTerm()"
                     (playClicked)="playLive($event)"
+                    (playbackRequested)="playLive($event, true)"
                 />
             </div>
         } @else {

@@ -88,6 +88,7 @@ import {
     Settings,
     VideoPlayer,
 } from 'shared-interfaces';
+import { createM3uChannelPlaybackRequest } from './m3u-channel-playback-actions';
 
 const M3U_MULTI_EPG_HEADER_ACTION_ID = 'm3u-multi-epg';
 const M3U_SIDEBAR_STORAGE_KEY = 'm3u-sidebar-width';
@@ -459,9 +460,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
                     }
 
                     this.store.dispatch(
-                        ChannelActions.setActiveChannel({
-                            channel: nextChannel,
-                        })
+                        createM3uChannelPlaybackRequest(nextChannel)
                     );
                 },
                 error: (err) => {
@@ -739,7 +738,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
             .subscribe((channel) => {
                 if (channel) {
                     this.store.dispatch(
-                        ChannelActions.setActiveChannel({ channel })
+                        createM3uChannelPlaybackRequest(channel)
                     );
                 }
             });

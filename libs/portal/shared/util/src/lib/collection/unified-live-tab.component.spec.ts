@@ -200,6 +200,7 @@ describe('UnifiedLiveTabComponent', () => {
                 {
                     provide: SettingsStore,
                     useValue: {
+                        openStreamOnDoubleClick: signal(false),
                         player: signal('videojs'),
                     },
                 },

@@ -70,6 +70,7 @@ interface XtreamCategoryLike {
 })
 export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
     readonly playClicked = output<XtreamChannelListItem>();
+    readonly playbackRequested = output<XtreamChannelListItem>();
     readonly sortMode = input<PortalChannelSortMode>('server');
     readonly channelsOverride = input<XtreamChannelListItem[] | null>(null);
     readonly searchTermInput = input('');

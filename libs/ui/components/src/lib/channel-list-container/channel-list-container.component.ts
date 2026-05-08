@@ -40,7 +40,7 @@ import {
     firstValueFrom,
     map,
 } from 'rxjs';
-import { PlaylistsService } from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import {
     Channel,
     EpgProgram,
@@ -109,6 +109,7 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private readonly playlistContext = inject(PlaylistContextFacade);
+    private readonly settingsStore = inject(SettingsStore);
 
     /** Map of channel ID to current EPG program */
     readonly channelEpgMap = signal(new Map<string, EpgProgram | null>());
@@ -125,6 +126,9 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
 
     /** Whether to show EPG data in channel items */
     readonly shouldShowEpg = signal(false);
+    readonly openStreamOnDoubleClick = computed(() =>
+        this.settingsStore.openStreamOnDoubleClick()
+    );
 
     /** Item size for virtual scroll - compact when no EPG */
     readonly itemSize = computed(() => (this.shouldShowEpg() ? 68 : 48));
@@ -368,6 +372,15 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
      */
     onChannelSelected(channel: Channel): void {
         this.store.dispatch(ChannelActions.setActiveChannel({ channel }));
+    }
+
+    onChannelPlaybackRequested(channel: Channel): void {
+        this.store.dispatch(
+            ChannelActions.setActiveChannel({
+                channel,
+                startPlayback: true,
+            })
+        );
     }
 
     /**

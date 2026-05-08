@@ -179,6 +179,7 @@ export class SettingsComponent implements OnInit, OnDestroy {
         player: [VideoPlayer.VideoJs],
         ...(this.isDesktop ? { epgUrl: new FormArray([]) } : {}),
         streamFormat: StreamFormat.M3u8StreamFormat,
+        openStreamOnDoubleClick: false,
         language: Language.ENGLISH,
         showCaptions: false,
         showDashboard: true,

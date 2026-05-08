@@ -75,6 +75,7 @@ export class AllChannelsViewComponent {
 
     /** Whether to show EPG data */
     readonly shouldShowEpg = input.required<boolean>();
+    readonly openOnDoubleClick = input(false);
 
     /** Item size for virtual scroll */
     readonly itemSize = input.required<number>();
@@ -87,6 +88,7 @@ export class AllChannelsViewComponent {
 
     /** Emits when a channel is selected */
     readonly channelSelected = output<Channel>();
+    readonly channelPlaybackRequested = output<Channel>();
 
     /** Emits when favorite is toggled */
     readonly favoriteToggled = output<{
@@ -201,6 +203,12 @@ export class AllChannelsViewComponent {
 
     onChannelClick(channel: Channel): void {
         this.channelSelected.emit(channel);
+    }
+
+    onChannelActivate(channel: Channel): void {
+        if (this.openOnDoubleClick()) {
+            this.channelPlaybackRequested.emit(channel);
+        }
     }
 
     onFavoriteToggle(channel: Channel, event: MouseEvent): void {

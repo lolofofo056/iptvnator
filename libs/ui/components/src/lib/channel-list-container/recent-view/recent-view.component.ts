@@ -47,9 +47,11 @@ export class RecentViewComponent {
     readonly channelIconMap = input.required<Map<string, string>>();
     readonly progressTick = input.required<number>();
     readonly shouldShowEpg = input.required<boolean>();
+    readonly openOnDoubleClick = input(false);
     readonly activeChannelUrl = input<string | undefined>();
 
     readonly channelSelected = output<Channel>();
+    readonly channelPlaybackRequested = output<Channel>();
     readonly removeRecent = output<string>();
 
     readonly contextMenuChannel = signal<Channel | null>(null);
@@ -115,6 +117,12 @@ export class RecentViewComponent {
 
     onChannelClick(channel: Channel): void {
         this.channelSelected.emit(channel);
+    }
+
+    onChannelActivate(channel: Channel): void {
+        if (this.openOnDoubleClick()) {
+            this.channelPlaybackRequested.emit(channel);
+        }
     }
 
     onRemoveRecent(channel: Channel, event: MouseEvent): void {
