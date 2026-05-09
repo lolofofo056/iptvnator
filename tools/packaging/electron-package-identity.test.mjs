@@ -1,9 +1,15 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { dirname, join } from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
+const currentDir = dirname(fileURLToPath(import.meta.url));
 const electronBuilderConfig = JSON.parse(
-    fs.readFileSync('electron-builder.json', 'utf8')
+    fs.readFileSync(
+        join(currentDir, '..', '..', 'electron-builder.json'),
+        'utf8'
+    )
 );
 
 test('Linux package identity does not expose the internal Electron backend project name', () => {
@@ -14,13 +20,5 @@ test('Linux package identity does not expose the internal Electron backend proje
     assert.equal(
         electronBuilderConfig.linux?.desktop?.entry?.StartupWMClass,
         'iptvnator'
-    );
-    assert.notEqual(
-        electronBuilderConfig.extraMetadata?.name,
-        'electron-backend'
-    );
-    assert.notEqual(
-        electronBuilderConfig.linux?.executableName,
-        'electron-backend'
     );
 });

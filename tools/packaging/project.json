@@ -1,0 +1,18 @@
+{
+    "$schema": "../../node_modules/nx/schemas/project-schema.json",
+    "name": "packaging",
+    "projectType": "library",
+    "sourceRoot": "tools/packaging",
+    "targets": {
+        "test": {
+            "executor": "nx:run-commands",
+            "cache": true,
+            "inputs": ["default", "{workspaceRoot}/electron-builder.json"],
+            "options": {
+                "command": "node --test tools/packaging/electron-package-identity.test.mjs",
+                "cwd": "{workspaceRoot}"
+            }
+        }
+    },
+    "tags": ["scope:tools", "type:tool"]
+}
