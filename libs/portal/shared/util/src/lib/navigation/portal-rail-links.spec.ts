@@ -55,11 +55,13 @@ describe('buildPortalRailLinks', () => {
         expect(links.primary.map((link) => link.section)).toEqual([
             'vod',
             'itv',
+            'radio',
             'series',
         ]);
         expect(links.secondary.map((link) => link.section)).toEqual(['search']);
 
         expect(links.primary[1]?.tooltip).toBe('Live TV (this playlist)');
+        expect(links.primary[2]?.tooltip).toBe('Radio (this playlist)');
         expect(links.secondary[0]?.tooltip).toBe('Search (this playlist)');
     });
 

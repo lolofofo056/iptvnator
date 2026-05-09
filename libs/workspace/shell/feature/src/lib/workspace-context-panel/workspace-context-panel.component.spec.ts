@@ -14,6 +14,7 @@ import { WorkspaceContextPanelComponent } from './workspace-context-panel.compon
 
 const translations: Record<string, string> = {
     'WORKSPACE.CONTEXT.MANAGE_CATEGORIES': 'Manage categories',
+    'WORKSPACE.CONTEXT.RADIO_CATEGORIES': 'Radio Categories',
     'WORKSPACE.CONTEXT.XTREAM_SYNCING_LIVE': 'Syncing live categories...',
     'WORKSPACE.CONTEXT.XTREAM_SYNCING_MOVIES': 'Syncing movie categories...',
     'WORKSPACE.SHELL.XTREAM_IMPORT_LOADING':
@@ -53,7 +54,9 @@ describe('WorkspaceContextPanelComponent', () => {
         reloadCategories: jest.fn(),
     };
     const stalkerStore = {
-        getCategoryResource: signal([]),
+        getCategoryResource: signal<
+            Array<{ category_id: string; category_name: string }>
+        >([]),
         selectedCategoryId: signal<string | null>(null),
         isCategoryResourceLoading: signal(false),
         isCategoryResourceFailed: signal(false),
@@ -82,6 +85,11 @@ describe('WorkspaceContextPanelComponent', () => {
         xtreamStore.setSelectedItem.mockClear();
         xtreamStore.setSelectedCategory.mockClear();
         xtreamStore.reloadCategories.mockClear();
+        stalkerStore.getCategoryResource.set([]);
+        stalkerStore.selectedCategoryId.set(null);
+        stalkerStore.setSelectedCategory.mockClear();
+        stalkerStore.setPage.mockClear();
+        stalkerStore.clearSelectedItem.mockClear();
         router.navigate.mockClear();
         dialog.open.mockClear();
 
@@ -216,5 +224,33 @@ describe('WorkspaceContextPanelComponent', () => {
             'vod',
             2,
         ]);
+    });
+
+    it('labels Stalker radio categories and keeps category selection in the radio layout', () => {
+        fixture.componentRef.setInput('context', {
+            provider: 'stalker',
+            playlistId: 'stalker-1',
+        });
+        fixture.componentRef.setInput('section', 'radio');
+        stalkerStore.getCategoryResource.set([
+            { category_id: '*', category_name: 'All radio' },
+        ]);
+        fixture.detectChanges();
+
+        const title = fixture.nativeElement.querySelector(
+            '.context-header h2'
+        ) as HTMLElement;
+        const categoryButton = fixture.nativeElement.querySelector(
+            '.category-item'
+        ) as HTMLButtonElement;
+
+        expect(title.textContent).toContain('Radio Categories');
+
+        categoryButton.click();
+
+        expect(stalkerStore.setSelectedCategory).toHaveBeenCalledWith('*');
+        expect(stalkerStore.setPage).toHaveBeenCalledWith(0);
+        expect(stalkerStore.clearSelectedItem).toHaveBeenCalled();
+        expect(router.navigate).not.toHaveBeenCalled();
     });
 });

@@ -90,7 +90,7 @@ The shell decides which secondary panel to show from the current route:
    1. `WorkspaceSourcesFiltersPanelComponent`
 2. Xtream category sections (`live`, `vod`, `series`)
    1. `WorkspaceContextPanelComponent`
-3. Stalker category sections (`itv`, `vod`, `series`)
+3. Stalker category sections (`itv`, `radio`, `vod`, `series`)
    1. `WorkspaceContextPanelComponent`
 4. `/workspace/settings`
    1. `WorkspaceSettingsContextPanelComponent`

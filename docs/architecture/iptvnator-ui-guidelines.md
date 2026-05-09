@@ -151,8 +151,8 @@ The shared row should be reused instead of rebuilding channel markup per view.
   shell context sidebar (the "Live Categories" rail rendered by
   `WorkspaceShellContextSidebarComponent`), matching M3U's "everything quiets"
   behaviour. The shell categories rail only collapses when the active section
-  is `live` (Xtream) or `itv` (Stalker); movies, series, favorites, and recent
-  routes leave it untouched.
+  is `live` (Xtream) or `itv`/`radio` (Stalker); movies, series, favorites,
+  and recent routes leave it untouched.
 - Collapsed state is owned by `LiveLayoutSidebarStateService`
   (`providedIn: 'root'`) in `@iptvnator/portal/shared/util`. Every surface that
   participates injects the service and reads `isCollapsed`; any toggle calls

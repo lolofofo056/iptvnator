@@ -692,7 +692,8 @@
         "CONTENT_NOT_AVAILABLE": "Questo contenuto non è disponibile su questo server",
         "PLAYBACK_ERROR": "Impossibile ottenere l'URL di riproduzione",
         "LOADING_SEASONS": "Caricamento stagioni...",
-        "NO_EPISODES": "Nessun episodio disponibile"
+        "NO_EPISODES": "Nessun episodio disponibile",
+        "ALL_RADIO": "Tutte le radio"
     },
     "INFORMATION": "Informazioni",
     "DOWNLOADS": {
@@ -901,7 +902,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "Rimozione degli stream in cache...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "Rimozione delle categorie in cache...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "Preferiti, cronologia di visione, categorie nascoste e avanzamento di riproduzione vengono preparati per il ripristino dopo la sincronizzazione.",
-            "XTREAM_REFRESH_PROGRESS": "Record locali elaborati: {{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "Record locali elaborati: {{current}} / {{total}}",
+            "RAIL_RADIO": "Radio"
         },
         "SOURCES": {
             "TITLE": "Sorgenti",
@@ -932,7 +934,8 @@
             "ITEM_COUNT_ONE": "1 elemento",
             "ITEM_COUNT_OTHER": "{{count}} elementi",
             "SEARCH": "Cerca",
-            "SEARCH_CATEGORIES": "Cerca categorie"
+            "SEARCH_CATEGORIES": "Cerca categorie",
+            "RADIO_CATEGORIES": "Categorie radio"
         },
         "COMMAND_PALETTE": {
             "TITLE": "Tavolozza comandi",

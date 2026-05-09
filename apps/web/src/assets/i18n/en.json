@@ -694,7 +694,8 @@
         "CONTENT_NOT_AVAILABLE": "This content is not available on this server",
         "PLAYBACK_ERROR": "Failed to get playback URL",
         "LOADING_SEASONS": "Loading seasons...",
-        "NO_EPISODES": "No episodes available"
+        "NO_EPISODES": "No episodes available",
+        "ALL_RADIO": "All radio"
     },
     "INFORMATION": "Information",
     "DOWNLOADS": {
@@ -903,7 +904,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "Removing cached streams...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "Removing cached categories...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "Keeping favorites, watch history, hidden categories, and playback progress ready for restore after sync.",
-            "XTREAM_REFRESH_PROGRESS": "Local records processed: {{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "Local records processed: {{current}} / {{total}}",
+            "RAIL_RADIO": "Radio"
         },
         "SOURCES": {
             "TITLE": "Sources",
@@ -934,7 +936,8 @@
             "ITEM_COUNT_ONE": "1 item",
             "ITEM_COUNT_OTHER": "{{count}} items",
             "SEARCH": "Search",
-            "SEARCH_CATEGORIES": "Search categories"
+            "SEARCH_CATEGORIES": "Search categories",
+            "RADIO_CATEGORIES": "Radio Categories"
         },
         "COMMAND_PALETTE": {
             "TITLE": "Command palette",

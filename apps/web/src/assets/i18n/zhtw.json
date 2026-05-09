@@ -692,7 +692,8 @@
         "CONTENT_NOT_AVAILABLE": "此伺服器上未提供此內容",
         "PLAYBACK_ERROR": "無法取得播放網址",
         "LOADING_SEASONS": "正在載入季數...",
-        "NO_EPISODES": "沒有可用的集數"
+        "NO_EPISODES": "沒有可用的集數",
+        "ALL_RADIO": "所有廣播"
     },
     "INFORMATION": "資訊",
     "DOWNLOADS": {
@@ -901,7 +902,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "正在移除快取的串流...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "正在移除快取的分類...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "我的最愛、觀看記錄、隱藏分類和播放進度會保留，以便同步後還原。",
-            "XTREAM_REFRESH_PROGRESS": "已處理本機記錄：{{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "已處理本機記錄：{{current}} / {{total}}",
+            "RAIL_RADIO": "廣播"
         },
         "SOURCES": {
             "TITLE": "來源",
@@ -932,7 +934,8 @@
             "ITEM_COUNT_ONE": "{{count}} 個項目",
             "ITEM_COUNT_OTHER": "{{count}} 個項目",
             "SEARCH": "搜尋",
-            "SEARCH_CATEGORIES": "搜尋類別"
+            "SEARCH_CATEGORIES": "搜尋類別",
+            "RADIO_CATEGORIES": "廣播分類"
         },
         "COMMAND_PALETTE": {
             "TITLE": "命令選擇區",

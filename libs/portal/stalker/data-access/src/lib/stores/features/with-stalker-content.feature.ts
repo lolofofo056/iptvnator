@@ -38,8 +38,10 @@ export interface StalkerContentState {
     vodCategories: StalkerCategoryItem[];
     seriesCategories: StalkerCategoryItem[];
     itvCategories: StalkerCategoryItem[];
+    radioCategories: StalkerCategoryItem[];
     hasMoreChannels: boolean;
     itvChannels: StalkerItvChannel[];
+    radioChannels: StalkerItvChannel[];
     paginatedContent: StalkerContentItem[];
     categoryError: unknown;
     contentError: unknown;
@@ -50,8 +52,10 @@ const initialContentState: StalkerContentState = {
     vodCategories: [],
     seriesCategories: [],
     itvCategories: [],
+    radioCategories: [],
     hasMoreChannels: false,
     itvChannels: [],
+    radioChannels: [],
     paginatedContent: [],
     categoryError: null,
     contentError: null,
@@ -89,6 +93,8 @@ function getCategoriesByType(
             return store.seriesCategories();
         case 'itv':
             return store.itvCategories();
+        case 'radio':
+            return store.radioCategories();
     }
 }
 
@@ -103,10 +109,27 @@ function buildCategoryPatch(
             return { seriesCategories: categories };
         case 'itv':
             return { itvCategories: categories };
+        case 'radio':
+            return { radioCategories: categories };
     }
 }
 
+function buildAllCategory(
+    contentType: StalkerContentType,
+    translateService: TranslateService
+): StalkerCategoryItem {
+    return {
+        category_name: translateService.instant(
+            contentType === 'radio'
+                ? 'PORTALS.ALL_RADIO'
+                : 'PORTALS.ALL_CATEGORIES'
+        ),
+        category_id: '*',
+    };
+}
+
 function prependAllCategory(
+    contentType: StalkerContentType,
     categories: StalkerCategoryItem[],
     translateService: TranslateService
 ): StalkerCategoryItem[] {
@@ -124,13 +147,16 @@ function prependAllCategory(
         categories.length > 0 &&
         !categories.some((category) => String(category.category_id) === '*')
     ) {
-        categories.unshift({
-            category_name: translateService.instant('PORTALS.ALL_CATEGORIES'),
-            category_id: '*',
-        });
+        categories.unshift(buildAllCategory(contentType, translateService));
     }
 
     return categories;
+}
+
+function fallbackRadioCategories(
+    translateService: TranslateService
+): StalkerCategoryItem[] {
+    return [buildAllCategory('radio', translateService)];
 }
 
 function buildEmptyContentPatch(
@@ -143,9 +169,13 @@ function buildEmptyContentPatch(
         contentError: error,
     };
 
-    if (contentType === 'itv') {
+    if (contentType === 'itv' || contentType === 'radio') {
         patch.hasMoreChannels = false;
-        patch.itvChannels = [];
+        if (contentType === 'itv') {
+            patch.itvChannels = [];
+        } else {
+            patch.radioChannels = [];
+        }
     }
 
     return patch;
@@ -214,6 +244,17 @@ export function withStalkerContent() {
                                         'Invalid categories response',
                                         response
                                     );
+                                    if (params.contentType === 'radio') {
+                                        const fallback =
+                                            fallbackRadioCategories(
+                                                translateService
+                                            );
+                                        patchState(store, {
+                                            radioCategories: fallback,
+                                            categoryError: null,
+                                        });
+                                        return fallback;
+                                    }
                                     patchState(store, {
                                         ...buildCategoryPatch(
                                             params.contentType,
@@ -224,19 +265,26 @@ export function withStalkerContent() {
                                     return [];
                                 }
 
-                                const categories = prependAllCategory(
-                                    response.js
-                                        .map(
-                                            (item): StalkerCategoryItem => ({
-                                                category_name: item.title ?? '',
-                                                category_id: String(item.id),
-                                            })
+                                const normalizedCategories = response.js
+                                    .map(
+                                        (item): StalkerCategoryItem => ({
+                                            category_name: item.title ?? '',
+                                            category_id: String(item.id),
+                                        })
+                                    )
+                                    .sort((left, right) =>
+                                        left.category_name.localeCompare(
+                                            right.category_name
                                         )
-                                        .sort((left, right) =>
-                                            left.category_name.localeCompare(
-                                                right.category_name
-                                            )
-                                        ),
+                                    );
+                                const categories = prependAllCategory(
+                                    params.contentType,
+                                    params.contentType === 'radio' &&
+                                        normalizedCategories.length === 0
+                                        ? fallbackRadioCategories(
+                                              translateService
+                                          )
+                                        : normalizedCategories,
                                     translateService
                                 );
 
@@ -254,6 +302,16 @@ export function withStalkerContent() {
                                     contentType: params.contentType,
                                     error,
                                 });
+                                if (params.contentType === 'radio') {
+                                    const fallback = fallbackRadioCategories(
+                                        translateService
+                                    );
+                                    patchState(store, {
+                                        radioCategories: fallback,
+                                        categoryError: null,
+                                    });
+                                    return fallback;
+                                }
                                 patchState(store, {
                                     ...buildCategoryPatch(
                                         params.contentType,
@@ -365,9 +423,12 @@ export function withStalkerContent() {
                                 queryParams['category'] = categoryParam;
                             } else if (params.contentType === 'series') {
                                 queryParams['category'] = categoryParam;
-                            } else {
+                            } else if (params.contentType === 'itv') {
                                 queryParams['category'] = categoryParam;
                                 queryParams['genre'] = categoryParam;
+                            } else {
+                                queryParams['category'] = categoryParam;
+                                queryParams['sortby'] = 'number';
                             }
 
                             try {
@@ -411,14 +472,21 @@ export function withStalkerContent() {
                                     )
                                 );
 
-                                if (params.contentType === 'itv') {
+                                if (
+                                    params.contentType === 'itv' ||
+                                    params.contentType === 'radio'
+                                ) {
                                     const channels =
                                         newItems.map(toStalkerItvChannel);
+                                    const existingChannels =
+                                        params.contentType === 'itv'
+                                            ? store.itvChannels()
+                                            : store.radioChannels();
                                     const nextChannels =
                                         params.pageIndex === 1
                                             ? channels
                                             : [
-                                                  ...store.itvChannels(),
+                                                  ...existingChannels,
                                                   ...channels,
                                               ];
 
@@ -427,7 +495,9 @@ export function withStalkerContent() {
                                             response.js.total_items ?? 0,
                                         paginatedContent: newItems,
                                         contentError: null,
-                                        itvChannels: nextChannels,
+                                        ...(params.contentType === 'itv'
+                                            ? { itvChannels: nextChannels }
+                                            : { radioChannels: nextChannels }),
                                         hasMoreChannels:
                                             nextChannels.length <
                                             (response.js.total_items ?? 0),
@@ -547,11 +617,15 @@ export function withStalkerContent() {
                     vodCategories: [],
                     seriesCategories: [],
                     itvCategories: [],
+                    radioCategories: [],
                     categoryError: null,
                 });
             },
             setItvChannels(channels: StalkerItvChannel[]) {
                 patchState(store, { itvChannels: channels });
+            },
+            setRadioChannels(channels: StalkerItvChannel[]) {
+                patchState(store, { radioChannels: channels });
             },
         }))
     );

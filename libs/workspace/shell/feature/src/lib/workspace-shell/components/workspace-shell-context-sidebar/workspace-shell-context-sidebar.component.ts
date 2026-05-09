@@ -19,7 +19,11 @@ import { WorkspaceContextPanelComponent } from '../../../workspace-context-panel
 import { WorkspaceSettingsContextPanelComponent } from '../../../workspace-context-panel/workspace-settings-context-panel.component';
 import { WorkspaceSourcesFiltersPanelComponent } from '../../../workspace-sources-filters-panel/workspace-sources-filters-panel.component';
 
-const LIVE_SECTIONS: ReadonlySet<PortalRailSection> = new Set(['live', 'itv']);
+const LIVE_SECTIONS: ReadonlySet<PortalRailSection> = new Set([
+    'live',
+    'itv',
+    'radio',
+]);
 
 @Component({
     selector: 'app-workspace-shell-context-sidebar',

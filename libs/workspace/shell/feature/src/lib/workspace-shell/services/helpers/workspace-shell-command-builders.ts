@@ -279,6 +279,18 @@ function getPortalNavigationCommands(
     section: PortalRailSection
 ): WorkspaceCommandContribution[] {
     const liveSection = context.provider === 'stalker' ? 'itv' : 'live';
+    const radioCommand =
+        context.provider === 'stalker'
+            ? createNavigationCommand(ctx, {
+                  id: 'go-to-radio',
+                  context,
+                  targetSection: 'radio',
+                  currentSection: section,
+                  icon: 'radio',
+                  labelKey: 'WORKSPACE.SHELL.RAIL_RADIO',
+                  priority: 115,
+              })
+            : null;
 
     return [
         createNavigationCommand(ctx, {
@@ -299,6 +311,7 @@ function getPortalNavigationCommands(
             labelKey: 'WORKSPACE.SHELL.RAIL_LIVE',
             priority: 110,
         }),
+        radioCommand,
         createNavigationCommand(ctx, {
             id: 'go-to-series',
             context,

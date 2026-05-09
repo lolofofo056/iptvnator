@@ -1,5 +1,6 @@
 import { Component, Directive, input, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
@@ -10,6 +11,7 @@ import {
 } from '@iptvnator/portal/shared/util';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import { EpgListComponent } from '@iptvnator/ui/epg';
+import { AudioPlayerComponent } from '@iptvnator/ui/playback';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ChannelListItemComponent } from 'components';
 import { MockPipe } from 'ng-mocks';
@@ -51,6 +53,19 @@ class StubWebPlayerViewComponent {
     readonly streamUrl = input('');
     readonly title = input('');
     readonly playback = input<unknown>(null);
+}
+
+@Component({
+    selector: 'app-audio-player',
+    standalone: true,
+    template: '',
+})
+class StubAudioPlayerComponent {
+    readonly url = input.required<string>();
+    readonly icon = input('');
+    readonly channelName = input('');
+    readonly dispatchAdjacentChannelAction = input(true);
+    readonly channelSwitchRequested = output<'next' | 'previous'>();
 }
 
 @Component({
@@ -108,6 +123,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
     let fetchChannelEpg: jest.Mock;
     let ensureBulkItvEpg: jest.Mock;
     let resolveItvPlayback: jest.Mock;
+    let resolveRadioPlayback: jest.Mock;
 
     const playlist = signal({
         _id: 'playlist-1',
@@ -131,6 +147,22 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             logo: 'beta.png',
         },
     ]);
+    const radioChannels = signal([
+        {
+            id: 'radio-1',
+            cmd: 'ifm https://stream.example/jazz.mp3',
+            name: 'Jazz FM',
+            o_name: 'Jazz FM',
+            logo: 'jazz.png',
+        },
+        {
+            id: 'radio-2',
+            cmd: 'ifm https://stream.example/news.mp3',
+            name: 'News Radio',
+            o_name: 'News Radio',
+            logo: 'news-radio.png',
+        },
+    ]);
     const selectedItvId = signal<string | undefined>('10001');
     const selectedItem = signal<{
         id: string;
@@ -151,6 +183,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
     const stalkerStore = {
         getSelectedCategoryName: signal('News'),
         itvChannels,
+        radioChannels,
         searchPhrase,
         hasMoreChannels,
         selectedItvId,
@@ -163,9 +196,10 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         isLoadingBulkItvEpg,
         selectedCategoryId,
         selectedItem,
-        selectedContentType: signal<'itv' | 'vod' | 'series'>('itv'),
+        selectedContentType: signal<'itv' | 'vod' | 'series' | 'radio'>('itv'),
         page,
         setItvChannels: jest.fn(),
+        setRadioChannels: jest.fn(),
         setPage: jest.fn(),
         setSelectedItem: jest.fn((item) => {
             selectedItem.set(item);
@@ -175,6 +209,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             );
         }),
         resolveItvPlayback: jest.fn(),
+        resolveRadioPlayback: jest.fn(),
         fetchChannelEpg: jest.fn(),
         ensureBulkItvEpg: jest.fn(),
         clearBulkItvEpgCache: jest.fn(() => {
@@ -203,9 +238,11 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         fetchChannelEpg = stalkerStore.fetchChannelEpg;
         ensureBulkItvEpg = stalkerStore.ensureBulkItvEpg;
         resolveItvPlayback = stalkerStore.resolveItvPlayback;
+        resolveRadioPlayback = stalkerStore.resolveRadioPlayback;
 
         selectedCategoryId.set('1001');
         searchPhrase.set('');
+        stalkerStore.selectedContentType.set('itv');
         selectedItvId.set('10001');
         selectedItem.set(itvChannels()[0]);
         selectedItvEpgPrograms.set([]);
@@ -222,6 +259,12 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         resolveItvPlayback.mockReset();
         resolveItvPlayback.mockResolvedValue({
             streamUrl: 'https://example.com/alpha.m3u8',
+        });
+        resolveRadioPlayback.mockReset();
+        resolveRadioPlayback.mockResolvedValue({
+            streamUrl: 'https://stream.example/jazz.mp3',
+            title: 'Jazz FM',
+            thumbnail: 'jazz.png',
         });
         portalPlayer.isEmbeddedPlayer.mockReset();
         portalPlayer.isEmbeddedPlayer.mockReturnValue(true);
@@ -243,6 +286,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             );
         });
         stalkerStore.setItvChannels.mockClear();
+        stalkerStore.setRadioChannels.mockClear();
         stalkerStore.setPage.mockReset();
         stalkerStore.setPage.mockImplementation((nextPage: number) => {
             if (page() === nextPage) {
@@ -279,6 +323,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
                 remove: {
                     imports: [
                         ChannelListItemComponent,
+                        AudioPlayerComponent,
                         EpgListComponent,
                         LiveEpgPanelComponent,
                         PortalEmptyStateComponent,
@@ -290,6 +335,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
                 add: {
                     imports: [
                         StubChannelListItemComponent,
+                        StubAudioPlayerComponent,
                         StubEpgListComponent,
                         StubLiveEpgPanelComponent,
                         StubPortalEmptyStateComponent,
@@ -523,6 +569,36 @@ describe('StalkerLiveStreamLayoutComponent', () => {
 
         expect(ensureBulkItvEpg).toHaveBeenCalledTimes(1);
         expect(ensureBulkItvEpg).toHaveBeenCalledWith(168);
+    });
+
+    it('renders inline audio playback and no EPG for radio stations', async () => {
+        stalkerStore.selectedContentType.set('radio');
+        selectedCategoryId.set('radio-all');
+        selectedItem.set(null);
+        selectedItvId.set(undefined);
+        fixture.detectChanges();
+
+        await component.playChannel(radioChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(resolveRadioPlayback).toHaveBeenCalledWith(radioChannels()[0]);
+        expect(resolveItvPlayback).not.toHaveBeenCalled();
+        expect(ensureBulkItvEpg).not.toHaveBeenCalled();
+        expect(fetchChannelEpg).not.toHaveBeenCalled();
+        expect(portalPlayer.openResolvedPlayback).not.toHaveBeenCalled();
+        expect(fixture.nativeElement.querySelector('app-epg-list')).toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-audio-player')
+        ).not.toBeNull();
+
+        const audioPlayer = fixture.debugElement.query(
+            By.directive(StubAudioPlayerComponent)
+        ).componentInstance as StubAudioPlayerComponent;
+        expect(audioPlayer.url()).toBe('https://stream.example/jazz.mp3');
+        expect(audioPlayer.icon()).toBe('jazz.png');
+        expect(audioPlayer.channelName()).toBe('Jazz FM');
+        expect(audioPlayer.dispatchAdjacentChannelAction()).toBe(false);
     });
 });
 

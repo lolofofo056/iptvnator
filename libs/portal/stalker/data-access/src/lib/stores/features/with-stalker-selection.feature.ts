@@ -11,7 +11,7 @@ import { normalizeStalkerEntityId } from '../../stalker-vod.utils';
  * Selection/pagination/search feature state.
  */
 export interface StalkerSelectionState {
-    selectedContentType: 'vod' | 'itv' | 'series';
+    selectedContentType: 'vod' | 'itv' | 'series' | 'radio';
     selectedCategoryId: string | null | undefined;
     selectedVodId: string | undefined;
     selectedSerialId: string | undefined;
@@ -38,7 +38,9 @@ export function withStalkerSelection() {
     return signalStoreFeature(
         withState<StalkerSelectionState>(initialSelectionState),
         withMethods((store) => ({
-            setSelectedContentType(type: 'vod' | 'itv' | 'series') {
+            setSelectedContentType(
+                type: 'vod' | 'itv' | 'series' | 'radio'
+            ) {
                 patchState(store, { selectedContentType: type });
             },
             setSelectedCategory(id: string | number | null) {

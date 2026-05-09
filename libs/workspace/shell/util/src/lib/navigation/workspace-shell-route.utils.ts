@@ -57,6 +57,7 @@ const PORTAL_SECTIONS: readonly PortalRailSection[] = [
     'live',
     'recent',
     'recently-added',
+    'radio',
     'search',
     'series',
     'vod',
@@ -84,6 +85,7 @@ const STALKER_CATEGORY_CONTEXT_SECTIONS = new Set<PortalRailSection>([
     'vod',
     'series',
     'itv',
+    'radio',
 ]);
 
 function normalizePath(url: string): {
@@ -159,6 +161,7 @@ function resolvePortalSearchMode(
             section === 'vod' ||
             section === 'series' ||
             section === 'itv' ||
+            section === 'radio' ||
             section === 'search'
         ) {
             return 'remote-search';

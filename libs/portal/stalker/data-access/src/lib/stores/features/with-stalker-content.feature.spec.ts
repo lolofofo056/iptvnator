@@ -29,7 +29,7 @@ const PLAYLIST = {
 const TestContentStore = signalStore(
     withState({
         currentPlaylist: undefined as PlaylistMeta | undefined,
-        selectedContentType: 'vod' as 'vod' | 'series' | 'itv',
+        selectedContentType: 'vod' as 'vod' | 'series' | 'itv' | 'radio',
         selectedCategoryId: undefined as string | null | undefined,
         searchPhrase: '',
         page: 0,
@@ -39,7 +39,7 @@ const TestContentStore = signalStore(
         setCurrentPlaylist(playlist: PlaylistMeta | undefined) {
             patchState(store, { currentPlaylist: playlist });
         },
-        setSelectedContentType(type: 'vod' | 'series' | 'itv') {
+        setSelectedContentType(type: 'vod' | 'series' | 'itv' | 'radio') {
             patchState(store, { selectedContentType: type });
         },
         setSelectedCategory(id: string | null | undefined) {
@@ -295,6 +295,88 @@ describe('withStalkerContent failure states', () => {
             'Channel page 2',
         ]);
         expect(store.hasMoreChannels()).toBe(false);
+    });
+
+    it('falls back to a synthetic all-radio category when radio categories are unavailable', async () => {
+        dataService.sendIpcEvent.mockRejectedValue(
+            new Error('radio categories unsupported')
+        );
+
+        store.setSelectedContentType('radio');
+        store.setCurrentPlaylist(PLAYLIST);
+        void store.isCategoryResourceLoading();
+
+        await waitForCondition(
+            () => dataService.sendIpcEvent.mock.calls.length > 0
+        );
+        await flushResources();
+
+        expect(dataService.sendIpcEvent).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetCategories,
+                    type: 'radio',
+                }),
+            })
+        );
+        expect(store.getCategoryResource()).toEqual([
+            {
+                category_id: '*',
+                category_name: 'PORTALS.ALL_RADIO',
+            },
+        ]);
+        expect(store.radioCategories()).toEqual([
+            {
+                category_id: '*',
+                category_name: 'PORTALS.ALL_RADIO',
+            },
+        ]);
+        expect(store.isCategoryResourceFailed()).toBeNull();
+    });
+
+    it('loads radio stations separately from live TV channels', async () => {
+        dataService.sendIpcEvent.mockResolvedValue({
+            js: {
+                data: [
+                    {
+                        id: 'radio-1',
+                        name: 'Jazz FM',
+                        cmd: 'ifm https://stream.example/jazz.mp3',
+                    },
+                ],
+                total_items: 1,
+            },
+        });
+
+        store.setSelectedContentType('radio');
+        store.setCategories('radio', [
+            {
+                category_id: 'radio-all',
+                category_name: 'Radio',
+            },
+        ]);
+        store.setSelectedCategory('radio-all');
+        store.setCurrentPlaylist(PLAYLIST);
+        void store.isPaginatedContentLoading();
+
+        await waitForCondition(() => store.radioChannels().length === 1);
+
+        expect(dataService.sendIpcEvent).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetOrderedList,
+                    type: 'radio',
+                    category: 'radio-all',
+                    p: 1,
+                }),
+            })
+        );
+        expect(store.radioChannels().map((channel) => channel.name)).toEqual([
+            'Jazz FM',
+        ]);
+        expect(store.itvChannels()).toEqual([]);
     });
 
     it('ignores stale content responses after the selected page changes', async () => {

@@ -541,6 +541,19 @@ describe('WorkspaceShellFacade', () => {
         );
     });
 
+    it('treats stalker radio search as a remote section search', () => {
+        facade.currentUrl.set('/workspace/stalker/pl-1/radio?q=jazz');
+        (facade as { syncSearchFromRoute: () => void }).syncSearchFromRoute();
+        TestBed.flushEffects();
+
+        expect(stalkerStore.setSearchPhrase).toHaveBeenCalledWith('jazz');
+        expect(facade.canUseSearch()).toBe(true);
+        expect(facade.searchScopeLabel()).toBe(
+            'WORKSPACE.SHELL.RAIL_RADIO / All Items'
+        );
+        expect(facade.searchStatusLabel()).toBe('');
+    });
+
     it('applies q to Xtream category search on vod routes', () => {
         const xtreamStore = TestBed.inject(
             XtreamStore

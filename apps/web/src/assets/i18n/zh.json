@@ -692,7 +692,8 @@
         "CONTENT_NOT_AVAILABLE": "此服务器上没有此内容",
         "PLAYBACK_ERROR": "获取播放 URL 失败",
         "LOADING_SEASONS": "正在加载季…",
-        "NO_EPISODES": "没有可用的剧集"
+        "NO_EPISODES": "没有可用的剧集",
+        "ALL_RADIO": "所有广播"
     },
     "INFORMATION": "信息",
     "DOWNLOADS": {
@@ -901,7 +902,8 @@
             "XTREAM_REFRESH_DELETING_CONTENT": "正在移除缓存的流...",
             "XTREAM_REFRESH_DELETING_CATEGORIES": "正在移除缓存的分类...",
             "XTREAM_REFRESH_DETAIL_LOCAL": "收藏、观看历史、隐藏分类和播放进度会保留，以便同步后恢复。",
-            "XTREAM_REFRESH_PROGRESS": "已处理本地记录：{{current}} / {{total}}"
+            "XTREAM_REFRESH_PROGRESS": "已处理本地记录：{{current}} / {{total}}",
+            "RAIL_RADIO": "广播"
         },
         "SOURCES": {
             "TITLE": "源",
@@ -932,7 +934,8 @@
             "ITEM_COUNT_ONE": "1 项",
             "ITEM_COUNT_OTHER": "{{count}} 项",
             "SEARCH": "搜索",
-            "SEARCH_CATEGORIES": "搜索分类"
+            "SEARCH_CATEGORIES": "搜索分类",
+            "RADIO_CATEGORIES": "广播分类"
         },
         "COMMAND_PALETTE": {
             "TITLE": "命令面板",

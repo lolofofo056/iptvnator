@@ -4,6 +4,7 @@ export interface ScenarioConfig {
     seed: number;
     categoryCount: {
         itv: number;
+        radio: number;
         vod: number;
         series: number;
     };
@@ -25,7 +26,7 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
         name: 'default',
         description: 'Balanced portal — 8 categories, 40 items each',
         seed: 1001,
-        categoryCount: { itv: 8, vod: 8, series: 8 },
+        categoryCount: { itv: 8, radio: 8, vod: 8, series: 8 },
         itemsPerCategory: 40,
         seasonsPerSeries: 3,
         episodesPerSeason: 8,
@@ -36,7 +37,7 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
         name: 'large',
         description: 'Large catalog — 20 categories, 200 items each',
         seed: 9999,
-        categoryCount: { itv: 20, vod: 20, series: 20 },
+        categoryCount: { itv: 20, radio: 20, vod: 20, series: 20 },
         itemsPerCategory: 200,
         seasonsPerSeries: 5,
         episodesPerSeason: 12,
@@ -47,7 +48,7 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
         name: 'series-heavy',
         description: 'Series-heavy portal — many series with deep seasons',
         seed: 2002,
-        categoryCount: { itv: 3, vod: 5, series: 15 },
+        categoryCount: { itv: 3, radio: 3, vod: 5, series: 15 },
         itemsPerCategory: 30,
         seasonsPerSeries: 6,
         episodesPerSeason: 10,
@@ -58,7 +59,7 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
         name: 'minimal',
         description: 'Minimal portal — 2 categories, 5 items (edge case testing)',
         seed: 3003,
-        categoryCount: { itv: 2, vod: 2, series: 2 },
+        categoryCount: { itv: 2, radio: 2, vod: 2, series: 2 },
         itemsPerCategory: 5,
         seasonsPerSeries: 1,
         episodesPerSeason: 3,
@@ -69,7 +70,7 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
         name: 'is-series',
         description: 'VOD with is_series=1 flag (Ministra plugin flow testing)',
         seed: 4004,
-        categoryCount: { itv: 4, vod: 6, series: 4 },
+        categoryCount: { itv: 4, radio: 4, vod: 6, series: 4 },
         itemsPerCategory: 20,
         seasonsPerSeries: 3,
         episodesPerSeason: 6,
@@ -80,7 +81,7 @@ export const SCENARIOS: Record<string, ScenarioConfig> = {
         name: 'embedded-series',
         description: 'VOD with embedded series[] arrays',
         seed: 5005,
-        categoryCount: { itv: 4, vod: 6, series: 4 },
+        categoryCount: { itv: 4, radio: 4, vod: 6, series: 4 },
         itemsPerCategory: 20,
         seasonsPerSeries: 2,
         episodesPerSeason: 5,
@@ -111,7 +112,7 @@ export function getScenario(mac: string): ScenarioConfig {
         name: 'auto',
         description: `Auto-generated from MAC ${mac}`,
         seed: macToSeed(mac),
-        categoryCount: { itv: 6, vod: 6, series: 6 },
+        categoryCount: { itv: 6, radio: 6, vod: 6, series: 6 },
         itemsPerCategory: 30,
         seasonsPerSeries: 3,
         episodesPerSeason: 8,

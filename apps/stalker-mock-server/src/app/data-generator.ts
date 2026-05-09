@@ -22,6 +22,18 @@ export interface RawChannel {
     xmltv_id: string;
 }
 
+export interface RawRadioStation {
+    id: string;
+    name: string;
+    o_name: string;
+    cmd: string;
+    logo: string;
+    category_id: string;
+    tv_genre_id: string;
+    number: string;
+    radio: true;
+}
+
 export interface RawVodItem {
     id: string;
     name: string;
@@ -102,7 +114,9 @@ export interface GeneratedPortalData {
     itvCategories: RawCategory[];
     vodCategories: RawCategory[];
     seriesCategories: RawCategory[];
+    radioCategories: RawCategory[];
     channels: Map<string, RawChannel[]>; // categoryId -> channels
+    radio: Map<string, RawRadioStation[]>; // categoryId -> radio stations
     vod: Map<string, RawVodItem[]>;       // categoryId -> items
     series: Map<string, RawSeriesItem[]>; // categoryId -> items
     seasons: Map<string, RawSeason[]>;    // seriesItemId -> seasons
@@ -146,7 +160,9 @@ export function generatePortalData(config: ScenarioConfig): GeneratedPortalData 
         itvCategories: [],
         vodCategories: [],
         seriesCategories: [],
+        radioCategories: [],
         channels: new Map(),
+        radio: new Map(),
         vod: new Map(),
         series: new Map(),
         seasons: new Map(),
@@ -163,6 +179,22 @@ export function generatePortalData(config: ScenarioConfig): GeneratedPortalData 
             data.epg.set(ch.id, generateEpg(ch.name));
         }
         channelIndex += config.itemsPerCategory;
+    }
+
+    // ------ Radio categories + stations ------
+    data.radioCategories = generateCategories(
+        'radio',
+        config.categoryCount.radio
+    );
+    let radioIndex = 0;
+    for (const cat of data.radioCategories) {
+        const stations = generateRadioStations(
+            cat.id,
+            config.itemsPerCategory,
+            radioIndex
+        );
+        data.radio.set(cat.id, stations);
+        radioIndex += config.itemsPerCategory;
     }
 
     // ------ VOD categories + items ------
@@ -223,16 +255,35 @@ const SERIES_GENRE_NAMES = [
     'Thriller Series', 'Horror Series', 'Western Series',
 ];
 
-function getGenreNames(type: 'itv' | 'vod' | 'series'): string[] {
+const RADIO_GENRE_NAMES = [
+    'News Radio', 'Talk Radio', 'Jazz', 'Classical', 'Rock',
+    'Pop Hits', 'Electronic', 'World Music', 'Sports Radio', 'Public Radio',
+    'Local Stations', 'Latin', 'Hip Hop', 'Ambient', 'Oldies',
+    'Country', 'Reggae', 'Soul', 'Dance', 'Weather',
+];
+
+function getGenreNames(type: 'itv' | 'vod' | 'series' | 'radio'): string[] {
     if (type === 'itv') return ITV_GENRE_NAMES;
     if (type === 'vod') return VOD_GENRE_NAMES;
+    if (type === 'radio') return RADIO_GENRE_NAMES;
     return SERIES_GENRE_NAMES;
 }
 
-function generateCategories(type: 'itv' | 'vod' | 'series', count: number): RawCategory[] {
+function generateCategories(
+    type: 'itv' | 'vod' | 'series' | 'radio',
+    count: number
+): RawCategory[] {
     const names = getGenreNames(type);
     return Array.from({ length: count }, (_, i) => {
-        const id = String((type === 'itv' ? 1000 : type === 'vod' ? 2000 : 3000) + i + 1);
+        const idBase =
+            type === 'itv'
+                ? 1000
+                : type === 'vod'
+                  ? 2000
+                  : type === 'series'
+                    ? 3000
+                    : 4000;
+        const id = String(idBase + i + 1);
         const title = names[i % names.length];
         return { id, title, alias: title.toLowerCase().replace(/\s+/g, '_') };
     });
@@ -256,6 +307,29 @@ function generateChannels(categoryId: string, count: number, startIndex: number)
             category_id: categoryId,
             tv_genre_id: categoryId,
             xmltv_id: `channel-${id}.example`,
+        };
+    });
+}
+
+function generateRadioStations(
+    categoryId: string,
+    count: number,
+    startIndex: number
+): RawRadioStation[] {
+    return Array.from({ length: count }, (_, i) => {
+        const globalIndex = startIndex + i;
+        const id = String(40000 + globalIndex);
+        const name = `${faker.music.genre()} ${faker.word.noun()} Radio`;
+        return {
+            id,
+            name,
+            o_name: name,
+            cmd: `ffrt4://radio/${id}/index.mp3`,
+            logo: logoUrl(`radio-${id}`),
+            category_id: categoryId,
+            tv_genre_id: categoryId,
+            number: String(globalIndex + 1),
+            radio: true,
         };
     });
 }

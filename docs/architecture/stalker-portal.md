@@ -18,6 +18,7 @@ This document describes the Stalker portal implementation in IPTVnator and where
 Stalker support covers:
 
 - Live TV (`itv`)
+- Radio (`radio`)
 - VOD (`vod`)
 - Series (`series`)
 - VOD-as-series flows (`is_series=1` and embedded `series[]`)
@@ -33,6 +34,7 @@ Primary route tree lives in `/Users/4gray/Code/iptvnator/libs/portal/stalker/fea
 - `/stalker/:id/vod`
 - `/stalker/:id/series`
 - `/stalker/:id/itv`
+- `/stalker/:id/radio`
 - `/stalker/:id/favorites`
 - `/stalker/:id/recent`
 - `/stalker/:id/search`
@@ -51,7 +53,9 @@ Primary route tree lives in `/Users/4gray/Code/iptvnator/libs/portal/stalker/fea
 - `/Users/4gray/Code/iptvnator/libs/portal/stalker/feature/src/lib/stalker-main-container.component.ts`
     - Category + content layout for `vod` and `series`
 - `/Users/4gray/Code/iptvnator/libs/portal/stalker/feature/src/lib/stalker-live-stream-layout/stalker-live-stream-layout.component.ts`
-    - ITV live playback, channel navigation, EPG panel integration
+    - ITV live playback, radio playback, channel/station navigation, EPG panel integration
+- `/Users/4gray/Code/iptvnator/libs/ui/playback/src/lib/audio-player/audio-player.component.ts`
+    - Shared inline audio player used by M3U radio channels and Stalker radio stations
 - `/Users/4gray/Code/iptvnator/libs/ui/components/src/lib/stalker-series-view/stalker-series-view.component.ts`
     - Season/episode UI for all Stalker series modes
 - `/Users/4gray/Code/iptvnator/libs/portal/stalker/feature/src/lib/stalker-favorites/stalker-favorites.component.ts`
@@ -71,6 +75,7 @@ Important store responsibilities:
 - Selected content/category/item state
 - Category and paginated content resources
 - ITV channel list + pagination
+- Radio category/station list + pagination
 - Regular series seasons resource
 - VOD-series (`is_series=1`) seasons + episodes resources
 - Playback link creation (`create_link` flow)
@@ -97,6 +102,25 @@ Failure-handling rule:
 - Failed category or content requests must degrade into empty/error UI state,
   not `undefined` collections or renderer exceptions. The workspace Stalker
   context panel and live layout rely on this guarantee.
+
+## Live TV and Radio
+
+The Stalker live route and radio route intentionally share
+`StalkerLiveStreamLayoutComponent`:
+
+- `itv` uses `type=itv&action=get_ordered_list`, stores results in
+  `itvChannels`, resolves playback through `resolveItvPlayback(...)`, and keeps
+  the EPG panel visible.
+- `radio` uses `type=radio&action=get_ordered_list`, stores results in
+  `radioChannels`, resolves playback through `resolveRadioPlayback(...)`, and
+  renders `AudioPlayerComponent` instead of a video player.
+- Radio hides the EPG panel and must not call Stalker EPG endpoints because
+  radio stations do not have EPG data.
+- Radio always uses the inline audio player. External player settings are
+  ignored for Stalker radio, matching M3U radio behavior.
+- Some Stalker portals do not expose radio categories. Radio category loading
+  falls back to a synthetic `PORTALS.ALL_RADIO` category with
+  `category_id: '*'` so the station list can still be loaded.
 
 ## VOD/Series Modes
 

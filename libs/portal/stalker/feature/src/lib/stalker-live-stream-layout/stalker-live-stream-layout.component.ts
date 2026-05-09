@@ -38,6 +38,7 @@ import {
     getTodayEpgDateKey,
     shiftEpgDateKey,
 } from '@iptvnator/ui/epg';
+import { AudioPlayerComponent } from '@iptvnator/ui/playback';
 import {
     LiveEpgPanelComponent,
     LiveEpgPanelSummary,
@@ -67,6 +68,7 @@ import {
     templateUrl: './stalker-live-stream-layout.component.html',
     styleUrls: ['./stalker-live-stream-layout.component.scss'],
     imports: [
+        AudioPlayerComponent,
         ChannelListItemComponent,
         ChannelListSkeletonComponent,
         EpgListComponent,
@@ -97,12 +99,19 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly selectedCategoryTitle = this.stalkerStore.getSelectedCategoryName;
 
     /** Channels */
+    readonly isRadioMode = computed(
+        () => this.stalkerStore.selectedContentType() === 'radio'
+    );
     readonly itvChannels = this.stalkerStore.itvChannels;
+    readonly radioChannels = this.stalkerStore.radioChannels;
+    readonly channels = computed(() =>
+        this.isRadioMode() ? this.radioChannels() : this.itvChannels()
+    );
     readonly searchTerm = computed(() =>
         this.stalkerStore.searchPhrase().trim().toLowerCase()
     );
     readonly visibleChannels = computed(() => {
-        const channels = this.itvChannels();
+        const channels = this.channels();
         const term = this.searchTerm();
 
         if (!term) {
@@ -120,7 +129,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly isInitialChannelsLoading = computed(
         () =>
             !!this.stalkerStore.selectedCategoryId() &&
-            this.itvChannels().length === 0 &&
+            this.channels().length === 0 &&
             !this.searchTerm()
     );
 
@@ -136,6 +145,20 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     );
     readonly activePlayback = signal<ResolvedPortalPlayback | null>(null);
     readonly streamUrl = computed(() => this.activePlayback()?.streamUrl ?? '');
+    readonly activePlaybackTitle = computed(
+        () =>
+            this.activePlayback()?.title ||
+            this.stalkerStore.selectedItem()?.o_name ||
+            this.stalkerStore.selectedItem()?.name ||
+            ''
+    );
+    readonly activePlaybackArtwork = computed(
+        () =>
+            this.activePlayback()?.thumbnail ||
+            this.stalkerStore.selectedItem()?.logo ||
+            this.stalkerStore.selectedItem()?.cover ||
+            ''
+    );
 
     /** EPG */
     readonly fallbackEpgPrograms = signal<EpgProgram[]>([]);
@@ -238,9 +261,14 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
 
         // Reset channels/page on category change
         effect(() => {
+            const contentType = this.stalkerStore.selectedContentType();
             this.stalkerStore.selectedCategoryId();
             untracked(() => {
-                this.stalkerStore.setItvChannels([]);
+                if (contentType === 'radio') {
+                    this.stalkerStore.setRadioChannels([]);
+                } else {
+                    this.stalkerStore.setItvChannels([]);
+                }
                 this.stalkerStore.setPage(0);
                 this.clearEpgPreviewMaps();
                 this.epgLoadRequestId += 1;
@@ -257,6 +285,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                 if (!this.searchTerm()) {
                     setTimeout(() => this.checkIfNeedsMoreContent(), 100);
                 }
+            }
+
+            if (this.isRadioMode()) {
+                this.clearEpgPreviewMaps();
+                this.cdr.markForCheck();
+                return;
             }
 
             this.syncBulkEpgPreviews(channels);
@@ -361,6 +395,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         this.stalkerStore.setSelectedItem(item);
 
         try {
+            const isRadioMode = this.isRadioMode();
             const playback = await this.resolvePlaybackForChannel(
                 item,
                 channelId
@@ -369,6 +404,11 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                 requestId !== this.playbackRequestId ||
                 this.selectedChannelId() !== channelId
             ) {
+                return;
+            }
+
+            if (isRadioMode) {
+                this.activePlayback.set(playback);
                 return;
             }
 
@@ -397,12 +437,18 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         item: StalkerItvChannel,
         channelId: string
     ): Promise<ResolvedPortalPlayback> {
-        if (this.playbackResolution?.channelId === channelId) {
+        const playbackChannelId = [
+            this.stalkerStore.selectedContentType(),
+            channelId,
+        ].join(':');
+        if (this.playbackResolution?.channelId === playbackChannelId) {
             return this.playbackResolution.promise;
         }
 
-        const promise = this.stalkerStore.resolveItvPlayback(item);
-        this.playbackResolution = { channelId, promise };
+        const promise = this.isRadioMode()
+            ? this.stalkerStore.resolveRadioPlayback(item)
+            : this.stalkerStore.resolveItvPlayback(item);
+        this.playbackResolution = { channelId: playbackChannelId, promise };
 
         const cleanup = () => {
             if (this.playbackResolution?.promise === promise) {
@@ -423,7 +469,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         } else {
             this.stalkerStore.addToFavorites({
                 ...item,
-                category_id: 'itv',
+                category_id: this.isRadioMode() ? 'radio' : 'itv',
                 title: item.o_name || item.name,
                 cover: item.logo,
                 added_at: new Date().toISOString(),
@@ -447,6 +493,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
 
     toggleSidebar(): void {
         this.liveSidebarStateService.toggle();
+    }
+
+    handleRadioChannelSwitch(direction: 'next' | 'previous'): void {
+        this.handleAdjacentChannelChange(
+            direction === 'next' ? 'down' : 'up'
+        );
     }
 
     @HostListener('document:keydown', ['$event'])
@@ -715,6 +767,10 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     }
 
     private handleRemoteChannelChange(direction: 'up' | 'down'): void {
+        this.handleAdjacentChannelChange(direction);
+    }
+
+    private handleAdjacentChannelChange(direction: 'up' | 'down'): void {
         const activeItem = this.stalkerStore.selectedItem();
         if (!activeItem?.id) {
             return;

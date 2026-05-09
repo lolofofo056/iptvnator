@@ -6,7 +6,12 @@ import {
     removeFavorite,
 } from '../data-store.js';
 import { extractMac } from './get-categories.handler.js';
-import { RawChannel, RawSeriesItem, RawVodItem } from '../data-generator.js';
+import {
+    RawChannel,
+    RawRadioStation,
+    RawSeriesItem,
+    RawVodItem,
+} from '../data-generator.js';
 
 /**
  * Stalker favorites endpoint.
@@ -15,7 +20,7 @@ import { RawChannel, RawSeriesItem, RawVodItem } from '../data-generator.js';
  *   action: favorites
  *   fav_action: get | add | remove (some portals use set/unset)
  *   item_id: the item id to add/remove
- *   type: itv | vod | series
+ *   type: itv | vod | series | radio
  */
 export function handleFavorites(req: Request, res: Response): void {
     const mac = extractMac(req);
@@ -38,7 +43,7 @@ export function handleFavorites(req: Request, res: Response): void {
     const favIds = getFavorites(mac);
     const data = getPortalData(mac);
 
-    type AnyItem = RawChannel | RawVodItem | RawSeriesItem;
+    type AnyItem = RawChannel | RawRadioStation | RawVodItem | RawSeriesItem;
     const result: AnyItem[] = [];
 
     for (const id of favIds) {
@@ -58,8 +63,12 @@ export function handleFavorites(req: Request, res: Response): void {
 function findItemById(
     data: ReturnType<typeof getPortalData>,
     id: string
-): RawChannel | RawVodItem | RawSeriesItem | undefined {
+): RawChannel | RawRadioStation | RawVodItem | RawSeriesItem | undefined {
     for (const items of data.channels.values()) {
+        const found = items.find((i) => i.id === id);
+        if (found) return found;
+    }
+    for (const items of data.radio.values()) {
         const found = items.find((i) => i.id === id);
         if (found) return found;
     }

@@ -111,6 +111,22 @@ describe('workspace-shell-route.utils', () => {
         );
 
         expect(
+            parseWorkspaceShellRoute('/workspace/stalker/pl-2/radio')
+        ).toEqual(
+            expect.objectContaining({
+                kind: 'portal',
+                context: {
+                    provider: 'stalker',
+                    playlistId: 'pl-2',
+                },
+                section: 'radio',
+                contextPanel: 'category',
+                searchMode: 'remote-search',
+                usesQuerySearch: true,
+            })
+        );
+
+        expect(
             parseWorkspaceShellRoute('/workspace/stalker/pl-2/recent?q=test')
         ).toEqual(
             expect.objectContaining({
@@ -169,6 +185,12 @@ describe('workspace-shell-route.utils', () => {
             usesWorkspaceRouteQuerySearch(
                 { provider: 'stalker', playlistId: '1' },
                 'recent'
+            )
+        ).toBe(true);
+        expect(
+            usesWorkspaceRouteQuerySearch(
+                { provider: 'stalker', playlistId: '1' },
+                'radio'
             )
         ).toBe(true);
         expect(
