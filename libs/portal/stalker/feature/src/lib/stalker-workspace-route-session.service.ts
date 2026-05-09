@@ -11,10 +11,11 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter, firstValueFrom } from 'rxjs';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import { PortalRailSection } from '@iptvnator/portal/shared/util';
-import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
+import {
+    StalkerContentType,
+    StalkerStore,
+} from '@iptvnator/portal/stalker/data-access';
 import { PlaylistsService } from 'services';
-
-type StalkerContentType = 'vod' | 'series' | 'itv' | 'radio';
 
 @Injectable()
 export class StalkerWorkspaceRouteSession {

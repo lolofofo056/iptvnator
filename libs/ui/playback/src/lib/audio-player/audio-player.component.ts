@@ -241,12 +241,12 @@ export class AudioPlayerComponent {
     }
 
     switchChannel(direction: 'next' | 'previous') {
-        this.channelSwitchRequested.emit(direction);
-
         if (this.dispatchAdjacentChannelAction()) {
             this.store.dispatch(
                 ChannelActions.setAdjacentChannelAsActive({ direction })
             );
+        } else {
+            this.channelSwitchRequested.emit(direction);
         }
     }
 }
