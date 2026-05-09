@@ -123,6 +123,12 @@ export class EpgQueueService implements OnDestroy {
             streamsByEpgId.set(id, list);
         }
 
+        // Make the latest viewport visible to any currently running queue
+        // before the async XMLTV prefetch returns, so stale queued provider
+        // requests are dropped immediately on fast scroll.
+        this.visibleSet = new Set(visibleIds);
+        this.queue = [];
+
         const batchResult = await this.fetchXmltvCurrentPure(
             Array.from(streamsByEpgId.keys())
         );
@@ -130,8 +136,6 @@ export class EpgQueueService implements OnDestroy {
         if (generation !== this.enqueueGeneration) return;
 
         // Atomic commit block — no awaits below.
-        // Clone the caller's Set so external mutation cannot shift our state.
-        this.visibleSet = new Set(visibleIds);
         this.pruneEphemeralMaps(this.visibleSet);
 
         for (const entry of normalized) {

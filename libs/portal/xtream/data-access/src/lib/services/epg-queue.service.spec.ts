@@ -33,7 +33,7 @@ describe('EpgQueueService', () => {
     beforeEach(() => {
         jest.useFakeTimers();
 
-        xtreamApi = { getShortEpg: jest.fn() };
+        xtreamApi = { getShortEpg: jest.fn().mockResolvedValue([]) };
         fallback = {
             getProgramsForChannel: jest.fn().mockResolvedValue([]),
             getCurrentProgramsBatch: jest.fn().mockResolvedValue({}),
@@ -165,8 +165,8 @@ describe('EpgQueueService', () => {
 
     it('only the latest enqueue commits queue state when prefetches overlap', async () => {
         // Defer batch resolutions so we can interleave them.
-        let resolveA: (v: Record<string, EpgItem>) => void = () => {};
-        let resolveB: (v: Record<string, EpgItem>) => void = () => {};
+        let resolveA!: (v: Record<string, EpgItem>) => void;
+        let resolveB!: (v: Record<string, EpgItem>) => void;
         fallback.getCurrentProgramsBatch
             .mockImplementationOnce(
                 () =>
@@ -227,6 +227,44 @@ describe('EpgQueueService', () => {
         expect(priv().xmltvPreviewByStreamId.has(12)).toBe(false);
 
         sub.unsubscribe();
+    });
+
+    it('drops stale queued provider fetches while a newer XMLTV prefetch is pending', async () => {
+        let resolveLatestBatch!: (v: Record<string, EpgItem>) => void;
+        fallback.getCurrentProgramsBatch.mockImplementationOnce(
+            () =>
+                new Promise<Record<string, EpgItem>>((resolve) => {
+                    resolveLatestBatch = resolve;
+                })
+        );
+        xtreamApi.getShortEpg.mockResolvedValue([]);
+
+        await service.enqueue([1, 2], new Set([1, 2]), credentials);
+        expect(xtreamApi.getShortEpg).toHaveBeenCalledWith(
+            credentials,
+            1,
+            3,
+            { suppressErrorLog: true }
+        );
+
+        const latestEnqueue = service.enqueue(
+            [{ streamId: 3, epgChannelId: 'three.epg' }],
+            new Set([3]),
+            credentials
+        );
+
+        jest.advanceTimersByTime(201);
+        await Promise.resolve();
+
+        expect(xtreamApi.getShortEpg).not.toHaveBeenCalledWith(
+            credentials,
+            2,
+            3,
+            { suppressErrorLog: true }
+        );
+
+        resolveLatestBatch({});
+        await latestEnqueue;
     });
 
     it('clones the caller visibleIds Set so external mutation is harmless', async () => {

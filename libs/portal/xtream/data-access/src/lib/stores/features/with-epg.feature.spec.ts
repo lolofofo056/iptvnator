@@ -63,24 +63,8 @@ function configureStore(setup: TestStoreSetup) {
 
     const fallbackService = {
         getProgramsForChannel: jest.fn<Promise<EpgItem[]>, unknown[]>(),
-        resolveCurrentEpg: jest.fn(
-            async (args: {
-                epgChannelId: string | null | undefined;
-                preferUploaded: boolean;
-                fetchProvider: () => Promise<EpgItem[]>;
-            }): Promise<EpgItem[]> => {
-                const id = (args.epgChannelId ?? '').trim();
-                if (args.preferUploaded && id) {
-                    const xmltv =
-                        await fallbackService.getProgramsForChannel(id);
-                    if (xmltv.length > 0) return xmltv;
-                    return args.fetchProvider();
-                }
-                const provider = await args.fetchProvider();
-                if (provider.length > 0 || !id) return provider;
-                return fallbackService.getProgramsForChannel(id);
-            }
-        ),
+        resolveCurrentEpg:
+            XtreamXmltvFallbackService.prototype.resolveCurrentEpg,
     };
 
     const settingsStore = {
