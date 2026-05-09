@@ -477,7 +477,8 @@ describe('LiveStreamLayoutComponent', () => {
             },
             101,
             1775296800,
-            1775300400
+            1775300400,
+            undefined
         );
         expect(xtreamStore.openPlayer).toHaveBeenCalledWith(
             'https://example.com/timeshift.ts',

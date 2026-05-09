@@ -140,7 +140,20 @@ export function withPortal() {
                         const response =
                             await apiService.getAccountInfo(credentials);
                         const portalStatus = resolvePortalStatus(response);
+                        const serverTimezone =
+                            response?.server_info?.timezone ?? undefined;
                         patchState(store, { portalStatus });
+                        if (serverTimezone) {
+                            const current = store.currentPlaylist();
+                            if (current) {
+                                patchState(store, {
+                                    currentPlaylist: {
+                                        ...current,
+                                        serverTimezone,
+                                    },
+                                });
+                            }
+                        }
                         return portalStatus;
                     } catch (error) {
                         logger.error('Error checking portal status', error);
