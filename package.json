@@ -32,7 +32,7 @@
         "test:frontend": "nx test web",
         "test:backend": "nx test electron-backend",
         "test:unit:all": "nx run-many --target=test --all --parallel=3",
-        "test:unit:ci": "nx run-many --target=test --projects=electron-backend,web,services,m3u-state,portal-stalker-data-access,portal-shared-util,playlist-shared-ui,portal-xtream-data-access,portal-xtream-feature,workspace-dashboard-data-access,components,@iptvnator/pipes --parallel=3 --output-style=static",
+        "test:unit:ci": "nx run-many --target=test --projects=electron-backend,web,services,m3u-state,portal-stalker-data-access,portal-shared-util,playlist-shared-ui,portal-xtream-data-access,portal-xtream-feature,workspace-dashboard-data-access,components,@iptvnator/pipes,packaging --parallel=3 --output-style=static",
         "typecheck:web": "tsc -p apps/web/tsconfig.app.json --noEmit",
         "typecheck:backend": "tsc -p apps/electron-backend/tsconfig.app.json --noEmit",
         "typecheck:ci": "pnpm run typecheck:web && pnpm run typecheck:backend",
