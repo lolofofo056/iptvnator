@@ -21,7 +21,7 @@ export class DialogService {
             ConfirmDialogData
         >(ConfirmDialogComponent, {
             data,
-            width: '300px',
+            width: data.width ?? '300px',
         });
         dialogRef
             .afterClosed()

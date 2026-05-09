@@ -81,6 +81,72 @@ export class UnifiedRecentDataService {
         this.dispatchPlaylistRecentUpdate(item.playlistId, updatedPlaylist);
     }
 
+    /**
+     * Bulk remove. Xtream items are batched into a single IPC call. m3u/stalker
+     * items live in the playlist row's `recentlyViewed` JSON column, so we
+     * group them by `playlistId` and do one read-filter-write per playlist —
+     * a per-item Promise.all would race and clobber sibling deletions.
+     */
+    async removeRecentItemsBatch(
+        items: UnifiedCollectionItem[]
+    ): Promise<void> {
+        if (items.length === 0) {
+            return;
+        }
+
+        const xtreamBatch: { contentId: number; playlistId: string }[] = [];
+        const groupedByPlaylist = new Map<string, (string | number)[]>();
+
+        for (const item of items) {
+            if (item.sourceType === 'xtream') {
+                if (item.contentId != null) {
+                    xtreamBatch.push({
+                        contentId: item.contentId,
+                        playlistId: item.playlistId,
+                    });
+                }
+                continue;
+            }
+
+            const identity =
+                item.sourceType === 'm3u'
+                    ? (item.streamUrl ?? item.uid.split('::')[2])
+                    : (item.stalkerId ?? item.uid.split('::')[2]);
+
+            if (!identity) {
+                continue;
+            }
+
+            const existing = groupedByPlaylist.get(item.playlistId) ?? [];
+            existing.push(identity);
+            groupedByPlaylist.set(item.playlistId, existing);
+        }
+
+        const tasks: Promise<unknown>[] = [];
+
+        if (xtreamBatch.length > 0) {
+            tasks.push(this.dbService.removeRecentItemsBatch(xtreamBatch));
+        }
+
+        for (const [playlistId, identities] of groupedByPlaylist) {
+            tasks.push(
+                firstValueFrom(
+                    this.playlistsService.removeFromPlaylistRecentlyViewedBatch(
+                        playlistId,
+                        identities
+                    )
+                ).then((updatedPlaylist) =>
+                    this.dispatchPlaylistRecentUpdate(
+                        playlistId,
+                        updatedPlaylist
+                    )
+                )
+            );
+        }
+
+        await Promise.all(tasks);
+    }
+
     async clearRecentItems(
         scope: CollectionScope,
         playlistId?: string
@@ -401,6 +467,7 @@ export class UnifiedRecentDataService {
                     streamUrl: channel.url,
                     channelId: channel.id,
                     radio: channel.radio,
+                    m3uChannel: channel,
                     tvgId:
                         channel.tvg?.id ||
                         recentItem.tvg_id ||

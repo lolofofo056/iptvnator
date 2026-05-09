@@ -48,6 +48,48 @@ export function HttpLoaderFactory(http: HttpClient): TranslateHttpLoader {
 }
 
 /**
+ * Synchronously read the user's preferred language from localStorage so the
+ * very first render uses the right locale instead of flashing English first
+ * and re-rendering once the IDB-backed settings finish loading.
+ *
+ * The hint is written by AppComponent.initSettings() whenever the saved
+ * settings resolve, so first-ever boots fall back to English (no hint
+ * present yet) and every subsequent boot uses the saved language.
+ */
+const SUPPORTED_LANGS = new Set([
+    'ar',
+    'ary',
+    'by',
+    'de',
+    'el',
+    'en',
+    'es',
+    'fr',
+    'it',
+    'ja',
+    'ko',
+    'nl',
+    'pl',
+    'pt',
+    'ru',
+    'tr',
+    'zh',
+    'zhtw',
+]);
+export const PREFERRED_LANGUAGE_STORAGE_KEY = 'iptvnator:preferred-language';
+export function getInitialLanguage(): string {
+    try {
+        const saved = localStorage.getItem(PREFERRED_LANGUAGE_STORAGE_KEY);
+        if (saved && SUPPORTED_LANGS.has(saved)) {
+            return saved;
+        }
+    } catch {
+        // localStorage may throw in privacy modes; fall through to default.
+    }
+    return 'en';
+}
+
+/**
  * Conditionally provides the necessary service based on the current environment
  */
 export function DataFactory() {
@@ -69,24 +111,19 @@ export const appConfig: ApplicationConfig = {
         }),
         provideEffects([PlaylistEffects]),
         provideRouterStore(),
-        provideStoreDevtools({
-            maxAge: 25,
-            logOnly: AppConfig.production,
-        }),
+        ...(AppConfig.production ? [] : [provideStoreDevtools({ maxAge: 25 })]),
         provideServiceWorker('ngsw-worker.js', {
             enabled: AppConfig.production && !!window.electron,
             registrationStrategy: 'registerWhenStable:30000',
         }),
         importProvidersFrom(
-            AppConfig.environment === 'WEB'
-                ? NgxIndexedDBModule.forRoot(dbConfig)
-                : [],
             NgxIndexedDBModule.forRoot(dbConfig),
             NgxSkeletonLoaderModule.forRoot({
                 animation: 'pulse',
                 loadingText: 'This item is actually loading...',
             }),
             TranslateModule.forRoot({
+                defaultLanguage: getInitialLanguage(),
                 loader: {
                     provide: TranslateLoader,
                     useFactory: HttpLoaderFactory,

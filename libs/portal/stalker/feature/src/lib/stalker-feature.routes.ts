@@ -75,6 +75,10 @@ export function createStalkerRoutes(): Route[] {
                     loadComponent: loadStalkerLiveStreamLayoutComponent,
                 },
                 {
+                    path: 'radio',
+                    loadComponent: loadStalkerLiveStreamLayoutComponent,
+                },
+                {
                     path: 'series',
                     providers: [
                         ...provideStalkerCatalogFacade(),

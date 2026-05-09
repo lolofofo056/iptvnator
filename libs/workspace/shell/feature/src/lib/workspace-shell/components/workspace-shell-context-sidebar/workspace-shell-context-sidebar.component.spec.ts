@@ -4,6 +4,7 @@ import {
     input,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { LiveLayoutSidebarStateService } from '@iptvnator/portal/shared/util';
 import { WorkspaceShellContextSidebarComponent } from './workspace-shell-context-sidebar.component';
 
 @Directive({
@@ -50,8 +51,11 @@ class MockWorkspaceSourcesFiltersPanelComponent {}
 
 describe('WorkspaceShellContextSidebarComponent', () => {
     let fixture: ComponentFixture<WorkspaceShellContextSidebarComponent>;
+    let liveSidebarService: LiveLayoutSidebarStateService;
 
     beforeEach(async () => {
+        localStorage.removeItem('live-sidebar-state');
+
         await TestBed.configureTestingModule({
             imports: [WorkspaceShellContextSidebarComponent],
         })
@@ -69,6 +73,8 @@ describe('WorkspaceShellContextSidebarComponent', () => {
             .compileComponents();
 
         fixture = TestBed.createComponent(WorkspaceShellContextSidebarComponent);
+        liveSidebarService = TestBed.inject(LiveLayoutSidebarStateService);
+        liveSidebarService.setState('expanded');
     });
 
     it('renders the settings panel for the settings variant', () => {
@@ -105,5 +111,70 @@ describe('WorkspaceShellContextSidebarComponent', () => {
                 'app-workspace-collection-context-panel'
             )
         ).not.toBeNull();
+    });
+
+    describe('live sidebar collapse', () => {
+        function setupLiveCategory(section: 'live' | 'itv' | 'vod'): void {
+            fixture.componentRef.setInput('variant', 'category');
+            fixture.componentRef.setInput('context', {
+                provider: 'xtreams',
+                playlistId: 'pl-1',
+            });
+            fixture.componentRef.setInput('section', section);
+            fixture.detectChanges();
+        }
+
+        it('collapses the categories rail when the shared service is collapsed on a live route', () => {
+            setupLiveCategory('live');
+
+            liveSidebarService.setState('collapsed');
+            fixture.detectChanges();
+
+            const aside = fixture.nativeElement.querySelector(
+                'aside.context-panel--route'
+            );
+            expect(aside.classList.contains('context-panel--collapsed')).toBe(
+                true
+            );
+        });
+
+        it('also collapses on the Stalker itv section', () => {
+            setupLiveCategory('itv');
+
+            liveSidebarService.setState('collapsed');
+            fixture.detectChanges();
+
+            const aside = fixture.nativeElement.querySelector(
+                'aside.context-panel--route'
+            );
+            expect(aside.classList.contains('context-panel--collapsed')).toBe(
+                true
+            );
+        });
+
+        it('does not collapse the categories rail on non-live sections', () => {
+            setupLiveCategory('vod');
+
+            liveSidebarService.setState('collapsed');
+            fixture.detectChanges();
+
+            const aside = fixture.nativeElement.querySelector(
+                'aside.context-panel--route'
+            );
+            expect(aside.classList.contains('context-panel--collapsed')).toBe(
+                false
+            );
+        });
+
+        it('keeps the categories rail expanded when the service is expanded', () => {
+            setupLiveCategory('live');
+
+            const aside = fixture.nativeElement.querySelector(
+                'aside.context-panel--route'
+            );
+            expect(aside.classList.contains('context-panel--collapsed')).toBe(
+                false
+            );
+        });
     });
 });

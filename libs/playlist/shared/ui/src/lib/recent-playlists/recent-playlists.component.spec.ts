@@ -360,6 +360,11 @@ describe('RecentPlaylistsComponent busy state', () => {
         component.refreshXtreamPlaylist(item);
         await confirmPromise;
 
+        expect(dialogService.openConfirmDialog).toHaveBeenCalledWith(
+            expect.objectContaining({
+                width: '400px',
+            })
+        );
         expect(
             databaseService.updateXtreamPlaylistDetails
         ).toHaveBeenCalledWith({

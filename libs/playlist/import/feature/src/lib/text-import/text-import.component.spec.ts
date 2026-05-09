@@ -31,4 +31,18 @@ describe('TextImportComponent', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    it('clears the text import form', () => {
+        component.textForm.setValue({
+            text: '#EXTM3U',
+        });
+        component.textForm.markAsDirty();
+
+        component.clearForm();
+
+        expect(component.textForm.value).toEqual({
+            text: '',
+        });
+        expect(component.textForm.pristine).toBeTruthy();
+    });
 });

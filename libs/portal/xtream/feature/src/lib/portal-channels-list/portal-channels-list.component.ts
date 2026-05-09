@@ -4,6 +4,7 @@ import {
 } from '@angular/cdk/scrolling';
 import {
     AfterViewInit,
+    ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
     computed,
@@ -25,7 +26,10 @@ import {
     XtreamCategory,
     XtreamItem,
 } from 'shared-interfaces';
-import { ChannelListItemComponent } from 'components';
+import {
+    ChannelListItemComponent,
+    ChannelListSkeletonComponent,
+} from 'components';
 import {
     PortalChannelSortMode,
     sortPortalChannelItems,
@@ -44,6 +48,7 @@ export interface XtreamChannelListItem {
     readonly title?: string;
     readonly type?: 'live' | 'movie' | 'series' | 'vod';
     readonly xtream_id: number;
+    readonly epg_channel_id?: string | null;
 }
 
 interface XtreamCategoryLike {
@@ -55,8 +60,10 @@ interface XtreamCategoryLike {
     selector: 'app-portal-channels-list',
     templateUrl: './portal-channels-list.component.html',
     styleUrls: ['./portal-channels-list.component.scss'],
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         ChannelListItemComponent,
+        ChannelListSkeletonComponent,
         MatIcon,
         ScrollingModule,
         TranslatePipe,
@@ -64,6 +71,7 @@ interface XtreamCategoryLike {
 })
 export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
     readonly playClicked = output<XtreamChannelListItem>();
+    readonly playbackRequested = output<XtreamChannelListItem>();
     readonly sortMode = input<PortalChannelSortMode>('server');
     readonly channelsOverride = input<XtreamChannelListItem[] | null>(null);
     readonly searchTermInput = input('');
@@ -74,7 +82,6 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
     private readonly route = inject(ActivatedRoute);
     readonly isSelectedTypeContentLoading =
         this.xtreamStore.selectedTypeContentLoading;
-    readonly loadingRows = Array.from({ length: 9 }, (_, index) => index);
     readonly channels = computed(() => {
         const override = this.channelsOverride();
         if (Array.isArray(override)) {
@@ -195,7 +202,7 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
         };
 
         const visibleIds = new Set<number>(channels.map((ch) => ch.xtream_id));
-        const uncachedIds: number[] = [];
+        const uncachedEntries: { streamId: number; epgChannelId?: string | null }[] = [];
 
         // Apply cached results immediately
         for (const channel of channels) {
@@ -212,12 +219,19 @@ export class PortalChannelsListComponent implements AfterViewInit, OnDestroy {
             }
 
             if (!this.epgPrograms.has(channel.xtream_id)) {
-                uncachedIds.push(channel.xtream_id);
+                uncachedEntries.push({
+                    streamId: channel.xtream_id,
+                    epgChannelId: channel.epg_channel_id ?? null,
+                });
             }
         }
 
-        if (uncachedIds.length > 0) {
-            this.epgQueueService.enqueue(uncachedIds, visibleIds, credentials);
+        if (uncachedEntries.length > 0) {
+            this.epgQueueService
+                .enqueue(uncachedEntries, visibleIds, credentials)
+                .catch((error) => {
+                    console.warn('EPG enqueue failed', error);
+                });
         }
     }
 

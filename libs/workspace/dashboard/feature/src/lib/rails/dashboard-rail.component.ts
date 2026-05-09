@@ -31,6 +31,7 @@ export interface DashboardRailCard {
     subtitle?: string;
     imageUrl?: string;
     icon: string;
+    contentType?: 'live' | 'movie' | 'series';
     link: string[];
     state?: Record<string, unknown>;
     actions?: DashboardRailAction[];

@@ -1,6 +1,6 @@
 :host {
     display: block;
-    --rail-gap: 16px;
+    --rail-gap: var(--cover-gap, 16px);
 }
 
 .rail {
@@ -55,22 +55,6 @@
     line-height: 1.2;
     letter-spacing: -0.012em;
     color: var(--app-heading-color, #1a1d23);
-}
-
-.rail__count {
-    font-size: 0.78rem;
-    font-weight: 500;
-    line-height: 1;
-    color: var(--app-muted-color, #8891a4);
-    font-variant-numeric: tabular-nums;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background: color-mix(
-        in srgb,
-        var(--app-muted-color, #8891a4) 18%,
-        transparent
-    );
-    letter-spacing: 0;
 }
 
 .rail__see-all {

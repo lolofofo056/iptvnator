@@ -1,4 +1,4 @@
-import { Component, HostBinding, inject, OnInit } from '@angular/core';
+import { Component, effect, HostBinding, inject, OnInit } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, RouterOutlet } from '@angular/router';
 import { Actions, ofType } from '@ngrx/effects';
@@ -9,7 +9,7 @@ import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
 import { EpgProgressPanelComponent } from '@iptvnator/ui/epg/progress-panel';
 import { PlaylistActions, selectAllPlaylistsMeta } from 'm3u-state';
 import { filter, take } from 'rxjs';
-import { DataService } from 'services';
+import { DataService, SettingsStore } from 'services';
 import {
     AUTO_UPDATE_PLAYLISTS,
     Language,
@@ -39,6 +39,7 @@ export class AppComponent implements OnInit {
     private store = inject(Store);
     private translate = inject(TranslateService);
     private settingsService = inject(SettingsService);
+    private settingsStore = inject(SettingsStore);
     private readonly workspaceShellActions = inject(WORKSPACE_SHELL_ACTIONS);
 
     /** Default language as fallback */
@@ -64,6 +65,11 @@ export class AppComponent implements OnInit {
                 });
             }
         }
+        effect(() => {
+            const size = this.settingsStore.coverSize?.() ?? 'medium';
+            document.documentElement.dataset.coverSize = size;
+        });
+
         if (window.electron) {
             document.addEventListener('keydown', (event) => {
                 if (event.ctrlKey || event.metaKey) {
@@ -100,7 +106,21 @@ export class AppComponent implements OnInit {
                     // Settings are stored in IndexedDB and loaded by the settings store
                     // Only specific Electron settings (MPV/VLC paths) are sent when changed in settings component
 
-                    this.translate.use(settings.language ?? this.DEFAULT_LANG);
+                    const resolvedLang =
+                        settings.language ?? this.DEFAULT_LANG;
+                    this.translate.use(resolvedLang);
+                    // Mirror the active language to localStorage so the next
+                    // cold start can read it synchronously in app.config.ts's
+                    // getInitialLanguage() and avoid the English-then-localized
+                    // flash for non-English users.
+                    try {
+                        localStorage.setItem(
+                            'iptvnator:preferred-language',
+                            resolvedLang
+                        );
+                    } catch {
+                        // Ignore quota / privacy mode errors.
+                    }
 
                     // Fetch EPG if URLs are configured (only fetch stale data)
                     if (

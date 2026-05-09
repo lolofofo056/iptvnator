@@ -1,4 +1,10 @@
-import { expect, Locator, Page, test } from '@playwright/test';
+import {
+    expect,
+    type APIRequestContext,
+    type Locator,
+    type Page,
+    test,
+} from '@playwright/test';
 
 /**
  * Stalker Portal E2E Tests
@@ -8,7 +14,7 @@ import { expect, Locator, Page, test } from '@playwright/test';
  * dev server when running e2e tests (see playwright.config.ts).
  *
  * Default scenario MAC (00:1A:79:00:00:01) provides:
- *   - 8 categories per content type (VOD / Series / ITV)
+ *   - 8 categories per content type (VOD / Series / ITV / Radio)
  *   - 40 items per category
  *   - 3 seasons × 8 episodes per series item
  *
@@ -62,6 +68,31 @@ async function setInputValue(input: Locator, value: string): Promise<void> {
     await expect(input).toHaveValue(value);
 }
 
+async function resetMockServer(request: APIRequestContext): Promise<void> {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            const response = await request.post(`${MOCK_SERVER}/reset`);
+            if (response.ok()) {
+                return;
+            }
+
+            lastError = new Error(
+                `Reset failed with status ${response.status()}`
+            );
+        } catch (error) {
+            lastError = error;
+        }
+
+        await new Promise((resolve) =>
+            setTimeout(resolve, 250 * (attempt + 1))
+        );
+    }
+
+    throw lastError;
+}
+
 /**
  * Add a Stalker portal via the UI:
  * 1. Click the "add playlist" button to open the unified dialog
@@ -97,7 +128,7 @@ async function addStalkerPortal(
 
 test.beforeEach(async ({ page, request }) => {
     // Reset mock server state (clears in-memory favorites and cache)
-    await request.post(`${MOCK_SERVER}/reset`);
+    await resetMockServer(request);
 
     // Playwright creates a fresh browser context per test, so extra
     // IndexedDB cleanup here only risks racing with app-managed DB handles.
@@ -201,9 +232,63 @@ test('@stalker EPG data loads for ITV channel', async ({ page }) => {
     await expect(page.locator('app-epg-list')).toBeVisible({
         timeout: 20_000,
     });
-    await expect(page.locator('app-epg-list .selected-date')).toBeVisible({
+    await expect(
+        page.locator(
+            'app-live-epg-panel .selected-date, app-epg-list .selected-date'
+        )
+    ).toBeVisible({ timeout: 20_000 });
+});
+
+test('@stalker radio — stations use the inline audio player without EPG', async ({
+    page,
+}) => {
+    await addStalkerPortal(page);
+
+    const radioListRequests: string[] = [];
+    const epgRequests: string[] = [];
+    page.on('request', (request) => {
+        const url = request.url();
+        if (
+            url.includes('type=radio') &&
+            url.includes('action=get_ordered_list')
+        ) {
+            radioListRequests.push(url);
+        }
+        if (
+            url.includes('action=get_epg_info') ||
+            url.includes('action=get_short_epg')
+        ) {
+            epgRequests.push(url);
+        }
+    });
+
+    await page.getByRole('link', { name: /radio/i }).click();
+    await page.waitForURL(/stalker.*radio/);
+
+    const categories = page.locator('.category-item');
+    await expect(categories.nth(1)).toBeVisible({ timeout: 10_000 });
+    await categories.nth(1).click();
+
+    const stations = page.locator('[data-test-id="channel-item"]');
+    await expect(stations.first()).toBeVisible({ timeout: 20_000 });
+    await expect.poll(() => radioListRequests.length).toBeGreaterThan(0);
+
+    await stations.first().click();
+    await expect(stations.first()).toHaveClass(/active/, { timeout: 20_000 });
+    await expect(page.locator('app-audio-player')).toBeVisible({
         timeout: 20_000,
     });
+
+    await page.getByRole('button', { name: 'Hide channels list' }).click();
+    const restoreButton = page.getByRole('button', {
+        name: 'Show channels list',
+    });
+    await expect(restoreButton).toBeVisible();
+    await restoreButton.click();
+    await expect(stations.first()).toBeVisible();
+
+    await expect(page.locator('app-epg-list')).toHaveCount(0);
+    expect(epgRequests).toHaveLength(0);
 });
 
 test('@stalker bulk EPG is fetched once and reused across channel switches', async ({
@@ -280,6 +365,31 @@ test('@stalker create_link returns a playable stream URL', async ({
     const streamUrl: string = body.payload.js.cmd;
     expect(streamUrl).toMatch(/^https?:\/\//);
     expect(streamUrl).toMatch(/\.m3u8$/);
+});
+
+test('@stalker mock server returns radio categories and stations', async ({
+    request,
+}) => {
+    const categoriesResponse = await request.get(
+        `${MOCK_SERVER}/stalker?action=get_categories&type=radio&macAddress=${DEFAULT_MAC}`
+    );
+    expect(categoriesResponse.ok()).toBeTruthy();
+    const categoriesBody = await categoriesResponse.json();
+    expect(categoriesBody.payload.js.length).toBeGreaterThan(0);
+
+    const firstCategory = categoriesBody.payload.js[0].id;
+    const stationsResponse = await request.get(
+        `${MOCK_SERVER}/stalker?action=get_ordered_list&type=radio&category=${firstCategory}&p=1&macAddress=${DEFAULT_MAC}&JsHttpRequest=1-xml`
+    );
+    expect(stationsResponse.ok()).toBeTruthy();
+    const stationsBody = await stationsResponse.json();
+    const firstStation = stationsBody.payload.js.data[0];
+    expect(firstStation).toEqual(
+        expect.objectContaining({
+            category_id: firstCategory,
+            radio: true,
+        })
+    );
 });
 
 test('@stalker series — seasons load for a series item', async ({

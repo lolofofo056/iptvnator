@@ -6,6 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { DialogService } from 'components';
 import {
     DatabaseService,
+    type DbOperationEvent,
     isDbAbortError,
     PlaybackPositionService,
     PlaylistRefreshService,
@@ -14,6 +15,14 @@ import {
 import { ChannelActions, PlaylistActions } from 'm3u-state';
 import { PlaylistMeta } from 'shared-interfaces';
 import { PlaylistContextFacade } from './playlist-context.facade';
+
+export interface XtreamRefreshPreparationState {
+    playlistId: string;
+    operationId: string;
+    phase: string;
+    current?: number;
+    total?: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PlaylistRefreshActionService {
@@ -30,7 +39,11 @@ export class PlaylistRefreshActionService {
         XtreamPendingRestoreService
     );
 
+    private readonly refreshPreparationState =
+        signal<XtreamRefreshPreparationState | null>(null);
+
     readonly isRefreshing = signal(false);
+    readonly refreshPreparation = this.refreshPreparationState.asReadonly();
 
     canRefresh(playlist: PlaylistMeta | null): boolean {
         if (!playlist || !window.electron) {
@@ -60,6 +73,7 @@ export class PlaylistRefreshActionService {
             message: this.translate.instant(
                 'HOME.PLAYLISTS.REFRESH_XTREAM_DIALOG.MESSAGE'
             ),
+            width: '400px',
             onConfirm: async () => {
                 if (this.isRefreshing()) {
                     return;
@@ -68,6 +82,11 @@ export class PlaylistRefreshActionService {
                 this.isRefreshing.set(true);
                 const operationId =
                     this.databaseService.createOperationId('xtream-refresh');
+                this.refreshPreparationState.set({
+                    playlistId: item._id,
+                    operationId,
+                    phase: 'collecting-user-data',
+                });
 
                 try {
                     this.snackBar.open(
@@ -77,13 +96,22 @@ export class PlaylistRefreshActionService {
                         undefined,
                         { duration: 2000 }
                     );
+                    await this.waitForRefreshPreparationPaint();
 
                     const updateDate = Date.now();
                     const [restoreState, playbackPositions] = await Promise.all(
                         [
                             this.databaseService.deleteXtreamPlaylistContent(
                                 item._id,
-                                { operationId }
+                                {
+                                    operationId,
+                                    onEvent: (event) =>
+                                        this.updateRefreshPreparationFromEvent(
+                                            item._id,
+                                            operationId,
+                                            event
+                                        ),
+                                }
                             ),
                             this.playbackPositionService.getAllPlaybackPositions(
                                 item._id
@@ -126,6 +154,7 @@ export class PlaylistRefreshActionService {
                         );
                     }
                 } finally {
+                    this.clearRefreshPreparation(operationId);
                     this.isRefreshing.set(false);
                 }
             },
@@ -206,5 +235,54 @@ export class PlaylistRefreshActionService {
         }
 
         return this.translate.instant('HOME.PLAYLISTS.PLAYLIST_UPDATE_ERROR');
+    }
+
+    private updateRefreshPreparationFromEvent(
+        playlistId: string,
+        operationId: string,
+        event: DbOperationEvent
+    ): void {
+        if (event.operationId && event.operationId !== operationId) {
+            return;
+        }
+
+        this.refreshPreparationState.update((current) => {
+            if (!current || current.operationId !== operationId) {
+                return current;
+            }
+
+            return {
+                playlistId,
+                operationId,
+                phase: event.phase ?? current.phase,
+                current: event.current ?? current.current,
+                total: event.total ?? current.total,
+            };
+        });
+    }
+
+    private clearRefreshPreparation(operationId: string): void {
+        this.refreshPreparationState.update((current) =>
+            current?.operationId === operationId ? null : current
+        );
+    }
+
+    private async waitForRefreshPreparationPaint(): Promise<void> {
+        const minimumVisibleDelayMs = 120;
+
+        // Give Angular a paint opportunity before small cached playlists can
+        // finish cleanup and clear the preparation state.
+        const resolveAfterDelay = (resolve: () => void): void => {
+            setTimeout(resolve, minimumVisibleDelayMs);
+        };
+
+        if (typeof requestAnimationFrame !== 'function') {
+            await new Promise<void>(resolveAfterDelay);
+            return;
+        }
+
+        await new Promise<void>((resolve) => {
+            requestAnimationFrame(() => resolveAfterDelay(resolve));
+        });
     }
 }

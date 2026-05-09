@@ -14,6 +14,8 @@ export function handleGetGenres(req: Request, res: Response): void {
     let categories;
     if (type === 'itv') {
         categories = data.itvCategories;
+    } else if (type === 'radio') {
+        categories = data.radioCategories;
     } else if (type === 'series') {
         categories = data.seriesCategories;
     } else {

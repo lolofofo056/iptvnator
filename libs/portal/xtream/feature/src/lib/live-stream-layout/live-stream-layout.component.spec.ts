@@ -1,11 +1,15 @@
 import { Directive, Component, input, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute, convertToParamMap } from '@angular/router';
 import { MockPipe } from 'ng-mocks';
 import { TranslatePipe } from '@ngx-translate/core';
-import { of } from 'rxjs';
+import { BehaviorSubject, of } from 'rxjs';
 import {
+    LIVE_EPG_PANEL_STATE_STORAGE_KEY,
+    LIVE_SIDEBAR_STATE_STORAGE_KEY,
+    LiveLayoutSidebarStateService,
     PORTAL_PLAYER,
     ResizableDirective,
 } from '@iptvnator/portal/shared/util';
@@ -15,22 +19,29 @@ import {
     XtreamUrlService,
 } from '@iptvnator/portal/xtream/data-access';
 import { EpgListComponent, EpgProgramActivationEvent } from '@iptvnator/ui/epg';
-import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
+import {
+    EpgViewComponent,
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 import { EpgItem, EpgProgram } from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { LiveStreamLayoutComponent } from './live-stream-layout.component';
+import { SettingsStore } from 'services';
 
 const LIVE_CHANNEL_SORT_STORAGE_KEY = 'xtream-live-channel-sort-mode';
 
 @Component({
     selector: 'app-portal-channels-list',
     standalone: true,
-    template: '',
+    template: '<div data-test-id="portal-channels-list-stub"></div>',
 })
 class StubPortalChannelsListComponent {
     readonly sortMode = input<'server' | 'name-asc' | 'name-desc'>('server');
     readonly searchTermInput = input('');
     readonly playClicked = output<unknown>();
+    readonly playbackRequested = output<unknown>();
 }
 
 @Component({
@@ -40,6 +51,8 @@ class StubPortalChannelsListComponent {
 })
 class StubWebPlayerViewComponent {
     readonly streamUrl = input('');
+    readonly title = input('');
+    readonly playback = input<unknown>(null);
 }
 
 @Component({
@@ -60,7 +73,28 @@ class StubEpgListComponent {
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
     readonly archivePlaybackAvailable = input<boolean | null>(null);
+    readonly selectedDate = input<string | null>(null);
+    readonly showDateNavigator = input(true);
     readonly programActivated = output<EpgProgramActivationEvent>();
+    readonly selectedDateChange = output<string>();
+}
+
+@Component({
+    selector: 'app-live-epg-panel',
+    standalone: true,
+    template: `
+        <div class="live-epg-panel-summary">{{ summary()?.title }}</div>
+        <ng-content />
+    `,
+})
+class StubLiveEpgPanelComponent {
+    readonly collapsed = input(false);
+    readonly summary = input<LiveEpgPanelSummary | null>(null);
+    readonly loading = input(false);
+    readonly showDateNavigator = input(false);
+    readonly selectedDate = input<string | null>(null);
+    readonly collapsedChange = output<boolean>();
+    readonly dateNavigation = output<'next' | 'prev'>();
 }
 
 @Directive({
@@ -72,6 +106,9 @@ class StubResizableDirective {}
 describe('LiveStreamLayoutComponent', () => {
     let fixture: ComponentFixture<LiveStreamLayoutComponent>;
     let component: LiveStreamLayoutComponent;
+    let routeQueryParamMap: BehaviorSubject<
+        ReturnType<typeof convertToParamMap>
+    >;
     const fixedNow = new Date('2026-04-05T12:00:00.000Z');
 
     const sampleChannel = {
@@ -93,6 +130,7 @@ describe('LiveStreamLayoutComponent', () => {
     const epgItems = signal<EpgItem[]>([]);
     const currentEpgItem = signal<EpgItem | null>(null);
     const isLoadingEpg = signal(false);
+    const selectedTypeContentLoading = signal(false);
     const selectedCategoryId = signal<number | null>(1);
     const selectedContentType = signal<'live' | 'vod' | 'series'>('live');
     const selectedItem = signal<unknown>(sampleChannel);
@@ -104,6 +142,7 @@ describe('LiveStreamLayoutComponent', () => {
         epgItems,
         currentEpgItem,
         isLoadingEpg,
+        selectedTypeContentLoading,
         selectedCategoryId,
         selectedContentType,
         selectedItem,
@@ -123,6 +162,9 @@ describe('LiveStreamLayoutComponent', () => {
     const portalPlayer = {
         isEmbeddedPlayer: jest.fn().mockReturnValue(true),
     };
+    const settingsStore = {
+        openStreamOnDoubleClick: signal(false),
+    };
 
     const originalElectron = window.electron;
 
@@ -130,6 +172,9 @@ describe('LiveStreamLayoutComponent', () => {
         jest.useFakeTimers();
         jest.setSystemTime(fixedNow);
         localStorage.removeItem(LIVE_CHANNEL_SORT_STORAGE_KEY);
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
+        localStorage.removeItem(LIVE_SIDEBAR_STATE_STORAGE_KEY);
+        settingsStore.openStreamOnDoubleClick.set(false);
 
         window.electron = {
             updateRemoteControlStatus: jest.fn(),
@@ -148,10 +193,12 @@ describe('LiveStreamLayoutComponent', () => {
         epgItems.set([]);
         currentEpgItem.set(null);
         isLoadingEpg.set(false);
+        selectedTypeContentLoading.set(false);
         selectedCategoryId.set(1);
         selectedContentType.set('live');
         selectedItem.set(sampleChannel);
         currentPlaylist.set(playlist);
+        routeQueryParamMap = new BehaviorSubject(convertToParamMap({}));
 
         await TestBed.configureTestingModule({
             imports: [LiveStreamLayoutComponent, NoopAnimationsModule],
@@ -163,11 +210,11 @@ describe('LiveStreamLayoutComponent', () => {
                             data: {},
                             queryParamMap: convertToParamMap({}),
                         },
-                        queryParamMap: of(convertToParamMap({})),
+                        queryParamMap: routeQueryParamMap.asObservable(),
                         pathFromRoot: [
                             {
                                 snapshot: {
-                                    data: {},
+                                    data: { layout: 'workspace' },
                                 },
                             },
                         ],
@@ -176,6 +223,7 @@ describe('LiveStreamLayoutComponent', () => {
                 { provide: XtreamStore, useValue: xtreamStore },
                 { provide: FavoritesService, useValue: favoritesService },
                 { provide: XtreamUrlService, useValue: xtreamUrlService },
+                { provide: SettingsStore, useValue: settingsStore },
                 { provide: PORTAL_PLAYER, useValue: portalPlayer },
             ],
         })
@@ -184,6 +232,7 @@ describe('LiveStreamLayoutComponent', () => {
                     imports: [
                         EpgListComponent,
                         EpgViewComponent,
+                        LiveEpgPanelComponent,
                         PortalChannelsListComponent,
                         ResizableDirective,
                         TranslatePipe,
@@ -194,6 +243,7 @@ describe('LiveStreamLayoutComponent', () => {
                     imports: [
                         StubEpgListComponent,
                         StubEpgViewComponent,
+                        StubLiveEpgPanelComponent,
                         StubPortalChannelsListComponent,
                         StubResizableDirective,
                         MockPipe(
@@ -208,12 +258,17 @@ describe('LiveStreamLayoutComponent', () => {
 
         fixture = TestBed.createComponent(LiveStreamLayoutComponent);
         component = fixture.componentInstance;
+
+        TestBed.inject(LiveLayoutSidebarStateService).setState('expanded');
     });
 
     afterEach(() => {
+        TestBed.inject(LiveLayoutSidebarStateService).setState('expanded');
         fixture.destroy();
         jest.useRealTimers();
         localStorage.removeItem(LIVE_CHANNEL_SORT_STORAGE_KEY);
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
+        localStorage.removeItem(LIVE_SIDEBAR_STATE_STORAGE_KEY);
         window.electron = originalElectron;
     });
 
@@ -234,6 +289,140 @@ describe('LiveStreamLayoutComponent', () => {
             fixture.nativeElement.querySelector('app-epg-list')
         ).not.toBeNull();
         expect(fixture.nativeElement.querySelector('app-epg-view')).toBeNull();
+    });
+
+    it('restores the collapsed live EPG panel state for embedded playback', () => {
+        fixture.destroy();
+        localStorage.setItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY, 'collapsed');
+
+        fixture = TestBed.createComponent(LiveStreamLayoutComponent);
+        component = fixture.componentInstance;
+        component.playLive(sampleChannel);
+        fixture.detectChanges();
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(true);
+    });
+
+    it('persists live EPG panel toggle changes', () => {
+        component.onLiveEpgPanelCollapsedChange(true);
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'collapsed'
+        );
+
+        component.onLiveEpgPanelCollapsedChange(false);
+
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'expanded'
+        );
+    });
+
+    it('does not render the collapsible panel for external playback', () => {
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        component.playLive(sampleChannel);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('app-live-epg-panel')
+        ).toBeNull();
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(false);
+    });
+
+    it('shows the channel loading skeleton surface while live content loads without a selected category', () => {
+        selectedCategoryId.set(null);
+        selectedTypeContentLoading.set(true);
+
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="portal-channels-list-stub"]'
+            )
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-portal-empty-state')
+        ).toBeNull();
+    });
+
+    it('shows the cross-category live channel list while searching from the live root', () => {
+        selectedCategoryId.set(null);
+        selectedTypeContentLoading.set(false);
+        routeQueryParamMap.next(convertToParamMap({ q: 'world' }));
+
+        fixture.detectChanges();
+
+        const lists = fixture.debugElement.queryAll(
+            By.directive(StubPortalChannelsListComponent)
+        );
+        const list = lists[0];
+
+        expect(list).not.toBeNull();
+        expect(lists).toHaveLength(1);
+        expect(list.componentInstance.searchTermInput() as string).toBe(
+            'world'
+        );
+        expect(
+            fixture.nativeElement.querySelector(
+                '.sidebar [data-test-id="portal-channels-list-stub"]'
+            )
+        ).not.toBeNull();
+    });
+
+    it('shows embedded playback after selecting a channel from live root search results', () => {
+        selectedCategoryId.set(null);
+        selectedTypeContentLoading.set(false);
+        routeQueryParamMap.next(convertToParamMap({ q: 'world' }));
+        fixture.detectChanges();
+
+        const list = fixture.debugElement.query(
+            By.directive(StubPortalChannelsListComponent)
+        );
+
+        list.componentInstance.playClicked.emit(sampleChannel);
+        fixture.detectChanges();
+
+        expect(xtreamStore.constructStreamUrl).toHaveBeenCalledWith(
+            sampleChannel
+        );
+        expect(
+            fixture.debugElement.query(By.directive(StubWebPlayerViewComponent))
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector(
+                '.sidebar [data-test-id="portal-channels-list-stub"]'
+            )
+        ).not.toBeNull();
+    });
+
+    it('renders the current EPG program in the collapsible panel summary', () => {
+        epgItems.set([
+            buildEpgItem(
+                'current',
+                'Current Show',
+                '2026-04-05T11:30:00.000Z',
+                '2026-04-05T12:30:00.000Z'
+            ),
+        ]);
+        currentEpgItem.set(epgItems()[0]);
+
+        component.playLive(sampleChannel);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.live-epg-panel-summary')
+                .textContent
+        ).toContain('Current Show');
     });
 
     it('uses currentEpgItem instead of assuming the first schedule item is current', () => {
@@ -298,6 +487,33 @@ describe('LiveStreamLayoutComponent', () => {
         );
     });
 
+    it('starts external playback from remote channel navigation when double-click opening is enabled', () => {
+        const nextChannel = {
+            ...sampleChannel,
+            xtream_id: 102,
+            name: 'Channel 102',
+        };
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+        selectedItem.set(sampleChannel);
+        xtreamStore.selectItemsFromSelectedCategory.mockReturnValue([
+            sampleChannel,
+            nextChannel,
+        ]);
+
+        (
+            component as unknown as {
+                handleRemoteChannelChange(direction: 'up' | 'down'): void;
+            }
+        ).handleRemoteChannelChange('down');
+
+        expect(xtreamStore.openPlayer).toHaveBeenCalledWith(
+            'https://example.com/live.ts',
+            'Channel 102',
+            'channel-101.png'
+        );
+    });
+
     it('shows an archive-unavailable notice when past programs exist but archive playback is unavailable', () => {
         const nonArchiveChannel = {
             ...sampleChannel,
@@ -350,6 +566,26 @@ describe('LiveStreamLayoutComponent', () => {
 
         expect(
             fixture.nativeElement.querySelector('.archive-unavailable-banner')
+        ).toBeNull();
+    });
+
+    it('shows the floating restore button when the sidebar is collapsed even without a selected category', () => {
+        selectedCategoryId.set(null);
+        TestBed.inject(LiveLayoutSidebarStateService).setState('collapsed');
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.sidebar-restore')
+        ).not.toBeNull();
+    });
+
+    it('hides the floating restore button when the sidebar is expanded', () => {
+        selectedCategoryId.set(1);
+        TestBed.inject(LiveLayoutSidebarStateService).setState('expanded');
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.sidebar-restore')
         ).toBeNull();
     });
 

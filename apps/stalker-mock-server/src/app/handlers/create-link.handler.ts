@@ -7,7 +7,7 @@ import { extractMac } from './get-categories.handler.js';
  *
  * Query params:
  *   cmd: the ffrt4:// or similar command from the content item
- *   type: itv | vod | series
+ *   type: itv | vod | series | radio
  */
 export function handleCreateLink(req: Request, res: Response): void {
     const mac = extractMac(req);

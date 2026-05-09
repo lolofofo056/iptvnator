@@ -5,72 +5,7 @@
 >
     <app-playlist-drop-overlay [state]="dropZone.overlayState()" />
     @if (facade.showXtreamImportOverlay()) {
-        <div class="workspace-loading-overlay">
-            <div class="workspace-loading-overlay__card">
-                <div class="workspace-loading-overlay__header">
-                    @if (facade.xtreamImportSourceLabel()) {
-                        <span
-                            class="workspace-loading-overlay__badge"
-                            [class.workspace-loading-overlay__badge--remote]="
-                                facade.xtreamImportPhaseTone() === 'remote'
-                            "
-                        >
-                            {{ facade.xtreamImportSourceLabel() }}
-                        </span>
-                    }
-                    <h3>{{ facade.xtreamImportTitleLabel() }}</h3>
-                </div>
-                @if (facade.xtreamImportPhaseLabel()) {
-                    <p
-                        class="workspace-loading-overlay__phase"
-                        aria-live="polite"
-                    >
-                        {{ facade.xtreamImportPhaseLabel() }}
-                    </p>
-                }
-                @if (facade.xtreamImportDetailLabel()) {
-                    <p class="workspace-loading-overlay__detail">
-                        {{ facade.xtreamImportDetailLabel() }}
-                    </p>
-                }
-                @if (
-                    facade.xtreamActiveImportCount() !== 0 &&
-                    facade.xtreamActiveItemsToImport() !== 0
-                ) {
-                    <mat-progress-bar
-                        mode="determinate"
-                        [value]="
-                            (facade.xtreamActiveImportCount() /
-                                facade.xtreamActiveItemsToImport()) *
-                            100
-                        "
-                    />
-                } @else {
-                    <mat-progress-bar mode="indeterminate" />
-                }
-                @if (facade.xtreamImportProgressLabel()) {
-                    <p class="workspace-loading-overlay__progress-copy">
-                        {{ facade.xtreamImportProgressLabel() }}
-                    </p>
-                }
-                @if (facade.canCancelXtreamImport()) {
-                    <button
-                        mat-stroked-button
-                        class="workspace-loading-overlay__action"
-                        type="button"
-                        [disabled]="facade.isCancellingXtreamImport()"
-                        (click)="facade.cancelXtreamImport()"
-                    >
-                        {{
-                            (facade.isCancellingXtreamImport()
-                                ? 'WORKSPACE.SHELL.XTREAM_IMPORT_CANCELLING'
-                                : 'WORKSPACE.SHELL.XTREAM_IMPORT_CANCEL'
-                            ) | translate
-                        }}
-                    </button>
-                }
-            </div>
-        </div>
+        <app-workspace-shell-import-overlay />
     }
 
     <app-workspace-shell-rail
@@ -97,6 +32,7 @@
         [searchScopeLabel]="facade.searchScopeLabel()"
         [searchStatusLabel]="facade.searchStatusLabel()"
         [headerShortcut]="facade.headerShortcut()"
+        [headerBulkAction]="facade.headerBulkAction()"
         [canRefreshPlaylist]="facade.canRefreshPlaylist()"
         [isRefreshingPlaylist]="facade.isRefreshingPlaylist()"
         [isElectron]="facade.isElectron"
@@ -109,6 +45,7 @@
         (commandPaletteRequested)="facade.openCommandPalette()"
         (addPlaylistRequested)="facade.openAddPlaylistDialog()"
         (headerShortcutRequested)="facade.runHeaderShortcut()"
+        (headerBulkActionRequested)="facade.runHeaderBulkAction()"
         (downloadsRequested)="facade.openDownloadsShortcut()"
         (playlistInfoRequested)="facade.openPlaylistInfo()"
         (accountInfoRequested)="facade.openAccountInfo()"

@@ -42,6 +42,7 @@ interface ErrorStatus {
 })
 export class ElectronService extends DataService {
     private eventListeners: { [key: string]: () => void } = {};
+    private messageListeners = new Map<string, EventListener>();
     private readonly snackBar = inject(MatSnackBar);
     private readonly store = inject(Store);
     private readonly translateService = inject(TranslateService);
@@ -556,27 +557,39 @@ export class ElectronService extends DataService {
                 unsubscribe()
             );
             this.eventListeners = {};
-        } else if (this.eventListeners[type]) {
+            // Remove all tracked window message listeners
+            this.messageListeners.forEach((listener) =>
+                window.removeEventListener('message', listener)
+            );
+            this.messageListeners.clear();
+            return;
+        }
+
+        if (this.eventListeners[type]) {
             // Unsubscribe from a specific event
             this.eventListeners[type]();
             delete this.eventListeners[type];
         }
 
-        // Also remove any window message listeners
-        window.removeEventListener('message', this.getListenerForCommand(type));
-    }
-
-    private getListenerForCommand(_command: string): EventListener {
-        void _command;
-        // This is a placeholder. In a real implementation, you would need to
-        // store the actual listener functions to be able to remove them
-        return () => undefined;
+        // Remove the window message listener registered for this command
+        const messageListener = this.messageListeners.get(type);
+        if (messageListener) {
+            window.removeEventListener('message', messageListener);
+            this.messageListeners.delete(type);
+        }
     }
 
     listenOn(command: string, callback: (...args: unknown[]) => void): void {
-        // For Electron, use window message events
-        void command;
-        window.addEventListener('message', callback);
+        // Drop any existing listener for this command so calling listenOn()
+        // again rebinds rather than accumulating duplicates.
+        const existing = this.messageListeners.get(command);
+        if (existing) {
+            window.removeEventListener('message', existing);
+        }
+
+        const listener = callback as EventListener;
+        window.addEventListener('message', listener);
+        this.messageListeners.set(command, listener);
     }
 
     getAppEnvironment(): string {

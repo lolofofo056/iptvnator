@@ -1,6 +1,8 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     Component,
+    HostListener,
     computed,
     effect,
     inject,
@@ -8,7 +10,7 @@ import {
     OnInit,
     signal,
 } from '@angular/core';
-import { MatIconButton } from '@angular/material/button';
+import { MatButtonModule } from '@angular/material/button';
 import { MatIcon } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -16,14 +18,19 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { ResizableDirective } from 'components';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
+    LiveLayoutSidebarStateService,
     PORTAL_PLAYER,
     PortalChannelSortMode,
     getPortalChannelSortModeLabel,
     getAdjacentChannelItem,
     getChannelItemByNumber,
+    isTypingInInput,
     isWorkspaceLayoutRoute,
+    LiveEpgPanelState,
+    persistLiveEpgPanelState,
     persistPortalChannelSortMode,
     queryParamSignal,
+    restoreLiveEpgPanelState,
     restorePortalChannelSortMode,
 } from '@iptvnator/portal/shared/util';
 import {
@@ -32,12 +39,24 @@ import {
     XtreamUrlService,
     XtreamStore,
 } from '@iptvnator/portal/xtream/data-access';
-import { EpgListComponent, EpgProgramActivationEvent } from '@iptvnator/ui/epg';
+import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    EpgProgramActivationEvent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { EpgViewComponent, WebPlayerViewComponent } from 'shared-portals';
-import { EpgItem, EpgProgram } from 'shared-interfaces';
+import {
+    EpgViewComponent,
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
+import { EpgItem, EpgProgram, ResolvedPortalPlayback } from 'shared-interfaces';
 import { PortalChannelsListComponent } from '../portal-channels-list/portal-channels-list.component';
 import { ActivatedRoute } from '@angular/router';
+import { SettingsStore } from 'services';
 
 const LIVE_CHANNEL_SORT_STORAGE_KEY = 'xtream-live-channel-sort-mode';
 
@@ -58,11 +77,13 @@ interface XtreamLiveChannelItem {
     imports: [
         EpgListComponent,
         EpgViewComponent,
+        LiveEpgPanelComponent,
+        MatButtonModule,
         MatIcon,
-        MatIconButton,
         MatMenuModule,
         MatProgressSpinnerModule,
         MatTooltipModule,
+        NgTemplateOutlet,
         PortalChannelsListComponent,
         PortalEmptyStateComponent,
         ResizableDirective,
@@ -76,12 +97,18 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     private readonly favoritesService = inject(FavoritesService);
     private readonly xtreamStore = inject(XtreamStore);
     private readonly xtreamUrlService = inject(XtreamUrlService);
+    private readonly settingsStore = inject(SettingsStore);
     private readonly portalPlayer = inject(PORTAL_PLAYER);
+    private readonly liveSidebarStateService = inject(
+        LiveLayoutSidebarStateService
+    );
 
     readonly categories = this.xtreamStore.getCategoriesBySelectedType;
     readonly categoryItemCounts = this.xtreamStore.getCategoryItemCounts;
     readonly epgItems = this.xtreamStore.epgItems;
     readonly currentEpgItem = this.xtreamStore.currentEpgItem;
+    readonly isSelectedTypeContentLoading =
+        this.xtreamStore.selectedTypeContentLoading;
     readonly isLoadingEpg = this.xtreamStore.isLoadingEpg;
     readonly selectedCategoryId = this.xtreamStore.selectedCategoryId;
     readonly liveChannelSortMode = signal<PortalChannelSortMode>('server');
@@ -94,6 +121,9 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     );
     readonly workspaceSearchTerm = computed(() =>
         this.isWorkspaceLayout ? this.routeSearchTerm() : ''
+    );
+    readonly showLiveChannelSidebar = computed(
+        () => !!this.selectedCategoryId() || !!this.workspaceSearchTerm()
     );
     private readonly pendingAutoOpenLiveItemId = signal<number | null>(null);
     readonly selectedLiveItem = computed<XtreamLiveChannelItem | null>(() => {
@@ -142,6 +172,17 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             this.hasPastPrograms() &&
             !this.archivePlaybackAvailable()
     );
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly isSidebarCollapsed = this.liveSidebarStateService.isCollapsed;
+    readonly liveEpgPanelSummary = computed(() =>
+        this.toLiveEpgPanelSummary(this.currentEpgItem())
+    );
     readonly liveChannelSortLabel = computed(() =>
         getPortalChannelSortModeLabel(this.liveChannelSortMode())
     );
@@ -168,7 +209,10 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     readonly usesEmbeddedPlayer = computed(() =>
         this.portalPlayer.isEmbeddedPlayer()
     );
-    readonly activeStreamUrl = signal('');
+    readonly activePlayback = signal<ResolvedPortalPlayback | null>(null);
+    readonly activeStreamUrl = computed(
+        () => this.activePlayback()?.streamUrl ?? ''
+    );
     favorites = new Map<number, boolean>();
 
     constructor() {
@@ -289,10 +333,17 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         }
     }
 
-    playLive(item: XtreamLiveChannelItem) {
+    playLive(
+        item: XtreamLiveChannelItem,
+        startPlayback = !this.settingsStore.openStreamOnDoubleClick()
+    ) {
         const streamUrl = this.xtreamStore.constructStreamUrl(item);
-        this.activeStreamUrl.set(streamUrl);
-        if (this.usesEmbeddedPlayer()) {
+        this.activePlayback.set({
+            streamUrl,
+            title: item.title ?? item.name ?? '',
+            thumbnail: item.poster_url ?? item.stream_icon ?? null,
+        });
+        if (this.usesEmbeddedPlayer() || !startPlayback) {
             return;
         }
         this.xtreamStore.openPlayer(
@@ -309,7 +360,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
         }
 
         if (event.type === 'live') {
-            this.playLive(selectedItem);
+            this.playLive(selectedItem, true);
             return;
         }
 
@@ -319,6 +370,38 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
     setLiveChannelSortMode(mode: PortalChannelSortMode): void {
         this.liveChannelSortMode.set(mode);
         persistPortalChannelSortMode(LIVE_CHANNEL_SORT_STORAGE_KEY, mode);
+    }
+
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
+    toggleSidebar(): void {
+        this.liveSidebarStateService.toggle();
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    handleSidebarShortcut(event: KeyboardEvent): void {
+        if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === 'b' &&
+            !isTypingInInput(event)
+        ) {
+            event.preventDefault();
+            this.toggleSidebar();
+        }
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
     }
 
     ngOnDestroy(): void {
@@ -344,7 +427,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             return;
         }
 
-        this.playLive(nextItem);
+        this.playLive(nextItem, true);
     }
 
     private handleRemoteControlCommand(command: {
@@ -365,7 +448,7 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             return;
         }
 
-        this.playLive(channel);
+        this.playLive(channel, true);
     }
 
     private getVisibleChannels(): XtreamLiveChannelItem[] {
@@ -407,7 +490,11 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
             playlist.serverTimezone
         );
 
-        this.activeStreamUrl.set(catchupUrl);
+        this.activePlayback.set({
+            streamUrl: catchupUrl,
+            title: this.getCatchupPlaybackTitle(item, program),
+            thumbnail: item.poster_url ?? item.stream_icon ?? null,
+        });
         if (this.usesEmbeddedPlayer()) {
             return;
         }
@@ -435,6 +522,20 @@ export class LiveStreamLayoutComponent implements OnInit, OnDestroy {
                 program.stop ?? program.end,
                 program.stop_timestamp
             ),
+        };
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgItem | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop ?? program.end,
         };
     }
 

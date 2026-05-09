@@ -3,7 +3,7 @@
         <h2 class="rail__title">
             <span class="rail__label">{{ label() }}</span>
             @if ((totalCount() ?? items().length) > 0) {
-                <span class="rail__count" aria-hidden="true">{{
+                <span class="rail__count app-count-badge" aria-hidden="true">{{
                     totalCount() ?? items().length
                 }}</span>
             }
@@ -49,9 +49,21 @@
                     >
                         <div
                             class="rail__art"
+                            [class.rail__art--live]="
+                                card.contentType === 'live'
+                            "
                             [style.aspect-ratio]="aspectRatio()"
                         >
                             @if (card.imageUrl && !failedImages()[card.id]) {
+                                @if (card.contentType === 'live') {
+                                    <span
+                                        class="rail__art-bg"
+                                        aria-hidden="true"
+                                        [style.background-image]="
+                                            'url(' + card.imageUrl + ')'
+                                        "
+                                    ></span>
+                                }
                                 <img
                                     [src]="card.imageUrl"
                                     [alt]="card.title"

@@ -1,8 +1,12 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import type {
+    EmbeddedMpvBounds,
+    EmbeddedMpvSession,
+    EmbeddedMpvSupport,
     ExternalPlayerSession,
     PlaylistRefreshEvent,
     PlaylistRefreshPayload,
+    ResolvedPortalPlayback,
     XtreamCategory,
 } from 'shared-interfaces';
 import {
@@ -14,6 +18,7 @@ import {
 
 const PORTAL_DEBUG_EVENT = 'PORTAL_DEBUG_EVENT';
 const EXTERNAL_PLAYER_SESSION_UPDATE = 'EXTERNAL_PLAYER_SESSION_UPDATE';
+const EMBEDDED_MPV_SESSION_UPDATE = 'EMBEDDED_MPV_SESSION_UPDATE';
 const DB_OPERATION_EVENT = 'DB_OPERATION_EVENT';
 const PLAYLIST_REFRESH_EVENT = 'PLAYLIST:REFRESH_EVENT';
 
@@ -229,6 +234,16 @@ const electronApi = {
         ipcRenderer.on(EXTERNAL_PLAYER_SESSION_UPDATE, handler);
         return () => ipcRenderer.off(EXTERNAL_PLAYER_SESSION_UPDATE, handler);
     },
+    onEmbeddedMpvSessionUpdate: (
+        callback: (data: EmbeddedMpvSession) => void
+    ) => {
+        const handler = (
+            _event: Electron.IpcRendererEvent,
+            data: EmbeddedMpvSession
+        ) => callback(data);
+        ipcRenderer.on(EMBEDDED_MPV_SESSION_UPDATE, handler);
+        return () => ipcRenderer.off(EMBEDDED_MPV_SESSION_UPDATE, handler);
+    },
     onDbOperationEvent: (callback: (data: DbOperationEvent) => void) => {
         const handler = (_event: Electron.IpcRendererEvent, data: any) =>
             callback(data as DbOperationEvent);
@@ -276,6 +291,7 @@ const electronApi = {
     updatePlaylistFromFilePath: (filePath: string, title: string) =>
         ipcRenderer.invoke('update-playlist-from-file-path', filePath, title),
     openPlaylistFromFile: () => ipcRenderer.invoke('open-playlist-from-file'),
+    getPathForFile: (file: File) => webUtils.getPathForFile(file),
     saveFileDialog: (
         defaultPath: string,
         filters?: { name: string; extensions: string[] }[]
@@ -332,12 +348,82 @@ const electronApi = {
         ),
     closeExternalPlayerSession: (sessionId: string) =>
         ipcRenderer.invoke('CLOSE_EXTERNAL_PLAYER_SESSION', sessionId),
+    getEmbeddedMpvSupport: (): Promise<EmbeddedMpvSupport> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SUPPORT'),
+    prepareEmbeddedMpv: (): Promise<EmbeddedMpvSupport> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_PREPARE'),
+    createEmbeddedMpvSession: (
+        bounds: EmbeddedMpvBounds,
+        title?: string,
+        initialVolume?: number
+    ): Promise<EmbeddedMpvSession> =>
+        ipcRenderer.invoke(
+            'EMBEDDED_MPV_CREATE_SESSION',
+            bounds,
+            title,
+            initialVolume
+        ),
+    loadEmbeddedMpvPlayback: (
+        sessionId: string,
+        playback: ResolvedPortalPlayback
+    ): Promise<void> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_LOAD_PLAYBACK', sessionId, playback),
+    setEmbeddedMpvBounds: (
+        sessionId: string,
+        bounds: EmbeddedMpvBounds
+    ): Promise<void> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_BOUNDS', sessionId, bounds),
+    setEmbeddedMpvPaused: (
+        sessionId: string,
+        paused: boolean
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_PAUSED', sessionId, paused),
+    seekEmbeddedMpv: (
+        sessionId: string,
+        seconds: number
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SEEK', sessionId, seconds),
+    setEmbeddedMpvVolume: (
+        sessionId: string,
+        volume: number
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_VOLUME', sessionId, volume),
+    setEmbeddedMpvAudioTrack: (
+        sessionId: string,
+        trackId: number
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_AUDIO_TRACK', sessionId, trackId),
+    setEmbeddedMpvSubtitleTrack: (
+        sessionId: string,
+        trackId: number
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke(
+            'EMBEDDED_MPV_SET_SUBTITLE_TRACK',
+            sessionId,
+            trackId
+        ),
+    setEmbeddedMpvSpeed: (
+        sessionId: string,
+        speed: number
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_SPEED', sessionId, speed),
+    setEmbeddedMpvAspect: (
+        sessionId: string,
+        aspect: string
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_SET_ASPECT', sessionId, aspect),
+    disposeEmbeddedMpvSession: (
+        sessionId: string
+    ): Promise<EmbeddedMpvSession | null> =>
+        ipcRenderer.invoke('EMBEDDED_MPV_DISPOSE_SESSION', sessionId),
     autoUpdatePlaylists: (playlists) =>
         ipcRenderer.invoke('AUTO_UPDATE', playlists),
     fetchEpg: (urls: string[]) =>
         ipcRenderer.invoke('FETCH_EPG', { url: urls }),
     getChannelPrograms: (channelId: string) =>
         ipcRenderer.invoke('GET_CHANNEL_PROGRAMS', { channelId }),
+    getCurrentProgramsBatch: (channelIds: string[]) =>
+        ipcRenderer.invoke('GET_CURRENT_PROGRAMS_BATCH', { channelIds }),
     getEpgChannelMetadata: (channelIds: string[]) =>
         ipcRenderer.invoke('EPG_GET_CHANNEL_METADATA', { channelIds }),
     getEpgChannels: () => ipcRenderer.invoke('EPG_GET_CHANNELS'),
@@ -540,6 +626,9 @@ const electronApi = {
         ipcRenderer.invoke('DB_CLEAR_PLAYLIST_RECENT_ITEMS', playlistId),
     dbRemoveRecentItem: (contentId: number, playlistId: string) =>
         ipcRenderer.invoke('DB_REMOVE_RECENT_ITEM', contentId, playlistId),
+    dbRemoveRecentItemsBatch: (
+        items: { contentId: number; playlistId: string }[]
+    ) => ipcRenderer.invoke('DB_REMOVE_RECENT_ITEMS_BATCH', items),
     dbGetContentByXtreamId: (
         xtreamId: number,
         playlistId: string,

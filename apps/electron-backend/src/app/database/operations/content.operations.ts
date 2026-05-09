@@ -124,7 +124,6 @@ export async function getGlobalRecentlyAdded(
     const normalizedLimit = Number.isFinite(limit)
         ? Math.min(Math.max(Math.trunc(limit), 1), 200)
         : 200;
-    const addedOrder = sql<number>`CAST(${schema.content.added} AS INTEGER)`;
 
     const whereConditions = [
         inArray(schema.content.type, contentTypes),
@@ -136,6 +135,12 @@ export async function getGlobalRecentlyAdded(
         whereConditions.push(eq(schema.playlists.type, playlistType));
     }
 
+    // Sort by `added` directly. Xtream stores Unix-epoch timestamps as
+    // 10-digit numeric strings (since 2001-09-09), so lexicographic sort
+    // is equivalent to numeric sort. Wrapping the column in CAST(... AS
+    // INTEGER) — as we used to — blocks SQLite from using
+    // idx_content_type_added and forces a full table scan + sort on the
+    // entire content table (often 100k+ rows) on every dashboard load.
     return db
         .select({
             ...selectContentFields(),
@@ -153,7 +158,7 @@ export async function getGlobalRecentlyAdded(
             eq(schema.categories.playlistId, schema.playlists.id)
         )
         .where(and(...whereConditions))
-        .orderBy(desc(addedOrder))
+        .orderBy(desc(schema.content.added))
         .limit(normalizedLimit);
 }
 
@@ -311,16 +316,19 @@ export async function saveContent(
     for (let index = 0; index < values.length; index += chunkSize) {
         await checkpointOperation(control);
         const chunk = values.slice(index, index + chunkSize);
-        await db
-            .insert(schema.content)
-            .values(chunk)
-            .onConflictDoNothing({
-                target: [
-                    schema.content.categoryId,
-                    schema.content.type,
-                    schema.content.xtreamId,
-                ],
-            });
+        await db.transaction((tx) => {
+            tx
+                .insert(schema.content)
+                .values(chunk)
+                .onConflictDoNothing({
+                    target: [
+                        schema.content.categoryId,
+                        schema.content.type,
+                        schema.content.xtreamId,
+                    ],
+                })
+                .run();
+        });
         totalInserted += chunk.length;
         await reportOperationProgress(control, {
             phase: 'saving-content',
@@ -365,13 +373,21 @@ export async function clearXtreamImportCache(
         contentRows.map((row) => row.id),
         100
     )) {
-        await db.delete(schema.content).where(inArray(schema.content.id, chunk));
+        await db.transaction((tx) => {
+            tx
+                .delete(schema.content)
+                .where(inArray(schema.content.id, chunk))
+                .run();
+        });
     }
 
     for (const chunk of chunkValues(categoryIds, 100)) {
-        await db
-            .delete(schema.categories)
-            .where(inArray(schema.categories.id, chunk));
+        await db.transaction((tx) => {
+            tx
+                .delete(schema.categories)
+                .where(inArray(schema.categories.id, chunk))
+                .run();
+        });
     }
 
     return { success: true };

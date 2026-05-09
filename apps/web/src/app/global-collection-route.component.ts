@@ -1,9 +1,16 @@
 import {
     ChangeDetectionStrategy,
     Component,
+    EnvironmentInjector,
+    OnDestroy,
+    Type,
+    ViewContainerRef,
+    effect,
     computed,
     inject,
     input,
+    output,
+    untracked,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -14,13 +21,23 @@ import {
     UnifiedCollectionDetailDirective,
     UnifiedCollectionPageComponent,
 } from '@iptvnator/portal/shared/ui';
-import { CollectionScope, PortalProvider } from '@iptvnator/portal/shared/util';
-import { StalkerCollectionDetailComponent } from '@iptvnator/portal/stalker/feature';
-import { XtreamCollectionDetailComponent } from '@iptvnator/portal/xtream/feature';
+import {
+    CollectionScope,
+    PortalProvider,
+    UnifiedCollectionItem,
+} from '@iptvnator/portal/shared/util';
 import { WORKSPACE_SHELL_ACTIONS } from '@iptvnator/workspace/shell/util';
 
 type UnifiedPortalType = 'm3u' | 'xtream' | 'stalker';
 type CollectionMode = 'favorites' | 'recent';
+
+interface ComponentOutputRef {
+    subscribe(callback: () => void): { unsubscribe(): void };
+}
+
+interface CollectionDetailInstance {
+    closeRequested?: ComponentOutputRef;
+}
 
 const EMPTY_STATE_BY_MODE: Record<
     CollectionMode,
@@ -45,13 +62,99 @@ function providerToPortalType(provider: PortalProvider): UnifiedPortalType {
 }
 
 @Component({
+    selector: 'app-global-collection-detail-host',
+    template: '',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class GlobalCollectionDetailHostComponent implements OnDestroy {
+    readonly item = input<UnifiedCollectionItem | null>(null);
+    readonly closeRequested = output<void>();
+
+    private readonly viewContainer = inject(ViewContainerRef);
+    private readonly environmentInjector = inject(EnvironmentInjector);
+    private closeSubscription: { unsubscribe(): void } | null = null;
+    private renderRequestId = 0;
+
+    constructor() {
+        effect(() => {
+            const item = this.item();
+
+            untracked(() => {
+                void this.renderDetail(item);
+            });
+        });
+    }
+
+    ngOnDestroy(): void {
+        this.renderRequestId++;
+        this.clearDetail();
+    }
+
+    private async renderDetail(
+        item: UnifiedCollectionItem | null
+    ): Promise<void> {
+        const requestId = ++this.renderRequestId;
+        this.clearDetail();
+
+        if (!item) {
+            return;
+        }
+
+        const componentType = await this.loadDetailComponent(item.sourceType);
+        if (requestId !== this.renderRequestId || !componentType) {
+            return;
+        }
+
+        const componentRef = this.viewContainer.createComponent(componentType, {
+            environmentInjector: this.environmentInjector,
+        });
+        componentRef.setInput('item', item);
+        this.subscribeToClose(componentRef.instance);
+    }
+
+    private async loadDetailComponent(
+        sourceType: UnifiedCollectionItem['sourceType']
+    ): Promise<Type<unknown> | null> {
+        if (sourceType === 'xtream') {
+            const component = await import('@iptvnator/portal/xtream/feature');
+            return component.XtreamCollectionDetailComponent;
+        }
+
+        if (sourceType === 'stalker') {
+            const component = await import('@iptvnator/portal/stalker/feature');
+            return component.StalkerCollectionDetailComponent;
+        }
+
+        return null;
+    }
+
+    private subscribeToClose(instance: unknown): void {
+        const closeRequested = (instance as CollectionDetailInstance)
+            .closeRequested;
+
+        if (!closeRequested) {
+            return;
+        }
+
+        this.closeSubscription = closeRequested.subscribe(() => {
+            this.closeRequested.emit();
+        });
+    }
+
+    private clearDetail(): void {
+        this.closeSubscription?.unsubscribe();
+        this.closeSubscription = null;
+        this.viewContainer.clear();
+    }
+}
+
+@Component({
     selector: 'app-global-collection-route',
     imports: [
         EmptyStateComponent,
-        StalkerCollectionDetailComponent,
+        GlobalCollectionDetailHostComponent,
         UnifiedCollectionDetailDirective,
         UnifiedCollectionPageComponent,
-        XtreamCollectionDetailComponent,
     ],
     template: `
         @if (hasNoPlaylists()) {
@@ -74,9 +177,9 @@ function providerToPortalType(provider: PortalProvider): UnifiedPortalType {
             >
                 <ng-template unifiedCollectionDetail let-item let-close="close">
                     @if (item.sourceType === 'xtream') {
-                        <app-xtream-collection-detail [item]="item" />
+                        <app-global-collection-detail-host [item]="item" />
                     } @else if (item.sourceType === 'stalker') {
-                        <app-stalker-collection-detail
+                        <app-global-collection-detail-host
                             [item]="item"
                             (closeRequested)="close()"
                         />
@@ -96,7 +199,9 @@ export class GlobalCollectionRouteComponent {
     readonly mode = input<CollectionMode>('favorites');
     readonly defaultScope = input<CollectionScope | undefined>(undefined);
 
-    private readonly playlists = this.store.selectSignal(selectAllPlaylistsMeta);
+    private readonly playlists = this.store.selectSignal(
+        selectAllPlaylistsMeta
+    );
     readonly hasNoPlaylists = computed(() => this.playlists().length === 0);
 
     readonly emptyState = computed(() => EMPTY_STATE_BY_MODE[this.mode()]);
@@ -108,8 +213,11 @@ export class GlobalCollectionRouteComponent {
         const provider = this.playlistContext.activeProvider();
         return provider ? providerToPortalType(provider) : null;
     });
-    readonly effectiveDefaultScope = computed<CollectionScope | undefined>(() =>
-        this.activePlaylistId() ? 'playlist' : (this.defaultScope() ?? 'all')
+    readonly effectiveDefaultScope = computed<CollectionScope | undefined>(
+        () =>
+            this.activePlaylistId()
+                ? 'playlist'
+                : (this.defaultScope() ?? 'all')
     );
 
     addPlaylist(): void {

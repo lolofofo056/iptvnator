@@ -15,7 +15,7 @@ jobs:
     build:
         name: Build on ${{ matrix.os }} ${{ matrix.arch }}
         runs-on: ${{ matrix.runner }}
-        timeout-minutes: 60
+        timeout-minutes: 120
         strategy:
             matrix:
                 include:
@@ -88,8 +88,46 @@ jobs:
             - name: Build frontend
               run: pnpm nx build web --skip-nx-cache
 
+            - name: Build embedded MPV runtime (macOS release)
+              # TEMPORARY ARTIFACT TEST: remove `|| github.event_name == 'pull_request' || github.ref == 'refs/heads/master'`
+              # after the macOS Embedded MPV artifacts are built and manually tested.
+              if: matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master')
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  brew install meson ninja pkg-config nasm autoconf automake libtool xz
+
+                  RUNTIME_PREFIX="${RUNNER_TEMP}/embedded-mpv-runtime/${{ matrix.arch }}/prefix"
+                  pnpm embedded-mpv:build-runtime -- "${{ matrix.arch }}" "${RUNTIME_PREFIX}"
+                  pnpm embedded-mpv:stage-runtime -- "${{ matrix.arch }}" "${RUNTIME_PREFIX}"
+
             - name: Build backend
+              env:
+                  IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch || '' }}
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master') && '1' || '0' }}
               run: pnpm run build:backend
+
+            - name: Verify embedded MPV build output
+              # TEMPORARY ARTIFACT TEST: remove `|| github.event_name == 'pull_request' || github.ref == 'refs/heads/master'`
+              # after the macOS Embedded MPV artifacts are built and manually tested.
+              if: matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master')
+              shell: bash
+              run: |
+                  set -euo pipefail
+
+                  echo "::group::Native build output"
+                  find apps/electron-backend/native/build/Release -maxdepth 3 -type f | sort
+                  echo "::endgroup::"
+
+                  echo "::group::Dist native output"
+                  find dist/apps/electron-backend/native -maxdepth 3 -type f | sort
+                  echo "::endgroup::"
+
+                  test -f apps/electron-backend/native/build/Release/embedded_mpv.node
+                  test -f dist/apps/electron-backend/native/embedded_mpv.node
+                  test -f dist/apps/electron-backend/native/embedded-mpv-runtime.json
+                  test -f dist/apps/electron-backend/native/lib/libmpv.2.dylib
 
             - name: Validate AppStream metadata
               if: matrix.os == 'linux'
@@ -210,6 +248,10 @@ jobs:
                   CSC_LINK: ${{ secrets.CSC_LINK }}
                   CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
                   DEBUG: electron-builder,electron-notarize*
+                  IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch }}
+                  # TEMPORARY MASTER ARTIFACT TEST: remove `|| github.ref == 'refs/heads/master'`
+                  # after the macOS Embedded MPV artifacts are built and manually tested.
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master') && '1' || '0' }}
               run: pnpm run make:app
 
             - name: Verify signed macOS app
@@ -263,6 +305,11 @@ jobs:
 
             - name: Make Electron app
               if: matrix.os != 'macos' || github.event_name == 'pull_request'
+              env:
+                  IPTVNATOR_EMBEDDED_MPV_ARCH: ${{ matrix.arch || '' }}
+                  # TEMPORARY PR TEST: change this back to '0' after manually
+                  # testing the macOS PR artifact with Embedded MPV included.
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && github.event_name == 'pull_request' && '1' || '0' }}
               run: pnpm run make:app
 
             - name: Verify packaged worker layout
@@ -270,6 +317,9 @@ jobs:
               env:
                   PACKAGE_OS: ${{ matrix.os }}
                   PACKAGE_ARCH: ${{ matrix.arch || '' }}
+                  # TEMPORARY ARTIFACT TEST: remove `|| github.event_name == 'pull_request' || github.ref == 'refs/heads/master'`
+                  # after the macOS Embedded MPV artifacts are built and manually tested.
+                  IPTVNATOR_REQUIRE_EMBEDDED_MPV: ${{ matrix.os == 'macos' && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request' || github.ref == 'refs/heads/master') && '1' || '0' }}
               run: pnpm run verify:package-layout -- "$PACKAGE_OS" "$PACKAGE_ARCH"
 
             - name: Smoke test packaged Flatpak launcher

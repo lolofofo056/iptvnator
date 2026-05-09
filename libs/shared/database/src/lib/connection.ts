@@ -103,6 +103,7 @@ const CREATE_TABLE_STATEMENTS = [
       type TEXT NOT NULL CHECK (type IN ('live', 'movies', 'series')),
       xtream_id INTEGER NOT NULL,
       hidden INTEGER DEFAULT 0,
+      UNIQUE(playlist_id, type, xtream_id),
       FOREIGN KEY (playlist_id) REFERENCES playlists (id) ON DELETE CASCADE
   )`,
     `CREATE TABLE IF NOT EXISTS content (
@@ -119,6 +120,7 @@ const CREATE_TABLE_STATEMENTS = [
       direct_source TEXT,
       xtream_id INTEGER NOT NULL,
       type TEXT NOT NULL CHECK (type IN ('live', 'movie', 'series')),
+      UNIQUE(category_id, type, xtream_id),
       FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE
   )`,
     `CREATE TABLE IF NOT EXISTS recently_viewed (
@@ -134,6 +136,7 @@ const CREATE_TABLE_STATEMENTS = [
       content_id INTEGER NOT NULL,
       playlist_id TEXT NOT NULL,
       added_at TEXT DEFAULT (datetime('now')),
+      position INTEGER DEFAULT 0,
       FOREIGN KEY (content_id) REFERENCES content(id) ON DELETE CASCADE,
       FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
   )`,
@@ -144,12 +147,20 @@ const CREATE_TABLE_STATEMENTS = [
     `CREATE INDEX IF NOT EXISTS idx_content_xtream ON content(xtream_id)`,
     `CREATE INDEX IF NOT EXISTS idx_content_type_added ON content(type, added)`,
     `CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type)`,
+    // Partial covering index for visible categories — supports the dashboard's
+    // getGlobalRecentlyAdded plus searchContent/globalSearch when excludeHidden
+    // is set. SQLite can satisfy the join (category_id PK lookup) plus the
+    // hidden = 0 filter directly from this index without touching the
+    // categories row, and hidden categories are absent so they're skipped
+    // before any row lookup.
+    `CREATE INDEX IF NOT EXISTS idx_categories_visible ON categories(id, playlist_id, type) WHERE hidden = 0`,
     `CREATE UNIQUE INDEX IF NOT EXISTS favorites_content_playlist_unique ON favorites(content_id, playlist_id)`,
     `CREATE INDEX IF NOT EXISTS favorites_playlist_idx ON favorites(playlist_id)`,
     `CREATE INDEX IF NOT EXISTS favorites_content_idx ON favorites(content_id)`,
     `CREATE UNIQUE INDEX IF NOT EXISTS recently_viewed_content_playlist_unique ON recently_viewed(content_id, playlist_id)`,
     `CREATE INDEX IF NOT EXISTS recently_viewed_playlist_idx ON recently_viewed(playlist_id)`,
     `CREATE INDEX IF NOT EXISTS recently_viewed_viewed_at_idx ON recently_viewed(viewed_at)`,
+    `CREATE INDEX IF NOT EXISTS recently_viewed_playlist_viewed_idx ON recently_viewed(playlist_id, viewed_at DESC)`,
     // EPG tables
     `CREATE TABLE IF NOT EXISTS epg_channels (
       id TEXT PRIMARY KEY,
@@ -220,6 +231,7 @@ const CREATE_TABLE_STATEMENTS = [
     `CREATE INDEX IF NOT EXISTS playback_positions_playlist_idx ON playback_positions(playlist_id)`,
     `CREATE INDEX IF NOT EXISTS playback_positions_series_idx ON playback_positions(series_xtream_id)`,
     `CREATE INDEX IF NOT EXISTS playback_positions_updated_idx ON playback_positions(updated_at)`,
+    `CREATE INDEX IF NOT EXISTS playback_positions_playlist_updated_idx ON playback_positions(playlist_id, updated_at DESC)`,
     // Downloads table
     `CREATE TABLE IF NOT EXISTS downloads (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -278,7 +290,15 @@ const INDEX_MIGRATION_STATEMENTS = [
     // v1.3.0 -> v1.4.0: Prevent duplicate Xtream categories/content rows
     `CREATE UNIQUE INDEX IF NOT EXISTS categories_playlist_type_xtream_unique ON categories(playlist_id, type, xtream_id)`,
     `CREATE UNIQUE INDEX IF NOT EXISTS content_category_type_xtream_unique ON content(category_id, type, xtream_id)`,
+    // v1.6.0 -> v1.7.0: Query global favorites in stable display order
+    `CREATE INDEX IF NOT EXISTS favorites_playlist_position_idx ON favorites(playlist_id, position, added_at DESC)`,
 ];
+
+export const __databaseConnectionTestHooks = {
+    createTableStatements: CREATE_TABLE_STATEMENTS,
+    columnMigrationStatements: COLUMN_MIGRATION_STATEMENTS,
+    indexMigrationStatements: INDEX_MIGRATION_STATEMENTS,
+} as const;
 
 /**
  * Create tables if they don't exist
@@ -527,7 +547,12 @@ export async function initDatabase(
 
         if (!readonly) {
             sqlite.pragma('journal_mode = WAL');
+            sqlite.pragma('synchronous = NORMAL');
         }
+
+        sqlite.pragma('cache_size = -64000');
+        sqlite.pragma('temp_store = MEMORY');
+        sqlite.pragma('mmap_size = 268435456');
 
         // Create tables only for read-write connections
         if (!readonly && !skipTableCreation) {
@@ -568,6 +593,12 @@ export async function getReadOnlyDatabase(): Promise<DatabaseInstance> {
  */
 export function closeDatabase(): void {
     if (sqlite) {
+        try {
+            sqlite.pragma('optimize');
+        } catch {
+            // Optimize is advisory; never block close on it.
+        }
+
         sqlite.close();
 
         if (isSqlTraceEnabled()) {

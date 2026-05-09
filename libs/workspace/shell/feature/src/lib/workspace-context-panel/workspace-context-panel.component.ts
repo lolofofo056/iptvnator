@@ -69,7 +69,8 @@ export class WorkspaceContextPanelComponent {
             this.context().provider === 'stalker' &&
             (this.section() === 'vod' ||
                 this.section() === 'series' ||
-                this.section() === 'itv')
+                this.section() === 'itv' ||
+                this.section() === 'radio')
     );
 
     readonly xtreamCategories = this.xtreamStore.getCategoriesBySelectedType;
@@ -81,6 +82,7 @@ export class WorkspaceContextPanelComponent {
         this.xtreamStore.selectedTypeContentReady;
     readonly xtreamSelectedTypeCountsReady =
         this.xtreamStore.selectedTypeCountsReady;
+    readonly isXtreamImporting = this.xtreamStore.isImporting;
     readonly xtreamImportPhase = this.xtreamStore.currentImportPhase;
     readonly isXtreamCategoryLoading = computed(
         () =>
@@ -106,6 +108,7 @@ export class WorkspaceContextPanelComponent {
         if (
             !this.isXtreamCategories() ||
             this.isXtreamCategoryLoading() ||
+            !this.isXtreamImporting() ||
             this.xtreamSelectedTypeContentState() !== 'loading'
         ) {
             return '';
@@ -189,6 +192,9 @@ export class WorkspaceContextPanelComponent {
             }
             if (this.section() === 'series') {
                 return 'WORKSPACE.CONTEXT.SERIES_CATEGORIES';
+            }
+            if (this.section() === 'radio') {
+                return 'WORKSPACE.CONTEXT.RADIO_CATEGORIES';
             }
             return 'WORKSPACE.CONTEXT.LIVE_CATEGORIES';
         }
@@ -317,7 +323,7 @@ export class WorkspaceContextPanelComponent {
         this.stalkerStore.setPage(0);
         this.stalkerStore.clearSelectedItem();
 
-        if (section === 'itv') {
+        if (section === 'itv' || section === 'radio') {
             return;
         }
 

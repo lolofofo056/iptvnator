@@ -168,15 +168,25 @@ export async function reorderGlobalFavorites(
     let current = 0;
     const total = updates.length;
 
+    // Drizzle's .set() doesn't accept a bare Placeholder — wrap it in an
+    // sql template so the value resolves to SQL<number> at compile time.
+    const updateFavoritePosition = db
+        .update(schema.favorites)
+        .set({ position: sql<number>`${sql.placeholder('position')}` })
+        .where(eq(schema.favorites.contentId, sql.placeholder('contentId')))
+        .prepare();
+
     for (const chunk of chunkValues(updates, DEFAULT_BATCH_SIZE)) {
         await checkpointOperation(control);
 
-        for (const { content_id, position } of chunk) {
-            await db
-                .update(schema.favorites)
-                .set({ position })
-                .where(eq(schema.favorites.contentId, content_id));
-        }
+        await db.transaction(() => {
+            for (const { content_id, position } of chunk) {
+                updateFavoritePosition.execute({
+                    position,
+                    contentId: content_id,
+                });
+            }
+        });
 
         current += chunk.length;
         await reportOperationProgress(control, {

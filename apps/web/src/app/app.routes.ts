@@ -1,6 +1,5 @@
 import { inject } from '@angular/core';
 import { Router, Routes } from '@angular/router';
-import { provideM3uWorkspaceRouteSession } from '@iptvnator/playlist/m3u/feature-player';
 import { WorkspaceStartupPreferencesService } from '@iptvnator/workspace/shell/util';
 
 const workspaceEntryRedirect = async () =>
@@ -54,41 +53,9 @@ export const routes: Routes = [
             },
             {
                 path: 'playlists/:id',
-                pathMatch: 'full',
-                redirectTo: 'playlists/:id/all',
-            },
-            {
-                path: 'playlists/:id/favorites',
-                providers: provideM3uWorkspaceRouteSession(),
-                loadComponent: () =>
-                    import('@iptvnator/playlist/m3u/feature-player').then(
-                        (c) => c.M3uCollectionRouteComponent
-                    ),
-                data: {
-                    mode: 'favorites',
-                    portalType: 'm3u',
-                    defaultScope: 'playlist',
-                },
-            },
-            {
-                path: 'playlists/:id/recent',
-                providers: provideM3uWorkspaceRouteSession(),
-                loadComponent: () =>
-                    import('@iptvnator/playlist/m3u/feature-player').then(
-                        (c) => c.M3uCollectionRouteComponent
-                    ),
-                data: {
-                    mode: 'recent',
-                    portalType: 'm3u',
-                    defaultScope: 'playlist',
-                },
-            },
-            {
-                path: 'playlists/:id/:view',
-                providers: provideM3uWorkspaceRouteSession(),
-                loadComponent: () =>
-                    import('@iptvnator/playlist/m3u/feature-player').then(
-                        (c) => c.VideoPlayerComponent
+                loadChildren: () =>
+                    import('@iptvnator/playlist/m3u/feature-player').then((m) =>
+                        m.createM3uWorkspaceRoutes()
                     ),
             },
             {

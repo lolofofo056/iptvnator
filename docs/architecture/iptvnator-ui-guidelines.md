@@ -126,6 +126,57 @@ The shared row should be reused instead of rebuilding channel markup per view.
 - Add bottom padding so the last program is not clipped
 - Current program card uses the same selection treatment as selected channels
 
+### Collapsible Live EPG
+
+- Live TV layouts with an internal player use `app-live-epg-panel` around the
+  EPG content, including playlist-specific live pages and the global
+  favorites/recent live tabs.
+- The live panel toolbar owns the current-program summary and live date
+  navigation together, so `app-epg-list` hides its internal date navigator when
+  projected inside that panel.
+- Collapsed state is shared across M3U, Xtream, and Stalker with
+  `live-epg-panel-state`; missing or invalid values restore to expanded.
+- The collapsed panel is a slim current-program strip with a trailing progress
+  line and an expand button. Date controls stay out of the collapsed strip.
+- Do not render the collapsed strip for external MPV/VLC playback; those
+  layouts keep the full EPG-only panel.
+- Keep the EPG content mounted while collapsed so current-program state can
+  continue updating.
+
+### Collapsible Live Sidebar
+
+- M3U, Xtream, and Stalker live layouts share a single sidebar collapse toggle
+  that hides the channels rail to give the player and EPG full width.
+- In Xtream and Stalker live TV, the same toggle also collapses the workspace
+  shell context sidebar (the "Live Categories" rail rendered by
+  `WorkspaceShellContextSidebarComponent`), matching M3U's "everything quiets"
+  behaviour. The shell categories rail only collapses when the active section
+  is `live` (Xtream) or `itv`/`radio` (Stalker); movies, series, favorites,
+  and recent routes leave it untouched.
+- Collapsed state is owned by `LiveLayoutSidebarStateService`
+  (`providedIn: 'root'`) in `@iptvnator/portal/shared/util`. Every surface that
+  participates injects the service and reads `isCollapsed`; any toggle calls
+  `service.toggle()`. Persistence delegates to the existing
+  `live-sidebar-state` helpers, so the localStorage key stays unchanged and
+  missing/invalid values restore to expanded.
+- A `mat-icon-button` with `chevron_left` lives in the sidebar header and
+  toggles state. While collapsed, a floating `chevron_right` mini-fab appears
+  at the left edge of `.content-container` to restore the rail (and the
+  categories rail, in Xtream/Stalker live).
+- Keyboard shortcut: `Cmd/Ctrl+B`. The handler ignores events that originate
+  inside `<input>`, `<textarea>`, `<select>`, or content-editable elements via
+  the shared `isTypingInInput` helper.
+- The CSS class `.sidebar-collapsed` (channels rail) and
+  `.context-panel--collapsed` (workspace shell categories rail) both override
+  the inline width set by the `appResizable` directive with
+  `width: 0 !important; min-width: 0 !important`. The directive's persisted
+  width is preserved so uncollapsing restores the user's previous resized
+  width. Both rails share the same 180 ms width transition so motion stays in
+  lockstep.
+- Below 600 px viewport, the M3U layout's mobile bottom-drawer rule overrides
+  the desktop collapse to `height: 0` instead of `width: 0`, and the floating
+  restore handle is hidden.
+
 ### EPG Card
 
 - Radius:

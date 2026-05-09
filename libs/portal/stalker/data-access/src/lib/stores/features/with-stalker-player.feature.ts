@@ -31,6 +31,7 @@ import {
     fetchStalkerExpireDate,
     fetchStalkerMovieFileId,
     fetchStalkerPlaybackLink,
+    normalizeStalkerPlaybackCommand,
     shouldResolveMovieFileId,
 } from '../utils';
 
@@ -277,6 +278,56 @@ export function withStalkerPlayer() {
                     };
                 };
 
+                const resolveRadioPlaybackInternal = async (
+                    item: StalkerPlayableItem
+                ): Promise<ResolvedPortalPlayback> => {
+                    const playlist = storeState.currentPlaylist();
+                    if (
+                        !playlist?.portalUrl ||
+                        !playlist.macAddress ||
+                        !item.cmd
+                    ) {
+                        throw new Error('nothing_to_play');
+                    }
+
+                    let streamUrl = normalizeStalkerPlaybackCommand(item.cmd);
+                    if (
+                        !streamUrl.startsWith('http://') &&
+                        !streamUrl.startsWith('https://')
+                    ) {
+                        streamUrl = await fetchStalkerPlaybackLink(
+                            requestDeps,
+                            {
+                                playlist,
+                                selectedContentType:
+                                    storeState.selectedContentType(),
+                                cmd: item.cmd,
+                                forcedContentType: 'radio',
+                            }
+                        );
+                    }
+
+                    if (!streamUrl) {
+                        throw new Error('nothing_to_play');
+                    }
+
+                    recordRecentlyViewed(
+                        item,
+                        item.cmd,
+                        item.logo ?? item.cover,
+                        item.o_name || item.name || item.title
+                    );
+
+                    return {
+                        streamUrl,
+                        title: item.o_name || item.name || item.title || '',
+                        thumbnail: item.logo ?? item.cover ?? null,
+                        userAgent: playlist.userAgent,
+                        referer: playlist.referrer,
+                        origin: playlist.origin,
+                    };
+                };
+
                 return {
                     async fetchLinkToPlay(
                         portalUrl: string,
@@ -346,6 +397,11 @@ export function withStalkerPlayer() {
                         item: StalkerPlayableItem
                     ): Promise<ResolvedPortalPlayback> {
                         return resolveItvPlaybackInternal(item);
+                    },
+                    async resolveRadioPlayback(
+                        item: StalkerPlayableItem
+                    ): Promise<ResolvedPortalPlayback> {
+                        return resolveRadioPlaybackInternal(item);
                     },
                     async createLinkToPlayVod(
                         cmd?: string,

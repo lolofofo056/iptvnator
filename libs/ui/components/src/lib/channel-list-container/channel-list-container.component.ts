@@ -40,7 +40,7 @@ import {
     firstValueFrom,
     map,
 } from 'rxjs';
-import { PlaylistsService } from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import {
     Channel,
     EpgProgram,
@@ -71,6 +71,19 @@ function groupChannelsByTitle(channels: Channel[]): Record<string, Channel[]> {
     }, {});
 }
 
+function mapChannelsByFirstUrl(channels: Channel[]): Map<string, Channel> {
+    const channelsByUrl = new Map<string, Channel>();
+
+    for (const channel of channels) {
+        const channelUrl = channel.url;
+        if (!channelsByUrl.has(channelUrl)) {
+            channelsByUrl.set(channelUrl, channel);
+        }
+    }
+
+    return channelsByUrl;
+}
+
 @Component({
     selector: 'app-channel-list-container',
     templateUrl: './channel-list-container.component.html',
@@ -96,6 +109,7 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     private readonly router = inject(Router);
     private readonly route = inject(ActivatedRoute);
     private readonly playlistContext = inject(PlaylistContextFacade);
+    private readonly settingsStore = inject(SettingsStore);
 
     /** Map of channel ID to current EPG program */
     readonly channelEpgMap = signal(new Map<string, EpgProgram | null>());
@@ -112,6 +126,9 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
 
     /** Whether to show EPG data in channel items */
     readonly shouldShowEpg = signal(false);
+    readonly openStreamOnDoubleClick = computed(() =>
+        this.settingsStore.openStreamOnDoubleClick()
+    );
 
     /** Item size for virtual scroll - compact when no EPG */
     readonly itemSize = computed(() => (this.shouldShowEpg() ? 68 : 48));
@@ -123,6 +140,7 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     readonly sidebarWidth = input<number | null>(null);
     readonly sidebarWidthRequested = output<number>();
     readonly sidebarWidthRequestEnded = output<number>();
+    readonly sidebarToggleRequested = output<void>();
     readonly isWorkspaceLayout = isWorkspaceLayoutRoute(this.route);
     private readonly routeSearchTerm = queryParamSignal(
         this.route,
@@ -174,7 +192,8 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
     }
 
     /** Route-aware playlist ID for recent-item mutations */
-    private readonly resolvedPlaylistId = this.playlistContext.resolvedPlaylistId;
+    private readonly resolvedPlaylistId =
+        this.playlistContext.resolvedPlaylistId;
     private readonly activePlaylist = this.playlistContext.activePlaylist;
 
     readonly hiddenGroupTitles = computed(() => {
@@ -256,11 +275,11 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
         this.channelList$,
     ]).pipe(
         map(([favoriteChannelIds, channelList]) => {
+            const channelsByUrl = mapChannelsByFirstUrl(channelList);
+
             return favoriteChannelIds
                 .map((favoriteChannelId) =>
-                    channelList.find(
-                        (channel) => channel.url === favoriteChannelId
-                    )
+                    channelsByUrl.get(favoriteChannelId)
                 )
                 .filter((channel): channel is Channel => channel !== undefined);
         })
@@ -336,10 +355,13 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
             this.channelEpgMap.set(epgMap);
             this.channelIconMap.set(
                 new Map(
-                    Array.from(metadataMap.entries(), ([channelId, metadata]) => [
-                        channelId,
-                        metadata?.iconUrl?.trim() || '',
-                    ])
+                    Array.from(
+                        metadataMap.entries(),
+                        ([channelId, metadata]) => [
+                            channelId,
+                            metadata?.iconUrl?.trim() || '',
+                        ]
+                    )
                 )
             );
         });
@@ -350,6 +372,15 @@ export class ChannelListContainerComponent implements OnInit, OnDestroy {
      */
     onChannelSelected(channel: Channel): void {
         this.store.dispatch(ChannelActions.setActiveChannel({ channel }));
+    }
+
+    onChannelPlaybackRequested(channel: Channel): void {
+        this.store.dispatch(
+            ChannelActions.setActiveChannel({
+                channel,
+                startPlayback: true,
+            })
+        );
     }
 
     /**

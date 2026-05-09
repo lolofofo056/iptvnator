@@ -4,11 +4,13 @@ import {
     closeElectronApp,
     createMutableTextServer,
     deleteSource,
+    dropM3uPlaylistOntoWorkspace,
     dragSourceBefore,
     expect,
     expectPlaylistUpdatedToast,
     expectSourceDialogValues,
     getVisibleSourceTitles,
+    goToDashboard,
     importM3uPlaylistFromNativeDialog,
     importM3uPlaylistFromUrl,
     launchElectronApp,
@@ -425,7 +427,37 @@ https://streams.example.test/original-url.m3u8
         const app = await launchElectronApp(dataDir);
 
         try {
-            await importM3uPlaylistFromNativeDialog(app, localFilePath);
+            await dropM3uPlaylistOntoWorkspace(
+                app.mainWindow,
+                localFilePath
+            );
+            await waitForM3uCatalog(app.mainWindow);
+            await expect(
+                app.mainWindow.locator(
+                    'app-playlist-switcher .trigger-refresh-button'
+                )
+            ).toBeVisible();
+
+            await goToDashboard(app.mainWindow);
+            const sourceCard = app.mainWindow
+                .getByTestId('dashboard-recent-sources-rail-card')
+                .filter({
+                    hasText: refreshLocalSourceDisplayName,
+                })
+                .first();
+            await expect(sourceCard).toBeVisible({ timeout: 20000 });
+            await sourceCard.hover();
+            await sourceCard
+                .getByTestId('dashboard-recent-sources-rail-card-actions')
+                .click();
+            await expect(
+                app.mainWindow.getByRole('menuitem', {
+                    name: 'Refresh playlist',
+                    exact: true,
+                })
+            ).toBeVisible();
+            await app.mainWindow.keyboard.press('Escape');
+
             await importM3uPlaylistFromUrl(
                 app.mainWindow,
                 urlServer.resourceUrl
@@ -434,6 +466,14 @@ https://streams.example.test/original-url.m3u8
                 name: 'Refresh Xtream Source',
             });
             await openSources(app.mainWindow);
+            await expect(
+                sourceRowByTitle(
+                    app.mainWindow,
+                    refreshLocalSourceDisplayName
+                )
+                    .first()
+                    .locator('.refresh-btn')
+            ).toBeVisible();
 
             writeTemporaryM3uFile(dataDir, 'refresh-local-source.m3u', [
                 {

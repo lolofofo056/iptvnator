@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import * as path from 'path';
 import { EpgChannelMetadata, EpgProgram } from 'shared-interfaces';
@@ -78,6 +78,14 @@ export default class EpgEvents {
             'GET_CHANNEL_PROGRAMS',
             async (_event, args: { channelId: string }) => {
                 return this.handleGetChannelPrograms(args.channelId);
+            }
+        );
+
+        // Get current programs for many channels in a single batched query
+        ipcMain.handle(
+            'GET_CURRENT_PROGRAMS_BATCH',
+            async (_event, args: { channelIds: string[] }) => {
+                return this.handleGetCurrentProgramsBatch(args.channelIds);
             }
         );
 
@@ -632,6 +640,115 @@ export default class EpgEvents {
                 error
             );
             return [];
+        }
+    }
+
+    /**
+     * Batch lookup of "currently playing" programs for many channels in a
+     * single SQL query. Replaces the N+1 pattern where the channel list
+     * fired one IPC + query per visible channel.
+     */
+    private static async handleGetCurrentProgramsBatch(
+        channelIds: string[]
+    ): Promise<Record<string, EpgProgram | null>> {
+        const result: Record<string, EpgProgram | null> = {};
+        if (!Array.isArray(channelIds) || channelIds.length === 0) {
+            return result;
+        }
+
+        const validIds = Array.from(
+            new Set(
+                channelIds
+                    .map((id) => id?.trim())
+                    .filter((id): id is string => Boolean(id))
+            )
+        );
+        if (validIds.length === 0) {
+            return result;
+        }
+
+        try {
+            const db = await getDatabase();
+            const now = new Date().toISOString();
+
+            const rows = await db
+                .select()
+                .from(schema.epgPrograms)
+                .where(
+                    and(
+                        inArray(schema.epgPrograms.channelId, validIds),
+                        lte(schema.epgPrograms.start, now),
+                        gte(schema.epgPrograms.stop, now)
+                    )
+                );
+
+            for (const row of rows) {
+                if (!result[row.channelId]) {
+                    const program = this.transformDbRowToEpgProgram(row);
+                    if (this.isValidEpgProgram(program)) {
+                        result[row.channelId] = program;
+                    }
+                }
+            }
+
+            // Per-channel fallback for IDs that didn't match by exact channel_id.
+            // Mirrors handleGetChannelPrograms's NOCASE-id and display-name resolution.
+            const unmatchedIds = validIds.filter((id) => !(id in result));
+            for (const channelId of unmatchedIds) {
+                result[channelId] = null;
+
+                let channel = await db
+                    .select()
+                    .from(schema.epgChannels)
+                    .where(
+                        sql`${schema.epgChannels.id} = ${channelId} COLLATE NOCASE`
+                    )
+                    .limit(1);
+
+                if (channel.length === 0) {
+                    channel = await db
+                        .select()
+                        .from(schema.epgChannels)
+                        .where(
+                            sql`${schema.epgChannels.displayName} = ${channelId} COLLATE NOCASE`
+                        )
+                        .limit(1);
+                }
+
+                if (channel.length === 0) {
+                    continue;
+                }
+
+                const programRows = await db
+                    .select()
+                    .from(schema.epgPrograms)
+                    .where(
+                        and(
+                            eq(schema.epgPrograms.channelId, channel[0].id),
+                            lte(schema.epgPrograms.start, now),
+                            gte(schema.epgPrograms.stop, now)
+                        )
+                    )
+                    .limit(1);
+
+                if (programRows.length > 0) {
+                    const program = this.transformDbRowToEpgProgram(
+                        programRows[0]
+                    );
+                    if (this.isValidEpgProgram(program)) {
+                        result[channelId] = program;
+                    }
+                }
+            }
+
+            return result;
+        } catch (error) {
+            console.error(
+                this.loggerLabel,
+                'Error getting batch current programs:',
+                error
+            );
+            return result;
         }
     }
 

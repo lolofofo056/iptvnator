@@ -52,6 +52,7 @@ interface ErrorStatus {
     providedIn: 'root',
 })
 export class PwaService extends DataService {
+    private messageListeners = new Map<string, EventListener>();
     private readonly http = inject(HttpClient);
     private readonly snackBar = inject(MatSnackBar);
     private readonly store = inject(Store);
@@ -500,12 +501,33 @@ export class PwaService extends DataService {
         });
     }
 
-    removeAllListeners(): void {
-        // not implemented
+    removeAllListeners(type: string): void {
+        if (type === 'all') {
+            this.messageListeners.forEach((listener) =>
+                window.removeEventListener('message', listener)
+            );
+            this.messageListeners.clear();
+            return;
+        }
+
+        const messageListener = this.messageListeners.get(type);
+        if (messageListener) {
+            window.removeEventListener('message', messageListener);
+            this.messageListeners.delete(type);
+        }
     }
 
-    listenOn(_command: string, callback: (...args: unknown[]) => void): void {
-        window.addEventListener('message', callback);
+    listenOn(command: string, callback: (...args: unknown[]) => void): void {
+        // Drop any existing listener for this command so calling listenOn()
+        // again rebinds rather than accumulating duplicates.
+        const existing = this.messageListeners.get(command);
+        if (existing) {
+            window.removeEventListener('message', existing);
+        }
+
+        const listener = callback as EventListener;
+        window.addEventListener('message', listener);
+        this.messageListeners.set(command, listener);
     }
 
     getAppEnvironment(): string {

@@ -11,7 +11,9 @@ import {
     EMPTY,
     filter,
     firstValueFrom,
+    from,
     map,
+    mergeMap,
     switchMap,
     tap,
     withLatestFrom,
@@ -168,9 +170,14 @@ export class PlaylistEffects {
 
                 firstValueFrom(this.storage.get(STORE_KEY.Settings)).then(
                     (settings: any) => {
+                        const shouldOpenExternalPlayer =
+                            !settings?.openStreamOnDoubleClick ||
+                            action.startPlayback === true;
+
                         if (
                             settings &&
                             Object.keys(settings).length > 0 &&
+                            shouldOpenExternalPlayer &&
                             settings.player === VideoPlayer.MPV &&
                             channel.radio !== 'true'
                         ) {
@@ -184,6 +191,7 @@ export class PlaylistEffects {
                         } else if (
                             settings &&
                             Object.keys(settings).length > 0 &&
+                            shouldOpenExternalPlayer &&
                             settings.player === VideoPlayer.VLC &&
                             channel.radio !== 'true'
                         )
@@ -277,12 +285,14 @@ export class PlaylistEffects {
     parsePlaylist$ = createEffect(() => {
         return this.actions$.pipe(
             ofType(PlaylistActions.parsePlaylist),
-            map((action) =>
-                this.playlistsService.handlePlaylistParsing(
-                    action.uploadType,
-                    action.playlist,
-                    action.title,
-                    action.path
+            mergeMap((action) =>
+                from(
+                    this.playlistsService.handlePlaylistParsing(
+                        action.uploadType,
+                        action.playlist,
+                        action.title,
+                        action.path
+                    )
                 )
             ),
             map((playlist) =>

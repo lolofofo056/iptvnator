@@ -31,6 +31,7 @@ export class SidebarComponent {
     readonly sidebarWidth = input<number | null>(null);
     readonly sidebarWidthRequested = output<number>();
     readonly sidebarWidthRequestEnded = output<number>();
+    readonly sidebarToggleRequested = output<void>();
 
     private readonly playlistContext = inject(PlaylistContextFacade);
     private readonly translate = inject(TranslateService);

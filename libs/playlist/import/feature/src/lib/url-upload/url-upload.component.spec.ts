@@ -57,4 +57,20 @@ describe('UrlUploadComponent', () => {
         fixture.detectChanges();
         expect(component.form.valid).toBeTruthy();
     });
+
+    it('clears the url playlist form', () => {
+        component.form.setValue({
+            playlistName: 'News',
+            playlistUrl: 'http://example.org/playlist.m3u',
+        });
+        component.form.markAsDirty();
+
+        component.clearForm();
+
+        expect(component.form.getRawValue()).toEqual({
+            playlistName: '',
+            playlistUrl: '',
+        });
+        expect(component.form.pristine).toBeTruthy();
+    });
 });

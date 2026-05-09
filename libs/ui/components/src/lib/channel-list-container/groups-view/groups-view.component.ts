@@ -21,14 +21,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { resolveChannelEpgLookupKey } from 'm3u-state';
 import { Channel, EpgProgram } from 'shared-interfaces';
+import { ChannelEpgMetadata } from '../all-channels-view/all-channels-view.component';
 import {
-    PortalChannelSortMode,
-    getPortalChannelSortModeLabel,
-    persistPortalChannelSortMode,
-    restorePortalChannelSortMode,
-    sortPortalChannelItems,
-} from '@iptvnator/portal/shared/util';
-import { EnrichedChannel } from '../all-channels-view/all-channels-view.component';
+    PlaylistChannelSortMode,
+    getPlaylistChannelSortModeLabel,
+    persistPlaylistChannelSortMode,
+    restorePlaylistChannelSortMode,
+    sortPlaylistChannelItems,
+} from '../channel-list-sort.util';
 import { resolveChannelLogo } from '../channel-logo-fallback.util';
 import { ChannelDetailsDialogComponent } from '../channel-details-dialog/channel-details-dialog.component';
 import { ChannelListItemComponent } from '../channel-list-item/channel-list-item.component';
@@ -92,6 +92,7 @@ export class GroupsViewComponent {
 
     /** Whether to show EPG data */
     readonly shouldShowEpg = input.required<boolean>();
+    readonly openOnDoubleClick = input(false);
 
     /** Currently active channel URL */
     readonly activeChannelUrl = input<string | undefined>();
@@ -105,6 +106,7 @@ export class GroupsViewComponent {
 
     /** Emits when a channel is selected */
     readonly channelSelected = output<Channel>();
+    readonly channelPlaybackRequested = output<Channel>();
 
     /** Emits when favorite is toggled */
     readonly favoriteToggled = output<{
@@ -119,14 +121,17 @@ export class GroupsViewComponent {
     readonly sidebarWidthRequestEnded = output<number>();
     readonly hiddenGroupTitlesChanged = output<string[]>();
 
+    /** Emits when the user clicks the inline collapse toggle in the groups header */
+    readonly sidebarToggleRequested = output<void>();
+
     readonly isGroupSearchOpen = signal(false);
     readonly localGroupSearchTerm = signal('');
     readonly selectedGroupKey = signal<string | null>(null);
-    readonly groupChannelSortMode = signal<PortalChannelSortMode>(
-        restorePortalChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY)
+    readonly groupChannelSortMode = signal<PlaylistChannelSortMode>(
+        restorePlaylistChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY)
     );
     readonly groupChannelSortLabel = computed(() =>
-        getPortalChannelSortModeLabel(this.groupChannelSortMode())
+        getPlaylistChannelSortModeLabel(this.groupChannelSortMode())
     );
     readonly hasSearchQuery = computed(
         () =>
@@ -261,13 +266,12 @@ export class GroupsViewComponent {
         const groups = this.visibleGroups();
 
         if (!term) {
-            return groups
-                .map((group) => ({
-                    channels: group.channels,
-                    count: group.count,
-                    key: group.key,
-                    titleMatches: false,
-                }));
+            return groups.map((group) => ({
+                channels: group.channels,
+                count: group.count,
+                key: group.key,
+                titleMatches: false,
+            }));
         }
 
         return groups.reduce<FilteredGroupView[]>((acc, group) => {
@@ -314,31 +318,71 @@ export class GroupsViewComponent {
         );
     });
 
-    readonly selectedGroupChannels = computed<EnrichedChannel[]>(() => {
+    /**
+     * Channels for the currently selected group, sorted but NOT cloned.
+     * Recomputes only when the selected group or sort mode changes — no longer
+     * tied to progressTick, so we don't re-sort/re-allocate every 30 s.
+     */
+    readonly selectedGroupChannels = computed<readonly Channel[]>(() => {
         const group = this.selectedGroup();
         const sortMode = this.groupChannelSortMode();
-        const epgMap = this.channelEpgMap();
-        const iconMap = this.channelIconMap();
-        this.progressTick();
 
         if (!group) {
             return [];
         }
 
-        return sortPortalChannelItems(
+        return sortPlaylistChannelItems(
             group.channels,
             sortMode,
             (channel) => channel?.name
-        ).map((channel) => {
-            const channelId = resolveChannelEpgLookupKey(channel);
-            const epgProgram = channelId ? epgMap.get(channelId) : null;
-            return {
-                ...channel,
-                epgProgram,
-                logo: resolveChannelLogo(channel, iconMap),
-                progressPercentage: this.calculateProgress(epgProgram),
-            } as EnrichedChannel;
+        );
+    });
+
+    /**
+     * Side-car EPG metadata keyed by channel EPG lookup key. Rebuilt every
+     * progressTick (~30 s) but only contains entries for channels with EPG
+     * data — typically a small fraction of the playlist. Replaces the previous
+     * spread-clone-every-channel pattern.
+     */
+    readonly epgMetadataMap = computed(() => {
+        const epgMap = this.channelEpgMap();
+        this.progressTick();
+
+        const result = new Map<string, ChannelEpgMetadata>();
+        epgMap.forEach((program, channelId) => {
+            result.set(channelId, {
+                epgProgram: program,
+                progressPercentage: this.calculateProgress(program),
+            });
         });
+        return result;
+    });
+
+    /** Resolves the EPG lookup key the side-car map is keyed by. */
+    getChannelEpgKey(channel: Channel): string {
+        return resolveChannelEpgLookupKey(channel) ?? '';
+    }
+
+    /** Resolves the channel logo. Called per visible row from the template. */
+    getLogoForChannel(channel: Channel): string {
+        return resolveChannelLogo(channel, this.channelIconMap());
+    }
+
+    private readonly groupKeyByChannelUrl = computed(() => {
+        const groupKeys = new Map<string, string>();
+
+        for (const [groupKey, channels] of Object.entries(
+            this.groupedChannels()
+        )) {
+            for (const channel of channels) {
+                const channelUrl = channel.url;
+                if (!groupKeys.has(channelUrl)) {
+                    groupKeys.set(channelUrl, groupKey);
+                }
+            }
+        }
+
+        return groupKeys;
     });
 
     readonly activeChannelGroupKey = computed(() => {
@@ -347,14 +391,7 @@ export class GroupsViewComponent {
             return null;
         }
 
-        const grouped = this.groupedChannels();
-        for (const [groupKey, channels] of Object.entries(grouped)) {
-            if (channels.some((channel) => channel.url === activeChannelUrl)) {
-                return groupKey;
-            }
-        }
-
-        return null;
+        return this.groupKeyByChannelUrl().get(activeChannelUrl) ?? null;
     });
 
     selectGroup(groupKey: string): void {
@@ -404,9 +441,9 @@ export class GroupsViewComponent {
         });
     }
 
-    setGroupChannelSortMode(mode: PortalChannelSortMode): void {
+    setGroupChannelSortMode(mode: PlaylistChannelSortMode): void {
         this.groupChannelSortMode.set(mode);
-        persistPortalChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY, mode);
+        persistPlaylistChannelSortMode(GROUP_CHANNEL_SORT_STORAGE_KEY, mode);
     }
 
     onGroupsNavResizeStart(): void {
@@ -432,6 +469,12 @@ export class GroupsViewComponent {
 
     onChannelClick(channel: Channel): void {
         this.channelSelected.emit(channel);
+    }
+
+    onChannelActivate(channel: Channel): void {
+        if (this.openOnDoubleClick()) {
+            this.channelPlaybackRequested.emit(channel);
+        }
     }
 
     onFavoriteToggle(channel: Channel, event: MouseEvent): void {

@@ -31,7 +31,9 @@ for (const timeZone of ['UTC', 'Europe/Berlin'] as const) {
         const fixture = await fetchXtreamEpgFixture(request, epgCredentials);
         const currentProgram = fixture.shortEpg[0];
         if (!currentProgram) {
-            throw new Error('Expected the Xtream EPG fixture to include a current program.');
+            throw new Error(
+                'Expected the Xtream EPG fixture to include a current program.'
+            );
         }
         const app = await launchElectronApp(dataDir, {
             env: { TZ: timeZone },
@@ -45,7 +47,10 @@ for (const timeZone of ['UTC', 'Europe/Berlin'] as const) {
             });
             await waitForXtreamWorkspaceReady(app.mainWindow);
             await openWorkspaceSection(app.mainWindow, 'Live TV');
-            await clickCategoryByNameExact(app.mainWindow, fixture.categoryName);
+            await clickCategoryByNameExact(
+                app.mainWindow,
+                fixture.categoryName
+            );
 
             const channelRow = channelItemByTitle(
                 app.mainWindow,
@@ -55,14 +60,18 @@ for (const timeZone of ['UTC', 'Europe/Berlin'] as const) {
 
             await expect
                 .poll(async () =>
-                    ((await channelRow.locator('.epg-title').textContent()) ?? '').trim()
+                    (
+                        (await channelRow
+                            .locator('.epg-title')
+                            .textContent()) ?? ''
+                    ).trim()
                 )
                 .toBe(currentProgram.title);
             await expect
                 .poll(async () => {
-                    return (await channelRow.locator('.epg-time').allInnerTexts()).map(
-                        (value) => value.trim()
-                    );
+                    return (
+                        await channelRow.locator('.epg-time').allInnerTexts()
+                    ).map((value) => value.trim());
                 })
                 .toEqual([
                     formatTimeInZone(currentProgram.startTimestamp, timeZone),
@@ -84,22 +93,14 @@ for (const timeZone of ['UTC', 'Europe/Berlin'] as const) {
                 timeZone
             );
 
-            await expect.poll(() => visibleProgramTitles(app.mainWindow)).toEqual(
-                currentDayTitles
-            );
+            await expect
+                .poll(() => visibleProgramTitles(app.mainWindow))
+                .toEqual(currentDayTitles);
 
-            const currentProgramRow = app.mainWindow
-                .locator('app-epg-list .program-item.current-program')
-                .first();
-            await expect(currentProgramRow).toBeVisible();
-            await expect(currentProgramRow.locator('.program-title')).toHaveText(
-                currentProgram.title
-            );
-            await expect(currentProgramRow.locator('.time')).toHaveText(
-                `${formatTimeInZone(
-                    currentProgram.startTimestamp,
-                    timeZone
-                )} - ${formatTimeInZone(currentProgram.stopTimestamp, timeZone)}`
+            await expectCurrentProgram(
+                app.mainWindow,
+                currentProgram,
+                timeZone
             );
 
             const firstFutureDateKey = getFirstFutureDateKey(
@@ -114,25 +115,29 @@ for (const timeZone of ['UTC', 'Europe/Berlin'] as const) {
                 firstFutureDateKey!,
                 timeZone
             );
-            const nextDayClicks = dayDifference(currentDateKey, firstFutureDateKey!);
+            const nextDayClicks = dayDifference(
+                currentDateKey,
+                firstFutureDateKey!
+            );
 
             for (let index = 0; index < nextDayClicks; index += 1) {
-                await app.mainWindow.locator('app-epg-list .next-day').click();
+                await app.mainWindow
+                    .locator(
+                        'app-live-epg-panel .next-day, app-epg-list .next-day'
+                    )
+                    .click();
             }
 
-            await expect.poll(() => visibleProgramTitles(app.mainWindow)).toEqual(
-                futureDayTitles
-            );
+            await expect
+                .poll(() => visibleProgramTitles(app.mainWindow))
+                .toEqual(futureDayTitles);
         } finally {
             await closeElectronApp(app);
         }
     });
 }
 
-function formatTimeInZone(
-    timestampSeconds: number,
-    timeZone: string
-): string {
+function formatTimeInZone(timestampSeconds: number, timeZone: string): string {
     return new Intl.DateTimeFormat('en-US', {
         timeZone,
         hour: '2-digit',
@@ -157,7 +162,9 @@ function formatDateKeyInZone(
     const day = parts.find((part) => part.type === 'day')?.value;
 
     if (!year || !month || !day) {
-        throw new Error(`Failed to format a date key for timezone ${timeZone}.`);
+        throw new Error(
+            `Failed to format a date key for timezone ${timeZone}.`
+        );
     }
 
     return `${year}-${month}-${day}`;
@@ -215,14 +222,48 @@ function dayDifference(fromDateKey: string, toDateKey: string): number {
     return Math.round((to - from) / (24 * 60 * 60 * 1000));
 }
 
-async function visibleProgramTitles(page: Parameters<typeof channelItemByTitle>[0]) {
+async function visibleProgramTitles(
+    page: Parameters<typeof channelItemByTitle>[0]
+) {
     return page
         .locator('app-epg-list .program-title')
         .allInnerTexts()
         .then((titles) => titles.map((title) => title.trim()).filter(Boolean));
 }
 
-async function getProgressWidthPercent(row: ReturnType<typeof channelItemByTitle>) {
+async function expectCurrentProgram(
+    page: Parameters<typeof channelItemByTitle>[0],
+    currentProgram: XtreamNormalizedEpgListing,
+    timeZone: string
+): Promise<void> {
+    const startTime = formatTimeInZone(currentProgram.startTimestamp, timeZone);
+    const stopTime = formatTimeInZone(currentProgram.stopTimestamp, timeZone);
+    const currentProgramRow = page
+        .locator('app-epg-list .program-item.current-program')
+        .first();
+
+    if (await currentProgramRow.isVisible().catch(() => false)) {
+        await expect(currentProgramRow.locator('.program-title')).toHaveText(
+            currentProgram.title
+        );
+        await expect(currentProgramRow.locator('.time')).toHaveText(
+            `${startTime}–${stopTime}`
+        );
+        return;
+    }
+
+    const summary = page.locator('app-live-epg-panel').first();
+    await expect(summary.locator('.live-epg-panel__title')).toHaveText(
+        currentProgram.title
+    );
+    await expect(summary.locator('.live-epg-panel__time')).toHaveText(
+        `${startTime} - ${stopTime}`
+    );
+}
+
+async function getProgressWidthPercent(
+    row: ReturnType<typeof channelItemByTitle>
+) {
     const style = await row.locator('.epg-progress-fill').getAttribute('style');
     const width = style?.match(/width:\s*([\d.]+)%/)?.[1] ?? '0';
     return Number.parseFloat(width);

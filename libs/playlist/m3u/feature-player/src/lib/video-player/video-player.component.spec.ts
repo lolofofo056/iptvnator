@@ -1,5 +1,11 @@
 import { AsyncPipe } from '@angular/common';
-import { NO_ERRORS_SCHEMA, signal } from '@angular/core';
+import {
+    Component,
+    NO_ERRORS_SCHEMA,
+    input,
+    output,
+    signal,
+} from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
@@ -18,16 +24,32 @@ import {
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import {
     PORTAL_EXTERNAL_PLAYBACK,
+    LIVE_EPG_PANEL_STATE_STORAGE_KEY,
     WorkspaceHeaderContextService,
 } from '@iptvnator/portal/shared/util';
 import { DataService, PlaylistsService, SettingsStore } from 'services';
-import {
-    Channel,
-    Settings,
-    VideoPlayer,
-} from 'shared-interfaces';
+import { Channel, EpgProgram, Settings, VideoPlayer } from 'shared-interfaces';
+import { LiveEpgPanelSummary } from 'shared-portals';
 import { Overlay } from '@angular/cdk/overlay';
 import { VideoPlayerComponent } from './video-player.component';
+
+@Component({
+    selector: 'app-live-epg-panel',
+    standalone: true,
+    template: `
+        <div class="live-epg-panel-summary">{{ summary()?.title }}</div>
+        <ng-content />
+    `,
+})
+class StubLiveEpgPanelComponent {
+    readonly collapsed = input(false);
+    readonly summary = input<LiveEpgPanelSummary | null>(null);
+    readonly loading = input(false);
+    readonly showDateNavigator = input(false);
+    readonly selectedDate = input<string | null>(null);
+    readonly collapsedChange = output<boolean>();
+    readonly dateNavigation = output<'next' | 'prev'>();
+}
 
 describe('VideoPlayerComponent', () => {
     let fixture: ComponentFixture<VideoPlayerComponent>;
@@ -39,11 +61,11 @@ describe('VideoPlayerComponent', () => {
     const activePlaybackUrl = signal<string | null>(null);
     const channels = signal<Channel[]>([]);
     const channelsLoading = signal(false);
-    const currentEpgProgram = signal(null);
+    const currentEpgProgram = signal<EpgProgram | null>(null);
 
     const channels$ = new BehaviorSubject<Channel[]>([]);
     const activeChannel$ = new BehaviorSubject<Channel | null>(null);
-    const currentEpgProgram$ = new BehaviorSubject(null);
+    const currentEpgProgram$ = new BehaviorSubject<EpgProgram | null>(null);
 
     const player = signal<VideoPlayer>(VideoPlayer.VideoJs);
     const showCaptions = signal(false);
@@ -149,6 +171,7 @@ describe('VideoPlayerComponent', () => {
     beforeEach(async () => {
         syncStoreState(null);
         localStorage.removeItem('m3u-sidebar-width');
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
         player.set(VideoPlayer.VideoJs);
         showCaptions.set(false);
         activePlaybackUrl.set(null);
@@ -233,6 +256,7 @@ describe('VideoPlayerComponent', () => {
                 set: {
                     imports: [
                         AsyncPipe,
+                        StubLiveEpgPanelComponent,
                         MockPipe(
                             TranslatePipe,
                             (value: string | null | undefined) => value ?? ''
@@ -249,6 +273,7 @@ describe('VideoPlayerComponent', () => {
 
     afterEach(() => {
         fixture.destroy();
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
     });
 
     it('registers and clears the workspace multi-EPG header shortcut', () => {
@@ -282,26 +307,96 @@ describe('VideoPlayerComponent', () => {
         ).not.toBeNull();
     });
 
+    it('renders the embedded mpv inline player with the EPG panel', () => {
+        syncStoreState(sampleChannel);
+        player.set(VideoPlayer.EmbeddedMpv);
+
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.video-player')
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-web-player-view')
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-epg-list')
+        ).not.toBeNull();
+    });
+
     it('renders only the EPG panel when an external player is configured', () => {
         syncStoreState(sampleChannel);
         player.set(VideoPlayer.MPV);
 
         fixture.detectChanges();
 
-        expect(
-            fixture.nativeElement.querySelector('.video-player')
-        ).toBeNull();
+        expect(fixture.nativeElement.querySelector('.video-player')).toBeNull();
         expect(
             fixture.nativeElement.querySelector('app-epg-list')
         ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-live-epg-panel')
+        ).toBeNull();
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                ?.classList.contains('epg-collapsed')
+        ).toBe(false);
+    });
+
+    it('restores the collapsed live EPG panel state for inline playback', () => {
+        fixture.destroy();
+        localStorage.setItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY, 'collapsed');
+
+        fixture = TestBed.createComponent(VideoPlayerComponent);
+        component = fixture.componentInstance;
+        headerContext = TestBed.inject(WorkspaceHeaderContextService);
+        syncStoreState(sampleChannel);
+        player.set(VideoPlayer.VideoJs);
+
+        fixture.detectChanges();
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(true);
+    });
+
+    it('persists live EPG panel toggle changes', () => {
+        component.onLiveEpgPanelCollapsedChange(true);
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'collapsed'
+        );
+
+        component.onLiveEpgPanelCollapsedChange(false);
+
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'expanded'
+        );
+    });
+
+    it('renders the current EPG program summary for the inline panel', () => {
+        syncStoreState(sampleChannel);
+        player.set(VideoPlayer.VideoJs);
+        currentEpgProgram.set(buildProgram('Current Show'));
+        currentEpgProgram$.next(buildProgram('Current Show'));
+
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.live-epg-panel-summary')
+                .textContent
+        ).toContain('Current Show');
     });
 
     it('uses the active playback override url when archive playback is active', () => {
         syncStoreState(sampleChannel);
         player.set(VideoPlayer.VideoJs);
-        activePlaybackUrl.set(
-            'http://localhost/archive.m3u8?utc=123&lutc=456'
-        );
+        activePlaybackUrl.set('http://localhost/archive.m3u8?utc=123&lutc=456');
 
         fixture.detectChanges();
 
@@ -400,14 +495,57 @@ describe('VideoPlayerComponent', () => {
         expect(overlayRef.attach).toHaveBeenCalledTimes(1);
     });
 
-    it('switches channels by number through the store action', () => {
+    it('switches channels by number through a playback request', () => {
         syncStoreState(sampleChannel);
         fixture.detectChanges();
 
         component.switchToChannelByNumber(1);
 
         expect(storeMock.dispatch).toHaveBeenCalledWith(
-            ChannelActions.setActiveChannel({ channel: sampleChannel })
+            ChannelActions.setActiveChannel({
+                channel: sampleChannel,
+                startPlayback: true,
+            })
+        );
+    });
+
+    it('changes channels from remote navigation through a playback request', () => {
+        const nextChannel = {
+            ...sampleChannel,
+            id: 'channel-2',
+            url: 'http://localhost/next.m3u8',
+            name: 'Next TV',
+        };
+        activeChannel.set(sampleChannel);
+        activeChannel$.next(sampleChannel);
+        channels.set([sampleChannel, nextChannel]);
+        channels$.next([sampleChannel, nextChannel]);
+        fixture.detectChanges();
+
+        (
+            component as unknown as {
+                handleRemoteChannelChange(direction: 'up' | 'down'): void;
+            }
+        ).handleRemoteChannelChange('down');
+
+        expect(storeMock.dispatch).toHaveBeenCalledWith(
+            ChannelActions.setActiveChannel({
+                channel: nextChannel,
+                startPlayback: true,
+            })
         );
     });
 });
+
+function buildProgram(title: string): EpgProgram {
+    return {
+        start: '2026-04-05T11:30:00.000Z',
+        stop: '2026-04-05T12:30:00.000Z',
+        channel: 'sample-tvg-id',
+        title,
+        desc: null,
+        category: null,
+        startTimestamp: 1775388600,
+        stopTimestamp: 1775392200,
+    };
+}

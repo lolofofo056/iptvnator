@@ -1,13 +1,13 @@
 <div
-    class="channel-list"
+    class="channel-list app-scrollbar"
     cdkDropList
     [cdkDropListDisabled]="hasSearchTerm()"
     (cdkDropListDropped)="onDrop($event)"
     id="favorites-list"
 >
-    @if (enrichedFavorites().length > 0) {
+    @if (filteredFavorites().length > 0) {
         @for (
-            channel of enrichedFavorites();
+            channel of filteredFavorites();
             track trackByFn($index, channel);
             let i = $index
         ) {
@@ -19,12 +19,20 @@
                     (channel?.name || 'CHANNELS.UNNAMED_CHANNEL' | translate)
                 "
                 [isDraggable]="!hasSearchTerm()"
-                [logo]="channel.logo"
+                [logo]="getLogoForChannel(channel)"
                 [showEpg]="shouldShowEpg()"
                 [isRadio]="channel?.radio === 'true'"
-                [epgProgram]="channel.epgProgram"
-                [progressPercentage]="channel.progressPercentage"
+                [epgProgram]="
+                    epgMetadataMap().get(getChannelEpgKey(channel))?.epgProgram
+                "
+                [progressPercentage]="
+                    epgMetadataMap().get(getChannelEpgKey(channel))
+                        ?.progressPercentage ?? 0
+                "
+                [showDetailsContextMenu]="true"
                 (clicked)="onChannelClick(channel)"
+                (activated)="onChannelActivate(channel)"
+                (contextMenuRequested)="onChannelContextMenu(channel, $event)"
                 [selected]="activeChannelUrl() === channel?.url"
                 [showFavoriteButton]="true"
                 [isFavorite]="true"
@@ -50,3 +58,19 @@
         </div>
     }
 </div>
+
+<div
+    aria-hidden="true"
+    class="channel-context-menu-anchor"
+    [style.left]="contextMenuPosition().x"
+    [style.top]="contextMenuPosition().y"
+    [matMenuTriggerFor]="channelContextMenu"
+    #contextMenuTrigger="matMenuTrigger"
+></div>
+
+<mat-menu #channelContextMenu="matMenu">
+    <button mat-menu-item (click)="openChannelDetails()">
+        <mat-icon>info</mat-icon>
+        <span>{{ 'CHANNELS.SHOW_DETAILS' | translate }}</span>
+    </button>
+</mat-menu>

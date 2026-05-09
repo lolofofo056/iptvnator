@@ -31,9 +31,10 @@ The application is a cross-platform, open-source project built with Electron and
 - EPG support (TV Guide) with detailed information
 - TV archive/catchup/timeshift functionality
 - Group-based channel list
-- Read-only M3U channel details from the channel context menu
+- Read-only M3U channel details from channel context menus, including favorites and recently viewed
 - Favorite channels management
 - Global favorites aggregated from all playlists
+- Recently viewed live channel removal from row actions and context menus
 - HTML video player with HLS.js support or Video.js-based player
 - Internationalization with support for 16 languages:
     - Arabic
@@ -275,6 +276,10 @@ $ pnpm run serve:frontend
 ## Disclaimer
 
 **IPTVnator doesn't provide any playlists or other digital content.**
+
+## Trademark
+
+The name **"IPTVnator"** and the IPTVnator logo are unregistered trademarks of the project owner. The MIT license covers the source code only — it does **not** grant rights to the name or logo. Forks and redistributions (including app-store submissions) must use a different name and their own icon. See [TRADEMARK.md](./TRADEMARK.md) for details.
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 

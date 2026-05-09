@@ -2,6 +2,8 @@
  * Unified interface for displaying live TV favorites from any source
  * (M3U playlists, Xtream Codes portals, Stalker portals) in one list.
  */
+import { Channel } from 'shared-interfaces';
+
 export type FavoriteSourceType = 'm3u' | 'xtream' | 'stalker';
 
 export interface UnifiedFavoriteChannel {
@@ -28,6 +30,9 @@ export interface UnifiedFavoriteChannel {
 
     /** Direct stream URL (M3U channels only) */
     streamUrl?: string;
+
+    /** Full M3U channel metadata used by row context menu actions */
+    m3uChannel?: Channel;
 
     /** Xtream numeric stream ID (Xtream channels only) */
     xtreamId?: number;

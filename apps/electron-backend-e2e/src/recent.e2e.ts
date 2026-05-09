@@ -73,21 +73,23 @@ test.describe('Electron Recently Viewed', () => {
                 app.mainWindow,
                 'Stable Recent Channel'
             ).first();
-            const closeButton = app.mainWindow
-                .locator('.player-toolbar .close-btn')
+            const livePlayer = app.mainWindow
+                .locator('app-unified-live-tab .content-container .video-player')
                 .first();
 
             await item.click();
-            await expect(closeButton).toBeVisible({ timeout: 20000 });
+            await expect(livePlayer).toBeVisible({ timeout: 20000 });
+            await expect(item).toHaveClass(/(^|\s)active(\s|$)/);
 
             await item.click();
-            await expect(closeButton).toBeVisible({ timeout: 20000 });
+            await expect(livePlayer).toBeVisible({ timeout: 20000 });
+            await expect(item).toHaveClass(/(^|\s)active(\s|$)/);
         } finally {
             await closeElectronApp(app);
         }
     });
 
-    test('tracks M3U recent channels in newest-first order, supports all-playlists scope, and persists removals after restart', async ({
+    test('tracks M3U recent channels in newest-first order, supports all-playlists scope, and persists favorites after restart', async ({
         dataDir,
     }) => {
         const playlistTitle = 'm3u-recent-source.m3u';
@@ -127,10 +129,15 @@ test.describe('Electron Recently Viewed', () => {
                 .poll(() => visibleLiveTitles(app.mainWindow))
                 .toEqual(['Recent Channel Two', 'Recent Channel One']);
 
-            await removeLiveRecentItem(app.mainWindow, 'Recent Channel Two');
+            await toggleFavoriteForChannel(app.mainWindow, 'Recent Channel Two');
             await expect
                 .poll(() => visibleLiveTitles(app.mainWindow))
-                .toEqual(['Recent Channel One']);
+                .toEqual(['Recent Channel Two', 'Recent Channel One']);
+
+            await openPlaylistFavorites(app.mainWindow);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'Recent Channel Two').first()
+            ).toBeVisible({ timeout: 20000 });
 
             const restarted = await restartElectronApp(app, dataDir);
             app.electronApp = restarted.electronApp;
@@ -145,7 +152,68 @@ test.describe('Electron Recently Viewed', () => {
             await switchUnifiedCollectionScope(app.mainWindow, 'All playlists');
             await expect
                 .poll(() => visibleLiveTitles(app.mainWindow))
-                .toEqual(['Recent Channel One']);
+                .toEqual(['Recent Channel Two', 'Recent Channel One']);
+
+            await openPlaylistFavorites(app.mainWindow);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'Recent Channel Two').first()
+            ).toBeVisible({ timeout: 20000 });
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
+
+    test('removes one M3U recent live channel from the all-playlists context menu', async ({
+        dataDir,
+    }) => {
+        const filePath = writeTemporaryM3uFile(
+            dataDir,
+            'm3u-recent-context-menu-source.m3u',
+            [
+                {
+                    groupTitle: 'Live',
+                    name: 'Context Recent One',
+                    url: 'https://streams.example.test/context-recent-one.m3u8',
+                },
+                {
+                    groupTitle: 'Live',
+                    name: 'Context Recent Two',
+                    url: 'https://streams.example.test/context-recent-two.m3u8',
+                },
+            ]
+        );
+        const app = await launchElectronApp(dataDir);
+
+        try {
+            await importM3uPlaylistFromNativeDialog(app, filePath);
+            await waitForM3uCatalog(app.mainWindow);
+
+            await channelItemByTitle(app.mainWindow, 'Context Recent One')
+                .first()
+                .click();
+            await channelItemByTitle(app.mainWindow, 'Context Recent Two')
+                .first()
+                .click();
+
+            await openPlaylistRecent(app.mainWindow);
+            await switchUnifiedCollectionScope(app.mainWindow, 'All playlists');
+            await expect
+                .poll(() => visibleLiveTitles(app.mainWindow))
+                .toEqual(['Context Recent Two', 'Context Recent One']);
+
+            await channelItemByTitle(app.mainWindow, 'Context Recent One')
+                .first()
+                .click({ button: 'right' });
+            await app.mainWindow
+                .getByRole('menuitem', { name: 'Remove from history' })
+                .click();
+
+            await expect
+                .poll(() => visibleLiveTitles(app.mainWindow))
+                .toEqual(['Context Recent Two']);
+            await expect(
+                channelItemByTitle(app.mainWindow, 'Context Recent One')
+            ).toHaveCount(0);
         } finally {
             await closeElectronApp(app);
         }
@@ -189,7 +257,7 @@ test.describe('Electron Recently Viewed', () => {
             await toggleFavoriteForChannel(app.mainWindow, liveTitle);
             await openPlaylistFavorites(app.mainWindow);
             await channelItemByTitle(app.mainWindow, liveTitle).first().click();
-            await closeUnifiedLiveDetail(app.mainWindow);
+            await expectUnifiedLiveDetailOpen(app.mainWindow, liveTitle);
 
             await app.mainWindow
                 .getByRole('link', { name: 'Movies', exact: true })
@@ -396,7 +464,7 @@ test.describe('Electron Recently Viewed', () => {
             await toggleFavoriteForChannel(app.mainWindow, liveTitle);
             await openPlaylistFavorites(app.mainWindow);
             await channelItemByTitle(app.mainWindow, liveTitle).first().click();
-            await closeUnifiedLiveDetail(app.mainWindow);
+            await expectUnifiedLiveDetailOpen(app.mainWindow, liveTitle);
 
             await app.mainWindow
                 .getByRole('link', { name: 'Movies', exact: true })
@@ -561,11 +629,18 @@ async function clearRecentItems(page: Page, typeLabel: string): Promise<void> {
     await page.getByRole('button', { name: 'Yes' }).click();
 }
 
-async function closeUnifiedLiveDetail(page: Page): Promise<void> {
-    const closeButton = page.locator('.player-toolbar .close-btn').first();
-
-    await expect(closeButton).toBeVisible({ timeout: 20000 });
-    await closeButton.click();
+async function expectUnifiedLiveDetailOpen(
+    page: Page,
+    title: string
+): Promise<void> {
+    await expect(
+        page
+            .locator('app-unified-live-tab .content-container .video-player')
+            .first()
+    ).toBeVisible({ timeout: 20000 });
+    await expect(channelItemByTitle(page, title).first()).toHaveClass(
+        /(^|\s)active(\s|$)/
+    );
 }
 
 async function goBackFromDetail(page: Page): Promise<void> {
@@ -634,14 +709,6 @@ async function playFirstSeriesEpisode(page: Page): Promise<void> {
     await episodeCard.click();
 }
 
-async function removeLiveRecentItem(page: Page, title: string): Promise<void> {
-    const item = channelItemByTitle(page, title).first();
-
-    await expect(item).toBeVisible({ timeout: 20000 });
-    await item.hover();
-    await item.locator('.favorite-button').first().click();
-}
-
 async function toggleFavoriteForChannel(
     page: Page,
     title: string
@@ -651,6 +718,9 @@ async function toggleFavoriteForChannel(
     await expect(item).toBeVisible({ timeout: 20000 });
     await item.hover();
     await item.locator('.favorite-button').first().click();
+    await expect(item.locator('.favorite-button mat-icon').first()).toHaveText(
+        'star'
+    );
 }
 
 async function visibleLiveTitles(page: Page): Promise<string[]> {

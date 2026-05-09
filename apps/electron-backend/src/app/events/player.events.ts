@@ -11,6 +11,7 @@ import {
     MPV_REUSE_INSTANCE,
     store,
     VLC_PLAYER_PATH,
+    VLC_REUSE_INSTANCE,
 } from '../services/store.service';
 
 import { ChildProcess, spawn } from 'child_process';
@@ -30,6 +31,10 @@ export default class PlayerEvents {
 let mpvProcess: ChildProcess | null = null;
 let mpvSocketPath: string | null = null;
 let positionPollingInterval: NodeJS.Timeout | null = null;
+
+// Keep track of the running VLC process for reuse
+let vlcProcess: ChildProcess | null = null;
+let vlcRcPort: number | null = null;
 
 interface ExternalPlaybackSnapshot {
     positionSeconds: number;
@@ -77,9 +82,15 @@ export function isRunningInFlatpak(
     return platform === 'linux' && pathExists('/.flatpak-info');
 }
 
-function normalizeCustomPlayerPath(value: string | undefined): string | null {
+function normalizeCustomPlayerPath(
+    value: string | null | undefined
+): string | null {
     const trimmedValue = value?.trim();
     return trimmedValue ? trimmedValue : null;
+}
+
+function normalizePlayerPathForStore(value: string | null | undefined): string {
+    return normalizeCustomPlayerPath(value) ?? '';
 }
 
 function getDefaultPlayerPath(
@@ -161,6 +172,96 @@ export function shouldUseMpvSocketBridge(
     isFlatpak: boolean = isRunningInFlatpak()
 ): boolean {
     return !isFlatpak;
+}
+
+export function shouldReuseVlcInstance(
+    requestedReuseInstance: boolean,
+    isFlatpak: boolean = isRunningInFlatpak()
+): boolean {
+    return !isFlatpak && requestedReuseInstance;
+}
+
+export function buildVlcEnqueueCommands(options: {
+    url: string;
+    title?: string;
+    userAgent?: string;
+    referer?: string;
+    origin?: string;
+    headers?: Record<string, string>;
+    startTime?: number;
+}): string[] {
+    const inputOptions: string[] = [];
+
+    if (options.userAgent) {
+        inputOptions.push(`:http-user-agent=${options.userAgent}`);
+    }
+    if (options.referer) {
+        inputOptions.push(`:http-referrer=${options.referer}`);
+    } else if (options.origin) {
+        inputOptions.push(`:http-referrer=${options.origin}`);
+    }
+    Object.entries(options.headers ?? {}).forEach(([name, value]) => {
+        if (!name || value === undefined || value === null) return;
+        const trimmedValue = String(value).trim();
+        if (!trimmedValue) return;
+        inputOptions.push(`:http-header=${name}: ${trimmedValue}`);
+    });
+    if (options.title) {
+        inputOptions.push(`:meta-title=${options.title}`);
+    }
+
+    const inputLine =
+        inputOptions.length > 0
+            ? `${options.url} ${inputOptions.join(' ')}`
+            : options.url;
+
+    const commands = ['clear', `add ${inputLine}`];
+
+    if (options.startTime && Number.isFinite(options.startTime)) {
+        commands.push(`seek ${Math.floor(options.startTime)}`);
+    }
+
+    return commands;
+}
+
+function sendVlcRcCommand(port: number, command: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const client = createConnection({ port, host: '127.0.0.1' });
+        let settled = false;
+
+        const finish = (err?: Error) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeoutHandle);
+            if (!client.destroyed) client.destroy();
+            err ? reject(err) : resolve();
+        };
+
+        const timeoutHandle = setTimeout(
+            () => finish(new Error('VLC RC command timed out')),
+            2000
+        );
+
+        client.on('connect', () => {
+            client.write(`${command}\n`);
+        });
+        // The VLC RC interface emits its '> ' prompt after each command finishes.
+        client.on('data', (chunk) => {
+            if (chunk.toString().includes('>')) {
+                finish();
+            }
+        });
+        client.on('error', (err) => finish(err));
+    });
+}
+
+async function sendVlcRcCommands(
+    port: number,
+    commands: string[]
+): Promise<void> {
+    for (const command of commands) {
+        await sendVlcRcCommand(port, command);
+    }
 }
 
 function buildPlayerStartError(
@@ -921,10 +1022,14 @@ ipcMain.handle(
     }
 );
 
-ipcMain.handle('SET_MPV_PLAYER_PATH', (_event, mpvPlayerPath) => {
-    console.log('... setting mpv player path', mpvPlayerPath);
-    store.set(MPV_PLAYER_PATH, mpvPlayerPath);
-});
+ipcMain.handle(
+    'SET_MPV_PLAYER_PATH',
+    (_event, mpvPlayerPath: string | null | undefined) => {
+        const normalizedPlayerPath = normalizePlayerPathForStore(mpvPlayerPath);
+        console.log('... setting mpv player path', normalizedPlayerPath);
+        store.set(MPV_PLAYER_PATH, normalizedPlayerPath);
+    }
+);
 
 ipcMain.handle('SET_MPV_REUSE_INSTANCE', (_event, reuseInstance: boolean) => {
     console.log('... setting mpv reuse instance', reuseInstance);
@@ -968,6 +1073,14 @@ ipcMain.handle(
                 getVlcPath({ isFlatpak }),
                 { isFlatpak }
             );
+            const requestedReuseInstance = store.get(
+                VLC_REUSE_INSTANCE,
+                false
+            );
+            const reuseInstance = shouldReuseVlcInstance(
+                requestedReuseInstance,
+                isFlatpak
+            );
             const fallbackHeaders = getStalkerPlaybackContextHeaders(url) ?? {};
             const mergedHeaders = isStalkerDirectStreamProfile(fallbackHeaders)
                 ? fallbackHeaders
@@ -990,17 +1103,118 @@ ipcMain.handle(
                 mergedHeaders['User-Agent'] ??
                 mergedHeaders['user-agent'] ??
                 undefined;
-            console.log('Opening VLC player with path:', vlcLaunchContext.playerPath);
-            console.log('VLC launch mode:', vlcLaunchContext.mode);
-            console.log('URL:', url);
-            // console.log('User-Agent:', userAgent);
-            // console.log('Referer:', referer);
-            // console.log('Origin:', origin);
-            // console.log('Start Time:', startTime);
+            console.log('[VLC] Opening player', {
+                path: vlcLaunchContext.playerPath,
+                launchMode: vlcLaunchContext.mode,
+                requestedReuseInstance,
+                reuseInstance,
+                stream: maskUrlForLogs(url),
+                hasUserAgent: Boolean(effectiveUserAgent),
+                hasReferer: Boolean(effectiveReferer),
+                hasOrigin: Boolean(effectiveOrigin),
+                hasContentInfo: Boolean(contentInfo),
+                startTime: startTime ?? null,
+            });
 
-            // Get free port for RC interface
+            // Try to drive an already-running VLC via its RC port instead of
+            // spawning a new instance.
+            if (
+                reuseInstance &&
+                vlcProcess &&
+                !vlcProcess.killed &&
+                vlcRcPort
+            ) {
+                console.log(
+                    'Reusing existing VLC instance on RC port',
+                    vlcRcPort
+                );
+                try {
+                    const enqueueCommands = buildVlcEnqueueCommands({
+                        url,
+                        title,
+                        userAgent: effectiveUserAgent,
+                        referer: effectiveReferer,
+                        origin: effectiveOrigin,
+                        headers: mergedHeaders,
+                        startTime,
+                    });
+                    await sendVlcRcCommands(vlcRcPort, enqueueCommands);
+                    console.log(
+                        'Successfully loaded new URL in existing VLC instance'
+                    );
+
+                    const reusedRcPort = vlcRcPort;
+                    let lastReusedSnapshot: ExternalPlaybackSnapshot | null =
+                        null;
+                    externalPlayerSessions.attachCloser(
+                        session.id,
+                        async () => {
+                            try {
+                                await sendVlcRcCommand(reusedRcPort, 'stop');
+                            } catch {
+                                if (vlcProcess && !vlcProcess.killed) {
+                                    vlcProcess.kill();
+                                }
+                            }
+                        }
+                    );
+
+                    if (contentInfo) {
+                        startVlcPositionPolling(
+                            reusedRcPort,
+                            contentInfo,
+                            session.id,
+                            (snapshot) => {
+                                lastReusedSnapshot = snapshot;
+                            },
+                            () => {
+                                if (
+                                    lastReusedSnapshot &&
+                                    contentInfo &&
+                                    externalPlayerSessions.getSession(
+                                        session.id
+                                    )?.status !== 'closed'
+                                ) {
+                                    sendPlaybackPositionUpdate(
+                                        session.id,
+                                        contentInfo,
+                                        lastReusedSnapshot
+                                    );
+                                }
+                                externalPlayerSessions.markClosed(session.id);
+                            }
+                        );
+                    } else {
+                        stopVlcPositionPolling();
+                    }
+
+                    return (
+                        externalPlayerSessions.markOpened(session.id) ?? session
+                    );
+                } catch (err) {
+                    console.error(
+                        'Failed to reuse existing VLC, spawning fresh:',
+                        err
+                    );
+                    // Tracked process is not responsive; clear state and fall
+                    // through to spawn a brand new VLC.
+                    if (vlcProcess && !vlcProcess.killed) {
+                        try {
+                            vlcProcess.kill();
+                        } catch {
+                            /* ignore */
+                        }
+                    }
+                    vlcProcess = null;
+                    vlcRcPort = null;
+                    stopVlcPositionPolling();
+                }
+            }
+
+            // Get free port for RC interface (always allocate when reuse is
+            // enabled so future calls can drive this instance).
             let rcPort = 0;
-            if (contentInfo) {
+            if (contentInfo || reuseInstance) {
                 try {
                     rcPort = await getFreePort();
                     console.log('Using VLC RC port:', rcPort);
@@ -1063,11 +1277,23 @@ ipcMain.handle(
                         vlcLaunchContext,
                         playerArgs
                     );
+                    const trackProcess = reuseInstance && !isRetry;
                     const proc = spawn(spawnSpec.command, spawnSpec.args, {
                         shell: false,
-                        detached: true,
-                        stdio: 'ignore', // Use 'ignore' for detached to allow clean shutdown
+                        detached: !trackProcess,
+                        stdio: trackProcess
+                            ? ['ignore', 'pipe', 'pipe']
+                            : 'ignore',
                     });
+
+                    if (trackProcess && rcPort > 0) {
+                        vlcProcess = proc;
+                        vlcRcPort = rcPort;
+                        console.log(
+                            'Tracking VLC process for reuse on RC port',
+                            rcPort
+                        );
+                    }
 
                     const markVlcSessionClosed = () => {
                         if (
@@ -1152,6 +1378,10 @@ ipcMain.handle(
 
                     proc.on('error', (err) => {
                         console.error('Failed to start VLC player:', err);
+                        if (vlcProcess === proc) {
+                            vlcProcess = null;
+                            vlcRcPort = null;
+                        }
                         if (!isRetry && rcPort > 0) {
                             console.log('Retrying VLC without RC interface...');
                             // Retry without RC args
@@ -1179,6 +1409,10 @@ ipcMain.handle(
 
                     proc.on('exit', (code) => {
                         console.log(`VLC exited with code ${code}`);
+                        if (vlcProcess === proc) {
+                            vlcProcess = null;
+                            vlcRcPort = null;
+                        }
                         stopVlcPositionPolling();
 
                         if (
@@ -1228,7 +1462,9 @@ ipcMain.handle(
                         externalPlayerSessions.markClosed(session.id);
                     });
 
-                    proc.unref();
+                    if (!trackProcess) {
+                        proc.unref();
+                    }
                 };
 
                 spawnVlc(args);
@@ -1247,9 +1483,26 @@ ipcMain.handle(
     }
 );
 
-ipcMain.handle('SET_VLC_PLAYER_PATH', (_event, vlcPlayerPath) => {
-    console.log('... setting vlc player path', vlcPlayerPath);
-    store.set(VLC_PLAYER_PATH, vlcPlayerPath);
+ipcMain.handle(
+    'SET_VLC_PLAYER_PATH',
+    (_event, vlcPlayerPath: string | null | undefined) => {
+        const normalizedPlayerPath = normalizePlayerPathForStore(vlcPlayerPath);
+        console.log('... setting vlc player path', normalizedPlayerPath);
+        store.set(VLC_PLAYER_PATH, normalizedPlayerPath);
+    }
+);
+
+ipcMain.handle('SET_VLC_REUSE_INSTANCE', (_event, reuseInstance: boolean) => {
+    console.log('... setting vlc reuse instance', reuseInstance);
+    store.set(VLC_REUSE_INSTANCE, reuseInstance);
+
+    // If disabling reuse, kill the existing tracked process
+    if (!reuseInstance && vlcProcess && !vlcProcess.killed) {
+        console.log('Disabling reuse, cleaning up existing VLC process');
+        vlcProcess.kill();
+        vlcProcess = null;
+        vlcRcPort = null;
+    }
 });
 
 ipcMain.handle(

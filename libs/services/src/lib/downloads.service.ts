@@ -33,9 +33,19 @@ export interface DownloadItem {
 export class DownloadsService implements OnDestroy {
     private readonly settingsStore = inject(SettingsStore);
     private unsubscribe?: () => void;
+    private loadDownloadsRequestId = 0;
+
+    private readonly _isLoadingDownloads = signal(false);
+    private readonly _hasLoadedDownloads = signal(false);
 
     /** Signal for the list of downloads */
     readonly downloads = signal<DownloadItem[]>([]);
+
+    /** Whether the download list is currently being loaded */
+    readonly isLoadingDownloads = this._isLoadingDownloads.asReadonly();
+
+    /** Whether the first download list request has completed */
+    readonly hasLoadedDownloads = this._hasLoadedDownloads.asReadonly();
 
     /** Whether the download feature is available (Electron only) */
     readonly isAvailable = computed(() => !!window.electron?.downloadsGetList);
@@ -98,11 +108,24 @@ export class DownloadsService implements OnDestroy {
     async loadDownloads(playlistId?: string): Promise<void> {
         if (!this.isAvailable()) return;
 
+        const requestId = ++this.loadDownloadsRequestId;
+        this._isLoadingDownloads.set(true);
+
         try {
             const list = await window.electron.downloadsGetList(playlistId);
-            this.downloads.set(list);
+            if (requestId === this.loadDownloadsRequestId) {
+                this.downloads.set(list);
+                this._hasLoadedDownloads.set(true);
+            }
         } catch (error) {
             console.error('[DownloadsService] Error loading downloads:', error);
+            if (requestId === this.loadDownloadsRequestId) {
+                this._hasLoadedDownloads.set(true);
+            }
+        } finally {
+            if (requestId === this.loadDownloadsRequestId) {
+                this._isLoadingDownloads.set(false);
+            }
         }
     }
 

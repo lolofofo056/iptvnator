@@ -53,6 +53,7 @@ describe('PlaylistSwitcherComponent', () => {
     };
     let portalStatusService: {
         checkPortalStatus: jest.Mock;
+        getCachedStatus: jest.Mock;
         getStatusClass: jest.Mock;
     };
     let refreshActionService: {
@@ -172,6 +173,7 @@ describe('PlaylistSwitcherComponent', () => {
                 .fn()
                 .mockResolvedValueOnce('active')
                 .mockResolvedValueOnce('inactive'),
+            getCachedStatus: jest.fn().mockReturnValue(null),
             getStatusClass: jest.fn((status: string) => `status-${status}`),
         };
         refreshActionService = {

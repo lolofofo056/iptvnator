@@ -39,4 +39,11 @@ export class UrlUploadComponent implements OnInit {
             playlistName: [''],
         });
     }
+
+    clearForm(): void {
+        this.form.reset({
+            playlistName: '',
+            playlistUrl: '',
+        });
+    }
 }

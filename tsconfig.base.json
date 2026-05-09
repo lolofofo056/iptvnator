@@ -35,6 +35,7 @@
                 "libs/playlist/shared/util/src/index.ts"
             ],
             "@iptvnator/ui/epg": ["libs/ui/epg/src/index.ts"],
+            "@iptvnator/ui/epg/date": ["libs/ui/epg/src/lib/epg-date.ts"],
             "@iptvnator/ui/epg/progress-panel": [
                 "libs/ui/epg/src/lib/epg-progress-panel/epg-progress-panel.component.ts"
             ],

@@ -1,7 +1,5 @@
 <span class="time"
-    >{{ (item.startTimestamp ? item.startTimestamp * 1000 : item.start) | date: 'HH:mm' }}
-    -
-    {{ (item.stopTimestamp ? item.stopTimestamp * 1000 : item.stop) | date: 'HH:mm' }}</span
+    >{{ (item.startTimestamp ? item.startTimestamp * 1000 : item.start) | date: 'HH:mm' }}–{{ (item.stopTimestamp ? item.stopTimestamp * 1000 : item.stop) | date: 'HH:mm' }}</span
 >
 @if (isLive) {
     <span class="live badge" [matTooltip]="'EPG.LIVE_NOW' | translate"

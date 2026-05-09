@@ -10,6 +10,7 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { TranslatePipe } from '@ngx-translate/core';
 import { PlaylistSwitcherComponent } from '@iptvnator/playlist/shared/ui';
 import { WorkspaceHeaderAction } from '@iptvnator/portal/shared/util';
+import { WorkspaceHeaderBulkAction } from '../../services/helpers/workspace-shell-constants';
 
 @Component({
     selector: 'app-workspace-shell-header',
@@ -40,6 +41,7 @@ export class WorkspaceShellHeaderComponent {
     readonly searchScopeLabel = input('');
     readonly searchStatusLabel = input('');
     readonly headerShortcut = input<WorkspaceHeaderAction | null>(null);
+    readonly headerBulkAction = input<WorkspaceHeaderBulkAction | null>(null);
     readonly canRefreshPlaylist = input(false);
     readonly isRefreshingPlaylist = input(false);
     readonly isElectron = input(false);
@@ -52,6 +54,7 @@ export class WorkspaceShellHeaderComponent {
     readonly commandPaletteRequested = output<void>();
     readonly addPlaylistRequested = output<void>();
     readonly headerShortcutRequested = output<void>();
+    readonly headerBulkActionRequested = output<void>();
     readonly refreshPlaylistRequested = output<void>();
     readonly downloadsRequested = output<void>();
     readonly playlistInfoRequested = output<void>();
@@ -85,6 +88,10 @@ export class WorkspaceShellHeaderComponent {
 
     onHeaderShortcutRequested(): void {
         this.headerShortcutRequested.emit();
+    }
+
+    onHeaderBulkActionRequested(): void {
+        this.headerBulkActionRequested.emit();
     }
 
     onRefreshPlaylistRequested(): void {

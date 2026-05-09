@@ -7,6 +7,7 @@ import {
     signal,
 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { TranslateModule } from '@ngx-translate/core';
 import {
     GlobalFavoritesListComponent,
@@ -18,11 +19,20 @@ import {
     HtmlVideoPlayerComponent,
     VjsPlayerComponent,
 } from '@iptvnator/ui/playback';
-import { EpgListComponent } from '@iptvnator/ui/epg';
+import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
 import { ResizableDirective } from 'components';
 import { SettingsStore } from 'services';
 import { Channel, EpgItem, EpgProgram } from 'shared-interfaces';
-import { EpgViewComponent } from 'shared-portals';
+import {
+    EpgViewComponent,
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+} from 'shared-portals';
 import {
     DEFAULT_FAVORITES_CHANNEL_SORT_MODE,
     PORTAL_PLAYER,
@@ -50,6 +60,8 @@ class StubResizableDirective {
 })
 class StubGlobalFavoritesListComponent {
     readonly channels = input.required<UnifiedFavoriteChannel[]>();
+    readonly mode = input<'favorites' | 'recent'>('favorites');
+    readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly epgMap = input<Map<string, EpgProgram | null>>(new Map());
     readonly progressTick = input(0);
     readonly activeUid = input<string | null>(null);
@@ -62,6 +74,7 @@ class StubGlobalFavoritesListComponent {
     readonly channelSelected = output<UnifiedFavoriteChannel>();
     readonly channelsReordered = output<UnifiedFavoriteChannel[]>();
     readonly favoriteToggled = output<UnifiedFavoriteChannel>();
+    readonly removeRequested = output<UnifiedFavoriteChannel>();
 }
 
 @Component({
@@ -73,6 +86,9 @@ class StubEpgListComponent {
     readonly controlledChannel = input<Channel | null>(null);
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly archivePlaybackAvailable = input<boolean | null>(null);
+    readonly selectedDate = input<string | null>(null);
+    readonly showDateNavigator = input(true);
+    readonly selectedDateChange = output<string>();
 }
 
 @Component({
@@ -82,6 +98,21 @@ class StubEpgListComponent {
 })
 class StubEpgViewComponent {
     readonly epgItems = input<EpgItem[]>([]);
+}
+
+@Component({
+    selector: 'app-live-epg-panel',
+    template: '<section class="stub-live-epg-panel"><ng-content /></section>',
+    changeDetection: ChangeDetectionStrategy.OnPush,
+})
+class StubLiveEpgPanelComponent {
+    readonly collapsed = input(false);
+    readonly summary = input<LiveEpgPanelSummary | null>(null);
+    readonly loading = input(false);
+    readonly showDateNavigator = input(false);
+    readonly selectedDate = input<string | null>(null);
+    readonly collapsedChange = output<boolean>();
+    readonly dateNavigation = output<EpgDateNavigationDirection>();
 }
 
 @Component({
@@ -145,6 +176,8 @@ describe('UnifiedLiveTabComponent', () => {
     };
 
     beforeEach(async () => {
+        localStorage.removeItem('live-epg-panel-state');
+
         streamResolver = {
             resolveLiveDetail: jest.fn(),
             resolveM3uPlaybackDetail: jest.fn(),
@@ -167,6 +200,7 @@ describe('UnifiedLiveTabComponent', () => {
                 {
                     provide: SettingsStore,
                     useValue: {
+                        openStreamOnDoubleClick: signal(false),
                         player: signal('videojs'),
                     },
                 },
@@ -182,6 +216,7 @@ describe('UnifiedLiveTabComponent', () => {
                         EpgViewComponent,
                         GlobalFavoritesListComponent,
                         HtmlVideoPlayerComponent,
+                        LiveEpgPanelComponent,
                         ResizableDirective,
                         VjsPlayerComponent,
                     ],
@@ -194,6 +229,7 @@ describe('UnifiedLiveTabComponent', () => {
                         StubEpgViewComponent,
                         StubGlobalFavoritesListComponent,
                         StubHtmlVideoPlayerComponent,
+                        StubLiveEpgPanelComponent,
                         StubResizableDirective,
                         StubVjsPlayerComponent,
                     ],
@@ -259,6 +295,164 @@ describe('UnifiedLiveTabComponent', () => {
             fixture.nativeElement.querySelector('app-epg-list')
         ).not.toBeNull();
         expect(fixture.nativeElement.querySelector('app-epg-view')).toBeNull();
+    });
+
+    it('passes recent mode and favorite state to the shared live collection list', async () => {
+        const item = buildLiveItem('m3u');
+        const favoriteUids = new Set<string>([item.uid]);
+        const toggledItems: UnifiedCollectionItem[] = [];
+        const subscription = component.favoriteToggled.subscribe((toggled) =>
+            toggledItems.push(toggled)
+        );
+
+        fixture.componentRef.setInput('items', [item]);
+        fixture.componentRef.setInput('mode', 'recent');
+        fixture.componentRef.setInput('favoriteUids', favoriteUids);
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const list = fixture.debugElement.query(
+            By.directive(StubGlobalFavoritesListComponent)
+        ).componentInstance as StubGlobalFavoritesListComponent;
+
+        expect(list.mode()).toBe('recent');
+        expect(list.favoriteUids()).toBe(favoriteUids);
+
+        list.favoriteToggled.emit(list.channels()[0]);
+
+        expect(toggledItems).toEqual([item]);
+        subscription.unsubscribe();
+    });
+
+    it('maps shared live list remove requests back to collection items', async () => {
+        const item = buildLiveItem('xtream');
+        const removedItems: UnifiedCollectionItem[] = [];
+        const subscription = component.removeItem.subscribe((removed) =>
+            removedItems.push(removed)
+        );
+
+        fixture.componentRef.setInput('items', [item]);
+        fixture.componentRef.setInput('mode', 'recent');
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const list = fixture.debugElement.query(
+            By.directive(StubGlobalFavoritesListComponent)
+        ).componentInstance as StubGlobalFavoritesListComponent;
+
+        list.removeRequested.emit(list.channels()[0]);
+
+        expect(removedItems).toEqual([item]);
+        subscription.unsubscribe();
+    });
+
+    it('wraps inline M3U EPG in the live panel with shared date navigation', async () => {
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(true);
+        const item = buildLiveItem('m3u');
+        const currentProgram = buildCurrentProgram('M3U Now');
+        streamResolver.resolveM3uPlaybackDetail.mockResolvedValue({
+            epgMode: 'm3u',
+            playback: {
+                streamUrl: 'https://example.com/m3u.m3u8',
+                title: 'M3U Live',
+            },
+            channel: {
+                id: 'm3u-channel',
+                name: 'M3U Live',
+                url: 'https://example.com/m3u.m3u8',
+                group: { title: 'News' },
+                tvg: {
+                    id: 'm3u-channel',
+                    name: 'M3U Live',
+                    url: '',
+                    logo: 'm3u.png',
+                    rec: '',
+                },
+                http: { referrer: '', 'user-agent': '', origin: '' },
+                radio: 'false',
+                epgParams: '',
+            },
+            epgPrograms: [currentProgram],
+        });
+        streamResolver.loadM3uProgramsForItem.mockResolvedValue([
+            currentProgram,
+        ]);
+        recentData.recordLivePlayback.mockResolvedValue({
+            ...item,
+            viewedAt: '2026-03-26T12:00:00.000Z',
+        });
+
+        fixture.componentRef.setInput('items', [item]);
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        await component.onChannelSelected(component.channelsForList()[0]);
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const panel = fixture.debugElement.query(
+            By.directive(StubLiveEpgPanelComponent)
+        ).componentInstance as StubLiveEpgPanelComponent;
+        const epgList = fixture.debugElement.query(
+            By.directive(StubEpgListComponent)
+        ).componentInstance as StubEpgListComponent;
+
+        expect(panel.showDateNavigator()).toBe(true);
+        expect(panel.summary()).toEqual(
+            expect.objectContaining({ title: 'M3U Now' })
+        );
+        expect(epgList.showDateNavigator()).toBe(false);
+        expect(epgList.selectedDate()).toBe(getTodayEpgDateKey());
+
+        panel.dateNavigation.emit('next');
+        fixture.detectChanges();
+
+        const nextDate = shiftEpgDateKey(getTodayEpgDateKey(), 'next');
+        expect(component.selectedLiveEpgDate()).toBe(nextDate);
+        expect(epgList.selectedDate()).toBe(nextDate);
+    });
+
+    it('wraps inline portal EPG in the live panel without date navigation', async () => {
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(true);
+        const item = buildLiveItem('xtream');
+        streamResolver.resolveLiveDetail.mockResolvedValue({
+            epgMode: 'portal',
+            playback: {
+                streamUrl: 'https://example.com/xtream.m3u8',
+                title: 'Xtream Live',
+            },
+            epgItems: [buildCurrentEpgItem('Xtream Now')],
+        });
+        recentData.recordLivePlayback.mockResolvedValue({
+            ...item,
+            viewedAt: '2026-03-26T12:00:00.000Z',
+        });
+
+        fixture.componentRef.setInput('items', [item]);
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        await component.onChannelSelected(component.channelsForList()[0]);
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        const panel = fixture.debugElement.query(
+            By.directive(StubLiveEpgPanelComponent)
+        ).componentInstance as StubLiveEpgPanelComponent;
+
+        expect(panel.showDateNavigator()).toBe(false);
+        expect(panel.summary()).toEqual(
+            expect.objectContaining({ title: 'Xtream Now' })
+        );
+        expect(
+            fixture.nativeElement.querySelector('app-epg-view')
+        ).not.toBeNull();
+
+        panel.collapsedChange.emit(true);
+        fixture.detectChanges();
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(localStorage.getItem('live-epg-panel-state')).toBe('collapsed');
     });
 
     it('does not wait for M3U program lookup before opening playback', async () => {
@@ -551,6 +745,18 @@ function buildProgram(title: string): EpgProgram {
     };
 }
 
+function buildCurrentProgram(title: string): EpgProgram {
+    const now = Date.now();
+    return {
+        start: new Date(now - 10 * 60 * 1000).toISOString(),
+        stop: new Date(now + 10 * 60 * 1000).toISOString(),
+        channel: 'test-channel',
+        title,
+        desc: `${title} description`,
+        category: null,
+    };
+}
+
 function buildEpgItem(title: string): EpgItem {
     return {
         id: '1',
@@ -564,6 +770,26 @@ function buildEpgItem(title: string): EpgItem {
         channel_id: '1',
         start_timestamp: '1774522800',
         stop_timestamp: '1774526400',
+    };
+}
+
+function buildCurrentEpgItem(title: string): EpgItem {
+    const now = Date.now();
+    const start = now - 10 * 60 * 1000;
+    const stop = now + 10 * 60 * 1000;
+
+    return {
+        id: '1',
+        epg_id: '',
+        title,
+        description: `${title} description`,
+        lang: '',
+        start: new Date(start).toISOString(),
+        end: new Date(stop).toISOString(),
+        stop: new Date(stop).toISOString(),
+        channel_id: '1',
+        start_timestamp: String(Math.floor(start / 1000)),
+        stop_timestamp: String(Math.floor(stop / 1000)),
     };
 }
 

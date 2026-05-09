@@ -5,6 +5,9 @@ interface NodeModule {
 }
 
 import {
+    EmbeddedMpvBounds,
+    EmbeddedMpvSession,
+    EmbeddedMpvSupport,
     EpgChannel,
     EpgChannelMetadata,
     EpgProgram,
@@ -14,6 +17,7 @@ import {
     PlaylistRefreshEvent,
     PlaylistRefreshPayload,
     PortalDebugEvent,
+    ResolvedPortalPlayback,
     XtreamBackupFavoriteItem,
     XtreamBackupHiddenCategory,
     XtreamBackupRecentlyViewedItem,
@@ -51,7 +55,8 @@ declare global {
                 filePath: string,
                 title: string
             ) => Promise<Playlist>;
-            openPlaylistFromFile: () => Promise<Playlist>;
+            openPlaylistFromFile: () => Promise<Playlist | null>;
+            getPathForFile: (file: File) => string;
             saveFileDialog: (
                 defaultPath: string,
                 filters?: { name: string; extensions: string[] }[]
@@ -90,6 +95,9 @@ declare global {
                 skipped?: string[];
             }>;
             getChannelPrograms: (channelId: string) => Promise<EpgProgram[]>;
+            getCurrentProgramsBatch: (
+                channelIds: string[]
+            ) => Promise<Record<string, EpgProgram | null>>;
             getEpgChannelMetadata: (
                 channelIds: string[]
             ) => Promise<Record<string, EpgChannelMetadata | null>>;
@@ -273,6 +281,9 @@ declare global {
                 contentId: number,
                 playlistId: string
             ) => Promise<{ success: boolean }>;
+            dbRemoveRecentItemsBatch: (
+                items: { contentId: number; playlistId: string }[]
+            ) => Promise<{ success: boolean; count: number }>;
             dbGetContentByXtreamId: (
                 xtreamId: number,
                 playlistId: string,
@@ -321,9 +332,58 @@ declare global {
                     originalError: string;
                 }) => void
             ) => void;
+            onEmbeddedMpvSessionUpdate?: (
+                callback: (data: EmbeddedMpvSession) => void
+            ) => () => void;
             onExternalPlayerSessionUpdate?: (
                 callback: (data: ExternalPlayerSession) => void
             ) => () => void;
+            getEmbeddedMpvSupport: () => Promise<EmbeddedMpvSupport>;
+            prepareEmbeddedMpv?: () => Promise<EmbeddedMpvSupport>;
+            createEmbeddedMpvSession: (
+                bounds: EmbeddedMpvBounds,
+                title?: string,
+                initialVolume?: number
+            ) => Promise<EmbeddedMpvSession>;
+            loadEmbeddedMpvPlayback: (
+                sessionId: string,
+                playback: ResolvedPortalPlayback
+            ) => Promise<void>;
+            setEmbeddedMpvBounds: (
+                sessionId: string,
+                bounds: EmbeddedMpvBounds
+            ) => Promise<void>;
+            setEmbeddedMpvPaused: (
+                sessionId: string,
+                paused: boolean
+            ) => Promise<EmbeddedMpvSession | null>;
+            seekEmbeddedMpv: (
+                sessionId: string,
+                seconds: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvVolume: (
+                sessionId: string,
+                volume: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvAudioTrack: (
+                sessionId: string,
+                trackId: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvSubtitleTrack?: (
+                sessionId: string,
+                trackId: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvSpeed?: (
+                sessionId: string,
+                speed: number
+            ) => Promise<EmbeddedMpvSession | null>;
+            setEmbeddedMpvAspect?: (
+                sessionId: string,
+                aspect: string
+            ) => Promise<EmbeddedMpvSession | null>;
+            disposeEmbeddedMpvSession: (
+                sessionId: string
+            ) => Promise<EmbeddedMpvSession | null>;
             getLocalIpAddresses: () => Promise<string[]>;
             // EPG progress listener
             onEpgProgress?: (

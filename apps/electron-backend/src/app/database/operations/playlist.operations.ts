@@ -248,26 +248,28 @@ export async function upsertAppPlaylists(
         return { success: true, count: 0 };
     }
 
-    let count = 0;
+    const rows = playlists
+        .map((playlist) => buildPlaylistRow(playlist))
+        .filter((row): row is NonNullable<typeof row> => row !== null);
 
-    for (const playlist of playlists) {
-        const row = buildPlaylistRow(playlist);
-        if (!row) {
-            continue;
-        }
-
-        await db
-            .insert(schema.playlists)
-            .values(row)
-            .onConflictDoUpdate({
-                target: schema.playlists.id,
-                set: row,
-            });
-
-        count += 1;
+    if (rows.length === 0) {
+        return { success: true, count: 0 };
     }
 
-    return { success: true, count };
+    await db.transaction((tx) => {
+        for (const row of rows) {
+            tx
+                .insert(schema.playlists)
+                .values(row)
+                .onConflictDoUpdate({
+                    target: schema.playlists.id,
+                    set: row,
+                })
+                .run();
+        }
+    });
+
+    return { success: true, count: rows.length };
 }
 
 export async function getAppPlaylists(db: AppDatabase) {
@@ -395,7 +397,9 @@ export async function deletePlaylist(
 
         for (const chunk of chunkValues(ids, DEFAULT_BATCH_SIZE)) {
             await checkpointOperation(control);
-            await db.delete(table).where(inArray(column, chunk));
+            await db.transaction((tx) => {
+                tx.delete(table).where(inArray(column, chunk)).run();
+            });
             current += chunk.length;
             await reportOperationProgress(control, {
                 phase,

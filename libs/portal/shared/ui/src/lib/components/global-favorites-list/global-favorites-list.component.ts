@@ -7,11 +7,20 @@ import {
     ChangeDetectionStrategy,
     Component,
     computed,
+    inject,
     input,
     output,
+    signal,
+    viewChild,
 } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
 import { MatIconModule } from '@angular/material/icon';
-import { ChannelListItemComponent } from 'components';
+import { MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
+import {
+    ChannelDetailsDialogComponent,
+    ChannelListItemComponent,
+} from 'components';
+import { SettingsStore } from 'services';
 import { EpgProgram } from 'shared-interfaces';
 import {
     DEFAULT_FAVORITES_CHANNEL_SORT_MODE,
@@ -26,6 +35,8 @@ export interface EnrichedUnifiedFavorite extends UnifiedFavoriteChannel {
     progressPercentage: number;
 }
 
+export type GlobalFavoritesListMode = 'favorites' | 'recent';
+
 @Component({
     selector: 'app-global-favorites-list',
     templateUrl: './global-favorites-list.component.html',
@@ -35,11 +46,23 @@ export interface EnrichedUnifiedFavorite extends UnifiedFavoriteChannel {
         ChannelListItemComponent,
         DragDropModule,
         MatIconModule,
+        MatMenuModule,
         TranslateModule,
     ],
 })
 export class GlobalFavoritesListComponent {
+    private readonly dialog = inject(MatDialog);
+    private readonly settingsStore = inject(SettingsStore);
+
+    readonly contextMenuTrigger =
+        viewChild.required<MatMenuTrigger>('contextMenuTrigger');
+    readonly openStreamOnDoubleClick = computed(() =>
+        this.settingsStore.openStreamOnDoubleClick()
+    );
+
     readonly channels = input.required<UnifiedFavoriteChannel[]>();
+    readonly mode = input<GlobalFavoritesListMode>('favorites');
+    readonly favoriteUids = input<ReadonlySet<string>>(new Set<string>());
     readonly epgMap = input<Map<string, EpgProgram | null>>(new Map());
     readonly progressTick = input<number>(0);
     readonly activeUid = input<string | null>(null);
@@ -50,12 +73,24 @@ export class GlobalFavoritesListComponent {
     );
 
     readonly channelSelected = output<UnifiedFavoriteChannel>();
+    readonly playbackRequested = output<UnifiedFavoriteChannel>();
     readonly channelsReordered = output<UnifiedFavoriteChannel[]>();
     readonly favoriteToggled = output<UnifiedFavoriteChannel>();
+    readonly removeRequested = output<UnifiedFavoriteChannel>();
+
+    readonly contextMenuChannel = signal<EnrichedUnifiedFavorite | null>(null);
+    readonly contextMenuPosition = signal({
+        x: '0px',
+        y: '0px',
+    });
 
     readonly isCustomSort = computed(() => this.sortMode() === 'custom');
     readonly canDragDrop = computed(
-        () => this.draggable() && this.isCustomSort() && !this.hasSearchTerm()
+        () =>
+            this.mode() === 'favorites' &&
+            this.draggable() &&
+            this.isCustomSort() &&
+            !this.hasSearchTerm()
     );
 
     readonly hasSearchTerm = computed(
@@ -72,10 +107,13 @@ export class GlobalFavoritesListComponent {
             ? channels.filter((ch) => ch.name.toLowerCase().includes(term))
             : channels;
 
-        const sorted = sortFavoriteChannelItems(filtered, this.sortMode(), {
-            getName: (ch) => ch.name,
-            getAddedAt: (ch) => ch.addedAt,
-        });
+        const sorted =
+            this.mode() === 'favorites'
+                ? sortFavoriteChannelItems(filtered, this.sortMode(), {
+                      getName: (ch) => ch.name,
+                      getAddedAt: (ch) => ch.addedAt,
+                  })
+                : filtered;
 
         return sorted.map((ch) => {
             const epgKey = ch.tvgId?.trim() || ch.name?.trim();
@@ -94,8 +132,68 @@ export class GlobalFavoritesListComponent {
         this.channelSelected.emit(channel);
     }
 
+    onChannelActivate(channel: UnifiedFavoriteChannel): void {
+        if (this.openStreamOnDoubleClick()) {
+            this.playbackRequested.emit(channel);
+        }
+    }
+
     onFavoriteToggled(channel: UnifiedFavoriteChannel): void {
         this.favoriteToggled.emit(channel);
+    }
+
+    onChannelContextMenu(
+        channel: EnrichedUnifiedFavorite,
+        event: MouseEvent
+    ): void {
+        this.contextMenuChannel.set(channel);
+        this.contextMenuPosition.set({
+            x: `${event.clientX}px`,
+            y: `${event.clientY}px`,
+        });
+
+        const trigger = this.contextMenuTrigger();
+        if (trigger.menuOpen) {
+            trigger.closeMenu();
+        }
+
+        queueMicrotask(() => {
+            this.contextMenuTrigger().openMenu();
+        });
+    }
+
+    hasChannelContextMenu(channel: UnifiedFavoriteChannel): boolean {
+        return Boolean(channel.m3uChannel) || this.mode() === 'recent';
+    }
+
+    openChannelDetails(): void {
+        const channel = this.contextMenuChannel()?.m3uChannel;
+        if (!channel) {
+            return;
+        }
+
+        this.contextMenuTrigger().closeMenu();
+        this.dialog.open(ChannelDetailsDialogComponent, {
+            data: channel,
+            maxWidth: '720px',
+            width: 'calc(100vw - 32px)',
+        });
+    }
+
+    removeContextMenuChannel(): void {
+        const channel = this.contextMenuChannel();
+        if (!channel) {
+            return;
+        }
+
+        this.contextMenuTrigger().closeMenu();
+        this.removeRequested.emit(channel);
+    }
+
+    isChannelFavorite(channel: UnifiedFavoriteChannel): boolean {
+        return (
+            this.mode() === 'favorites' || this.favoriteUids().has(channel.uid)
+        );
     }
 
     onDrop(event: CdkDragDrop<EnrichedUnifiedFavorite[]>): void {

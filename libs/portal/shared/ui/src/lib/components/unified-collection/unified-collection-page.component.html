@@ -19,21 +19,11 @@
     </div>
     @if (selectedContentType() === 'live') {
         <div class="skeleton-list">
-            @for (row of skeletonRows; track row) {
-                <div class="list-skeleton-row" aria-hidden="true">
-                    <span class="list-skeleton-handle"></span>
-                    <span class="list-skeleton-avatar"></span>
-                    <div class="list-skeleton-text">
-                        <span
-                            class="grid-skeleton-line grid-skeleton-line--primary"
-                        ></span>
-                        <span
-                            class="grid-skeleton-line grid-skeleton-line--secondary"
-                        ></span>
-                    </div>
-                    <span class="list-skeleton-star"></span>
-                </div>
-            }
+            <app-channel-list-skeleton
+                [count]="12"
+                [showEpg]="true"
+                [actionCount]="1"
+            />
         </div>
     } @else {
         <div class="skeleton-grid">
@@ -86,6 +76,27 @@
                     </button>
                 }
             </mat-menu>
+        }
+
+        @if (showSidebarToggle()) {
+            <button
+                type="button"
+                mat-icon-button
+                class="collection-sidebar-toggle"
+                [attr.aria-label]="
+                    (isSidebarCollapsed()
+                        ? 'LAYOUT.SHOW_CHANNELS_LIST'
+                        : 'LAYOUT.HIDE_CHANNELS_LIST'
+                    ) | translate
+                "
+                [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+                [attr.aria-pressed]="isSidebarCollapsed()"
+                (click)="toggleSidebar()"
+            >
+                <mat-icon>{{
+                    isSidebarCollapsed() ? 'chevron_right' : 'chevron_left'
+                }}</mat-icon>
+            </button>
         }
 
         <div class="collection-header-toggles">
@@ -172,8 +183,11 @@
                     [mode]="mode()"
                     [searchTerm]="workspaceSearchTerm()"
                     [autoOpenItem]="pendingAutoOpenLiveItem()"
+                    [favoriteUids]="favoriteUidSet()"
                     [sortMode]="favSortMode()"
+                    [isSidebarCollapsed]="isSidebarCollapsed()"
                     (removeItem)="onRemoveItem($event)"
+                    (favoriteToggled)="onFavoriteToggled($event)"
                     (reorderItems)="onReorder($event)"
                     (itemPlayed)="onItemPlayed($event)"
                     (autoOpenHandled)="onLiveAutoOpenHandled()"

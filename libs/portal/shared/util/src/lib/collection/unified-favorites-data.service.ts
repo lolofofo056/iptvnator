@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
-import { selectAllPlaylistsMeta } from 'm3u-state';
+import { PlaylistActions, selectAllPlaylistsMeta } from 'm3u-state';
 import { firstValueFrom, map } from 'rxjs';
 import { DatabaseService, PlaylistsService } from 'services';
 import {
@@ -32,6 +32,11 @@ const GLOBAL_FAVORITES_ORDER_KEY = 'global-favorites-channel-order-v1';
 type PlaylistWithChannels = Playlist & {
     readonly playlist?: { readonly items?: Channel[] };
 };
+type StalkerPortalFavoriteItem = StalkerPortalItem & {
+    category_id?: string;
+    raw?: string;
+    [key: string]: unknown;
+};
 
 @Injectable({ providedIn: 'root' })
 export class UnifiedFavoritesDataService {
@@ -51,6 +56,20 @@ export class UnifiedFavoritesDataService {
         return this.getAllFavorites();
     }
 
+    async addFavorite(item: UnifiedCollectionItem): Promise<void> {
+        switch (item.sourceType) {
+            case 'm3u':
+                await this.addM3uFavorite(item);
+                break;
+            case 'xtream':
+                await this.addXtreamFavorite(item);
+                break;
+            case 'stalker':
+                await this.addStalkerFavorite(item);
+                break;
+        }
+    }
+
     async removeFavorite(item: UnifiedCollectionItem): Promise<void> {
         switch (item.sourceType) {
             case 'm3u': {
@@ -63,24 +82,118 @@ export class UnifiedFavoritesDataService {
                             favoriteId !== item.streamUrl &&
                             favoriteId !== item.channelId
                     );
-                await firstValueFrom(
-                    this.playlistsService.setFavorites(item.playlistId, filtered)
-                );
+                await this.setM3uFavorites(item.playlistId, filtered);
                 break;
             }
             case 'xtream':
                 if (window.electron && item.contentId != null) {
-                    await window.electron.dbRemoveFavorite(item.contentId, item.playlistId);
+                    await window.electron.dbRemoveFavorite(
+                        item.contentId,
+                        item.playlistId
+                    );
                 }
                 break;
             case 'stalker': {
                 const sourceItemId = item.uid.split('::')[2];
                 await firstValueFrom(
-                    this.playlistsService.removeFromPortalFavorites(item.playlistId, sourceItemId)
+                    this.playlistsService.removeFromPortalFavorites(
+                        item.playlistId,
+                        sourceItemId
+                    )
                 );
                 break;
             }
         }
+    }
+
+    private async addM3uFavorite(item: UnifiedCollectionItem): Promise<void> {
+        const favoriteId = item.streamUrl ?? item.channelId;
+        if (!favoriteId) {
+            return;
+        }
+
+        const playlist = await firstValueFrom(
+            this.playlistsService.getPlaylistById(item.playlistId)
+        ) as Playlist | undefined;
+        const currentFavorites = Array.isArray(playlist?.favorites)
+            ? playlist.favorites.filter(
+                  (favorite): favorite is string =>
+                      typeof favorite === 'string'
+              )
+            : [];
+
+        if (currentFavorites.includes(favoriteId)) {
+            return;
+        }
+
+        await this.setM3uFavorites(item.playlistId, [
+            ...currentFavorites,
+            favoriteId,
+        ]);
+    }
+
+    private async addXtreamFavorite(item: UnifiedCollectionItem): Promise<void> {
+        if (!window.electron) {
+            return;
+        }
+
+        const contentId =
+            item.contentId ??
+            (item.xtreamId != null
+                ? (
+                      await this.dbService.getContentByXtreamId(
+                          item.xtreamId,
+                          item.playlistId,
+                          item.contentType
+                      )
+                  )?.id
+                : null);
+
+        if (contentId == null) {
+            return;
+        }
+
+        await window.electron.dbAddFavorite(
+            contentId,
+            item.playlistId,
+            item.posterUrl ?? item.logo ?? undefined
+        );
+    }
+
+    private async addStalkerFavorite(
+        item: UnifiedCollectionItem
+    ): Promise<void> {
+        const stalkerItem: StalkerPortalItem =
+            (item.stalkerItem as StalkerPortalItem | undefined) ?? {};
+        const favorite: StalkerPortalFavoriteItem = {
+            ...stalkerItem,
+            id:
+                item.stalkerId ??
+                extractStalkerItemId(stalkerItem) ??
+                item.uid.split('::')[2],
+            cmd: item.stalkerCmd ?? stalkerItem.cmd,
+            title: item.name,
+            name: stalkerItem.name ?? item.name,
+            o_name: stalkerItem.o_name ?? item.name,
+            category_id: String(
+                item.categoryId ?? stalkerItem.category_id ?? 'itv'
+            ),
+            cover:
+                stalkerItem.cover ??
+                item.logo ??
+                item.posterUrl ??
+                undefined,
+            logo:
+                stalkerItem.logo ??
+                item.logo ??
+                item.posterUrl ??
+                undefined,
+            added_at: new Date().toISOString(),
+        };
+
+        await firstValueFrom(
+            this.playlistsService.addPortalFavorite(item.playlistId, favorite)
+        );
     }
 
     async clearFavorites(items: UnifiedCollectionItem[]): Promise<void> {
@@ -114,13 +227,11 @@ export class UnifiedFavoritesDataService {
             options.playlistId &&
             options.portalType === 'm3u'
         ) {
-            await firstValueFrom(
-                this.playlistsService.setFavorites(
-                    options.playlistId,
-                    items
-                        .map((item) => item.streamUrl ?? item.channelId ?? '')
-                        .filter((value) => value.length > 0)
-                )
+            await this.setM3uFavorites(
+                options.playlistId,
+                items
+                    .map((item) => item.streamUrl ?? item.channelId ?? '')
+                    .filter((value) => value.length > 0)
             );
             return;
         }
@@ -221,12 +332,7 @@ export class UnifiedFavoritesDataService {
                         (favorite) => !targetIds.has(favorite.trim())
                     );
 
-                    await firstValueFrom(
-                        this.playlistsService.setFavorites(
-                            playlistId,
-                            nextFavorites
-                        )
-                    );
+                    await this.setM3uFavorites(playlistId, nextFavorites);
                 }
             )
         );
@@ -353,6 +459,7 @@ export class UnifiedFavoritesDataService {
                     streamUrl: channel.url,
                     channelId: channel.id,
                     radio: channel.radio,
+                    m3uChannel: channel,
                     tvgId: channel.tvg?.id || channel.tvg?.name || channel.name,
                     addedAt: new Date(0).toISOString(),
                     position: index,
@@ -491,6 +598,23 @@ export class UnifiedFavoritesDataService {
         try {
             await window.electron.dbSetAppState(GLOBAL_FAVORITES_ORDER_KEY, JSON.stringify(uidOrder));
         } catch { /* ignore */ }
+    }
+
+    private async setM3uFavorites(
+        playlistId: string,
+        favorites: string[]
+    ): Promise<void> {
+        await firstValueFrom(
+            this.playlistsService.setFavorites(playlistId, favorites)
+        );
+        this.store.dispatch(
+            PlaylistActions.updatePlaylistMeta({
+                playlist: {
+                    _id: playlistId,
+                    favorites,
+                } as PlaylistMeta,
+            })
+        );
     }
 
     private applyOrder(items: UnifiedCollectionItem[], savedOrder: string[]): UnifiedCollectionItem[] {

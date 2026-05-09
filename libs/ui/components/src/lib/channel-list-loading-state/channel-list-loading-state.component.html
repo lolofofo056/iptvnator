@@ -40,26 +40,11 @@
                 </header>
 
                 <div class="groups-loading-content__list">
-                    @for (row of channelRows; track row) {
-                        <div class="channel-loading-row">
-                            <span
-                                class="list-skeleton-avatar channel-loading-row__logo"
-                            ></span>
-                            <span class="channel-loading-row__text">
-                                <span
-                                    class="grid-skeleton-line channel-loading-row__title"
-                                    [style.width.%]="channelTitleWidths[row]"
-                                ></span>
-                                <span
-                                    class="grid-skeleton-line channel-loading-row__meta"
-                                    [style.width.%]="channelMetaWidths[row]"
-                                ></span>
-                            </span>
-                            <span
-                                class="list-skeleton-star channel-loading-row__favorite"
-                            ></span>
-                        </div>
-                    }
+                    <app-channel-list-skeleton
+                        [count]="9"
+                        [showEpg]="true"
+                        [actionCount]="2"
+                    />
                 </div>
             </section>
         </div>
@@ -71,27 +56,12 @@
                 </div>
             </div>
 
-            <div class="channels-loading-state__list" aria-hidden="true">
-                @for (row of channelRows; track row) {
-                    <div class="channel-loading-row">
-                        <span
-                            class="list-skeleton-avatar channel-loading-row__logo"
-                        ></span>
-                        <span class="channel-loading-row__text">
-                            <span
-                                class="grid-skeleton-line channel-loading-row__title"
-                                [style.width.%]="channelTitleWidths[row]"
-                            ></span>
-                            <span
-                                class="grid-skeleton-line channel-loading-row__meta"
-                                [style.width.%]="channelMetaWidths[row]"
-                            ></span>
-                        </span>
-                        <span
-                            class="list-skeleton-star channel-loading-row__favorite"
-                        ></span>
-                    </div>
-                }
+            <div class="channels-loading-state__list">
+                <app-channel-list-skeleton
+                    [count]="9"
+                    [showEpg]="true"
+                    [actionCount]="2"
+                />
             </div>
         </div>
     }

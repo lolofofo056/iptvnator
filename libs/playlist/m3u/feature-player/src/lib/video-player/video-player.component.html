@@ -1,5 +1,6 @@
 <div
     class="sidebar"
+    [class.sidebar-collapsed]="isSidebarCollapsed()"
     appResizable
     [minWidth]="sidebarMinWidth"
     [maxWidth]="sidebarMaxWidth"
@@ -9,6 +10,19 @@
     (widthChange)="onSidebarWidthChange($event)"
     (resizeEnd)="onSidebarResizeEnd($event)"
 >
+    @if (activeView() !== 'groups' && activeView() !== 'all') {
+        <button
+            mat-icon-button
+            type="button"
+            class="sidebar-collapse-toggle"
+            [attr.aria-label]="'LAYOUT.HIDE_CHANNELS_LIST' | translate"
+            [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+            [attr.aria-pressed]="isSidebarCollapsed()"
+            (click)="toggleSidebar()"
+        >
+            <mat-icon>chevron_left</mat-icon>
+        </button>
+    }
     @defer {
         <app-sidebar
             [channels]="(channels$ | async)!"
@@ -17,7 +31,10 @@
             [activeView]="activeView()"
             [sidebarWidth]="sidebarWidth()"
             (sidebarWidthRequested)="onGroupedSidebarWidthRequested($event)"
-            (sidebarWidthRequestEnded)="onGroupedSidebarWidthRequestEnded($event)"
+            (sidebarWidthRequestEnded)="
+                onGroupedSidebarWidthRequestEnded($event)
+            "
+            (sidebarToggleRequested)="toggleSidebar()"
         />
     } @loading {
         <app-channel-list-loading-state [view]="activeView()" />
@@ -27,15 +44,33 @@
 </div>
 
 <div class="content-container">
+    @if (isSidebarCollapsed()) {
+        <button
+            mat-icon-button
+            type="button"
+            class="sidebar-restore"
+            [attr.aria-label]="'LAYOUT.SHOW_CHANNELS_LIST' | translate"
+            [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+            [attr.aria-pressed]="isSidebarCollapsed()"
+            (click)="toggleSidebar()"
+        >
+            <mat-icon>chevron_right</mat-icon>
+        </button>
+    }
     @if (activeChannel(); as activeChannel) {
         @let playbackTarget = playbackChannel();
-        @if (activeChannel.radio === 'true' || shouldShowInlinePlayer(activeChannel)) {
+        @if (
+            activeChannel.radio === 'true' ||
+            shouldShowInlinePlayer(activeChannel)
+        ) {
             <div class="video-player">
                 @if (activeChannel.radio === 'true') {
                     <app-audio-player
                         [url]="activeChannel.url"
                         [icon]="activeChannel?.tvg?.logo!"
-                        [channelName]="activeChannel.name || activeChannel?.tvg?.name || ''"
+                        [channelName]="
+                            activeChannel.name || activeChannel?.tvg?.name || ''
+                        "
                     />
                 } @else {
                     @if (playerSettings.player === 'videojs') {
@@ -68,17 +103,58 @@
                             [showCaptions]="playerSettings.showCaptions!"
                         />
                     }
+                    @if (playerSettings.player === 'embedded-mpv') {
+                        <app-web-player-view
+                            [streamUrl]="embeddedPlayback()?.streamUrl ?? ''"
+                            [title]="embeddedPlayback()?.title ?? ''"
+                            [playback]="embeddedPlayback()"
+                        />
+                    }
                 }
             </div>
         }
 
         @if (activeChannel.radio !== 'true') {
-            <div class="epg">
-                <div class="epg-content">
-                    <app-epg-list
-                        [archivePlaybackAvailable]="archivePlaybackAvailable()"
-                    />
-                </div>
+            @let canCollapseEpgPanel = shouldShowInlinePlayer(activeChannel);
+            <div
+                class="epg"
+                [class.epg-collapsed]="
+                    canCollapseEpgPanel && isLiveEpgPanelCollapsed()
+                "
+            >
+                @if (canCollapseEpgPanel) {
+                    <app-live-epg-panel
+                        [collapsed]="isLiveEpgPanelCollapsed()"
+                        [summary]="liveEpgPanelSummary()"
+                        [showDateNavigator]="true"
+                        [selectedDate]="selectedLiveEpgDate()"
+                        (collapsedChange)="
+                            onLiveEpgPanelCollapsedChange($event)
+                        "
+                        (dateNavigation)="onLiveEpgDateNavigation($event)"
+                    >
+                        <div class="epg-content">
+                            <app-epg-list
+                                [selectedDate]="selectedLiveEpgDate()"
+                                [showDateNavigator]="false"
+                                [archivePlaybackAvailable]="
+                                    archivePlaybackAvailable()
+                                "
+                                (selectedDateChange)="
+                                    onLiveEpgSelectedDateChange($event)
+                                "
+                            />
+                        </div>
+                    </app-live-epg-panel>
+                } @else {
+                    <div class="epg-content">
+                        <app-epg-list
+                            [archivePlaybackAvailable]="
+                                archivePlaybackAvailable()
+                            "
+                        />
+                    </div>
+                }
             </div>
         }
 

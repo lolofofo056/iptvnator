@@ -9,6 +9,7 @@ export type PortalRailSection =
     | 'live'
     | 'recent'
     | 'recently-added'
+    | 'radio'
     | 'search'
     | 'series'
     | 'vod';
@@ -117,6 +118,12 @@ export function buildPortalRailLinks(
                 tooltip: 'Live TV (this playlist)',
                 path: [...root, 'itv'],
                 section: 'itv',
+            },
+            {
+                icon: 'radio',
+                tooltip: 'Radio (this playlist)',
+                path: [...root, 'radio'],
+                section: 'radio',
             },
             {
                 icon: 'tv',

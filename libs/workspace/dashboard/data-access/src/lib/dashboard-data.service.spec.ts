@@ -233,6 +233,39 @@ describe('DashboardDataService', () => {
         );
     });
 
+    it('keeps the earliest matching M3U favorite id when channel id and URL both match', async () => {
+        const channel = playlistMock.playlist.items[0];
+        const channelUrl = channel.url;
+        const channelId = channel.id;
+
+        playlistsSignal.set([
+            {
+                ...createDefaultPlaylists()[0],
+                favorites: [channelUrl, channelId],
+            },
+        ]);
+        playlistsServiceMock.getPlaylistById.mockReturnValue(
+            of({
+                ...playlistMock,
+                favorites: [channelUrl, channelId],
+                playlist: {
+                    items: [channel],
+                },
+            } as Playlist)
+        );
+
+        await service.reloadGlobalFavorites();
+
+        expect(
+            service.globalFavoriteItems().find((item) => item.source === 'm3u')
+        ).toEqual(
+            expect.objectContaining({
+                id: channelUrl,
+                title: 'Channel One',
+            })
+        );
+    });
+
     it('includes Xtream movies and series in global favorite items', async () => {
         dbServiceMock.getAllGlobalFavorites.mockResolvedValue([
             {
@@ -423,9 +456,9 @@ describe('DashboardDataService', () => {
 
         await service.reloadGlobalRecentItems();
 
-        expect(service.recentPlaylists().map((playlist) => playlist._id)).toEqual(
-            ['xtream-1', 'm3u-fresh']
-        );
+        expect(
+            service.recentPlaylists().map((playlist) => playlist._id)
+        ).toEqual(['xtream-1', 'm3u-fresh']);
     });
 
     it('includes M3U, Xtream, and Stalker sources when all have recent activity', async () => {
@@ -490,9 +523,9 @@ describe('DashboardDataService', () => {
 
         await service.reloadGlobalRecentItems();
 
-        expect(service.recentPlaylists().map((playlist) => playlist._id)).toEqual(
-            ['xtream-1', 'stalker-1', 'm3u-1']
-        );
+        expect(
+            service.recentPlaylists().map((playlist) => playlist._id)
+        ).toEqual(['xtream-1', 'stalker-1', 'm3u-1']);
     });
 
     it('falls back to playlist metadata ordering when sources have no recent activity', async () => {
@@ -529,9 +562,9 @@ describe('DashboardDataService', () => {
 
         await service.reloadGlobalRecentItems();
 
-        expect(service.recentPlaylists().map((playlist) => playlist._id)).toEqual(
-            ['m3u-1', 'stalker-1', 'xtream-1']
-        );
+        expect(
+            service.recentPlaylists().map((playlist) => playlist._id)
+        ).toEqual(['m3u-1', 'stalker-1', 'xtream-1']);
     });
 
     it('maps recently added Xtream rows for the widget', async () => {

@@ -3,6 +3,7 @@
 @if (stalkerStore.selectedCategoryId()) {
     <div
         class="sidebar"
+        [class.sidebar-collapsed]="isSidebarCollapsed()"
         appResizable
         [minWidth]="250"
         [maxWidth]="600"
@@ -23,10 +24,26 @@
                     >
                 }
             </div>
+            <button
+                mat-icon-button
+                type="button"
+                [attr.aria-label]="'LAYOUT.HIDE_CHANNELS_LIST' | translate"
+                [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+                [attr.aria-pressed]="isSidebarCollapsed()"
+                (click)="toggleSidebar()"
+            >
+                <mat-icon>chevron_left</mat-icon>
+            </button>
         </div>
 
         <div #scrollContainer class="channels-list">
-            @if (searchTerm() && visibleChannels().length === 0) {
+            @if (isInitialChannelsLoading()) {
+                <app-channel-list-skeleton
+                    [count]="9"
+                    [showEpg]="false"
+                    [actionCount]="1"
+                />
+            } @else if (searchTerm() && visibleChannels().length === 0) {
                 <div class="empty-search-state">
                     <app-portal-empty-state
                         icon="search_off"
@@ -56,6 +73,7 @@
                             false
                         "
                         (clicked)="playChannel(item)"
+                        (activated)="playChannel(item, true)"
                         (favoriteToggled)="toggleFavorite(item)"
                     />
                 }
@@ -71,32 +89,83 @@
 }
 
 <div class="content-container">
+    @if (isSidebarCollapsed()) {
+        <button
+            mat-icon-button
+            type="button"
+            class="sidebar-restore"
+            [attr.aria-label]="'LAYOUT.SHOW_CHANNELS_LIST' | translate"
+            [matTooltip]="'LAYOUT.TOGGLE_SIDEBAR_TOOLTIP' | translate"
+            [attr.aria-pressed]="isSidebarCollapsed()"
+            (click)="toggleSidebar()"
+        >
+            <mat-icon>chevron_right</mat-icon>
+        </button>
+    }
     @if (!stalkerStore.selectedCategoryId()) {
         <app-portal-empty-state
             icon="live_tv"
             [message]="'PORTALS.SELECT_CATEGORY' | translate"
         />
     } @else if (stalkerStore.selectedItem()) {
-        @if (streamUrl() && isEmbeddedPlayer) {
+        @if (streamUrl() && (isEmbeddedPlayer || isRadioMode())) {
             <div class="video-player">
-                <app-web-player-view [streamUrl]="streamUrl()" />
-            </div>
-        }
-        <div class="epg">
-            <div class="epg-content">
-                @if (isLoadingEpg()) {
-                    <div class="loading-indicator">
-                        <mat-spinner diameter="24" />
-                    </div>
+                @if (isRadioMode()) {
+                    <app-audio-player
+                        [url]="streamUrl()"
+                        [icon]="activePlaybackArtwork()"
+                        [channelName]="activePlaybackTitle()"
+                        [dispatchAdjacentChannelAction]="false"
+                        (channelSwitchRequested)="
+                            handleRadioChannelSwitch($event)
+                        "
+                    />
                 } @else {
-                    <app-epg-list
-                        [controlledChannel]="controlledChannel()"
-                        [controlledPrograms]="activeEpgPrograms()"
-                        [controlledArchiveDays]="0"
+                    <app-web-player-view
+                        [streamUrl]="streamUrl()"
+                        [title]="activePlayback()?.title ?? ''"
+                        [playback]="activePlayback()"
                     />
                 }
             </div>
-        </div>
+        }
+        @if (!isRadioMode()) {
+            @let canCollapseEpgPanel = !!streamUrl() && isEmbeddedPlayer;
+            <div
+                class="epg"
+                [class.epg-collapsed]="
+                    canCollapseEpgPanel && isLiveEpgPanelCollapsed()
+                "
+            >
+                @if (canCollapseEpgPanel) {
+                    <app-live-epg-panel
+                        [collapsed]="isLiveEpgPanelCollapsed()"
+                        [summary]="liveEpgPanelSummary()"
+                        [loading]="isLoadingEpg()"
+                        [showDateNavigator]="true"
+                        [selectedDate]="selectedLiveEpgDate()"
+                        (collapsedChange)="
+                            onLiveEpgPanelCollapsedChange($event)
+                        "
+                        (dateNavigation)="onLiveEpgDateNavigation($event)"
+                    >
+                        <ng-container
+                            *ngTemplateOutlet="
+                                epgPanelContent;
+                                context: { unifiedDateNavigator: true }
+                            "
+                        />
+                    </app-live-epg-panel>
+                } @else {
+                    <ng-container
+                        *ngTemplateOutlet="
+                            epgPanelContent;
+                            context: { unifiedDateNavigator: false }
+                        "
+                    />
+                }
+            </div>
+        }
     } @else {
         <app-portal-empty-state
             icon="live_tv"
@@ -104,3 +173,26 @@
         />
     }
 </div>
+
+<ng-template #epgPanelContent let-unifiedDateNavigator="unifiedDateNavigator">
+    <div class="epg-content">
+        @if (isLoadingEpg()) {
+            <div class="loading-indicator">
+                <mat-spinner diameter="24" />
+            </div>
+        } @else {
+            <app-epg-list
+                [controlledChannel]="controlledChannel()"
+                [controlledPrograms]="activeEpgPrograms()"
+                [controlledArchiveDays]="0"
+                [selectedDate]="
+                    unifiedDateNavigator ? selectedLiveEpgDate() : null
+                "
+                [showDateNavigator]="!unifiedDateNavigator"
+                (selectedDateChange)="
+                    unifiedDateNavigator && onLiveEpgSelectedDateChange($event)
+                "
+            />
+        }
+    </div>
+</ng-template>

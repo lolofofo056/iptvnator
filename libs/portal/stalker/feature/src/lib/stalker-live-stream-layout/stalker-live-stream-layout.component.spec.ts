@@ -1,21 +1,28 @@
 import { Component, Directive, input, output, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
+    LIVE_EPG_PANEL_STATE_STORAGE_KEY,
     PORTAL_PLAYER,
     ResizableDirective,
 } from '@iptvnator/portal/shared/util';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
 import { EpgListComponent } from '@iptvnator/ui/epg';
+import { AudioPlayerComponent } from '@iptvnator/ui/playback';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { ChannelListItemComponent } from 'components';
 import { MockPipe } from 'ng-mocks';
 import { of } from 'rxjs';
-import { PlaylistsService } from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import { EpgProgram } from 'shared-interfaces';
-import { WebPlayerViewComponent } from 'shared-portals';
+import {
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
 import { StalkerLiveStreamLayoutComponent } from './stalker-live-stream-layout.component';
 
 @Component({
@@ -33,6 +40,7 @@ class StubChannelListItemComponent {
     readonly showProgramInfoButton = input(false);
     readonly isFavorite = input(false);
     readonly clicked = output<void>();
+    readonly activated = output<void>();
     readonly favoriteToggled = output<void>();
 }
 
@@ -43,6 +51,21 @@ class StubChannelListItemComponent {
 })
 class StubWebPlayerViewComponent {
     readonly streamUrl = input('');
+    readonly title = input('');
+    readonly playback = input<unknown>(null);
+}
+
+@Component({
+    selector: 'app-audio-player',
+    standalone: true,
+    template: '',
+})
+class StubAudioPlayerComponent {
+    readonly url = input.required<string>();
+    readonly icon = input('');
+    readonly channelName = input('');
+    readonly dispatchAdjacentChannelAction = input(true);
+    readonly channelSwitchRequested = output<'next' | 'previous'>();
 }
 
 @Component({
@@ -55,6 +78,27 @@ class StubEpgListComponent {
     readonly controlledPrograms = input<EpgProgram[] | null>(null);
     readonly controlledArchiveDays = input<number | null>(null);
     readonly archivePlaybackAvailable = input<boolean | null>(null);
+    readonly selectedDate = input<string | null>(null);
+    readonly showDateNavigator = input(true);
+    readonly selectedDateChange = output<string>();
+}
+
+@Component({
+    selector: 'app-live-epg-panel',
+    standalone: true,
+    template: `
+        <div class="live-epg-panel-summary">{{ summary()?.title }}</div>
+        <ng-content />
+    `,
+})
+class StubLiveEpgPanelComponent {
+    readonly collapsed = input(false);
+    readonly summary = input<LiveEpgPanelSummary | null>(null);
+    readonly loading = input(false);
+    readonly showDateNavigator = input(false);
+    readonly selectedDate = input<string | null>(null);
+    readonly collapsedChange = output<boolean>();
+    readonly dateNavigation = output<'next' | 'prev'>();
 }
 
 @Component({
@@ -79,6 +123,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
     let fetchChannelEpg: jest.Mock;
     let ensureBulkItvEpg: jest.Mock;
     let resolveItvPlayback: jest.Mock;
+    let resolveRadioPlayback: jest.Mock;
 
     const playlist = signal({
         _id: 'playlist-1',
@@ -102,6 +147,22 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             logo: 'beta.png',
         },
     ]);
+    const radioChannels = signal([
+        {
+            id: 'radio-1',
+            cmd: 'ifm https://stream.example/jazz.mp3',
+            name: 'Jazz FM',
+            o_name: 'Jazz FM',
+            logo: 'jazz.png',
+        },
+        {
+            id: 'radio-2',
+            cmd: 'ifm https://stream.example/news.mp3',
+            name: 'News Radio',
+            o_name: 'News Radio',
+            logo: 'news-radio.png',
+        },
+    ]);
     const selectedItvId = signal<string | undefined>('10001');
     const selectedItem = signal<{
         id: string;
@@ -116,12 +177,15 @@ describe('StalkerLiveStreamLayoutComponent', () => {
     const bulkItvEpgPlaylistId = signal<string | null>(null);
     const bulkItvEpgPeriodHours = signal<number | null>(null);
     const isLoadingBulkItvEpg = signal(false);
+    const hasMoreChannels = signal(false);
+    const page = signal(0);
 
     const stalkerStore = {
         getSelectedCategoryName: signal('News'),
         itvChannels,
+        radioChannels,
         searchPhrase,
-        hasMoreChannels: signal(false),
+        hasMoreChannels,
         selectedItvId,
         currentPlaylist: playlist,
         selectedItvEpgPrograms,
@@ -132,9 +196,10 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         isLoadingBulkItvEpg,
         selectedCategoryId,
         selectedItem,
-        selectedContentType: signal<'itv' | 'vod' | 'series'>('itv'),
-        page: signal(0),
+        selectedContentType: signal<'itv' | 'vod' | 'series' | 'radio'>('itv'),
+        page,
         setItvChannels: jest.fn(),
+        setRadioChannels: jest.fn(),
         setPage: jest.fn(),
         setSelectedItem: jest.fn((item) => {
             selectedItem.set(item);
@@ -144,6 +209,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             );
         }),
         resolveItvPlayback: jest.fn(),
+        resolveRadioPlayback: jest.fn(),
         fetchChannelEpg: jest.fn(),
         ensureBulkItvEpg: jest.fn(),
         clearBulkItvEpgCache: jest.fn(() => {
@@ -164,14 +230,19 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         isEmbeddedPlayer: jest.fn(() => true),
         openResolvedPlayback: jest.fn(),
     };
+    const settingsStore = {
+        openStreamOnDoubleClick: signal(false),
+    };
 
     beforeEach(async () => {
         fetchChannelEpg = stalkerStore.fetchChannelEpg;
         ensureBulkItvEpg = stalkerStore.ensureBulkItvEpg;
         resolveItvPlayback = stalkerStore.resolveItvPlayback;
+        resolveRadioPlayback = stalkerStore.resolveRadioPlayback;
 
         selectedCategoryId.set('1001');
         searchPhrase.set('');
+        stalkerStore.selectedContentType.set('itv');
         selectedItvId.set('10001');
         selectedItem.set(itvChannels()[0]);
         selectedItvEpgPrograms.set([]);
@@ -180,11 +251,24 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         bulkItvEpgPlaylistId.set(null);
         bulkItvEpgPeriodHours.set(null);
         isLoadingBulkItvEpg.set(false);
+        hasMoreChannels.set(false);
+        page.set(0);
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
+        settingsStore.openStreamOnDoubleClick.set(false);
 
         resolveItvPlayback.mockReset();
         resolveItvPlayback.mockResolvedValue({
             streamUrl: 'https://example.com/alpha.m3u8',
         });
+        resolveRadioPlayback.mockReset();
+        resolveRadioPlayback.mockResolvedValue({
+            streamUrl: 'https://stream.example/jazz.mp3',
+            title: 'Jazz FM',
+            thumbnail: 'jazz.png',
+        });
+        portalPlayer.isEmbeddedPlayer.mockReset();
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(true);
+        portalPlayer.openResolvedPlayback.mockClear();
         fetchChannelEpg.mockReset();
         fetchChannelEpg.mockResolvedValue([]);
         ensureBulkItvEpg.mockReset();
@@ -202,7 +286,15 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             );
         });
         stalkerStore.setItvChannels.mockClear();
-        stalkerStore.setPage.mockClear();
+        stalkerStore.setRadioChannels.mockClear();
+        stalkerStore.setPage.mockReset();
+        stalkerStore.setPage.mockImplementation((nextPage: number) => {
+            if (page() === nextPage) {
+                return;
+            }
+
+            page.set(nextPage);
+        });
         stalkerStore.setSelectedItem.mockClear();
         stalkerStore.clearBulkItvEpgCache.mockClear();
 
@@ -211,6 +303,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
             providers: [
                 { provide: StalkerStore, useValue: stalkerStore },
                 { provide: PlaylistsService, useValue: playlistService },
+                { provide: SettingsStore, useValue: settingsStore },
                 { provide: PORTAL_PLAYER, useValue: portalPlayer },
                 {
                     provide: TranslateService,
@@ -230,7 +323,9 @@ describe('StalkerLiveStreamLayoutComponent', () => {
                 remove: {
                     imports: [
                         ChannelListItemComponent,
+                        AudioPlayerComponent,
                         EpgListComponent,
+                        LiveEpgPanelComponent,
                         PortalEmptyStateComponent,
                         ResizableDirective,
                         TranslatePipe,
@@ -240,7 +335,9 @@ describe('StalkerLiveStreamLayoutComponent', () => {
                 add: {
                     imports: [
                         StubChannelListItemComponent,
+                        StubAudioPlayerComponent,
                         StubEpgListComponent,
+                        StubLiveEpgPanelComponent,
                         StubPortalEmptyStateComponent,
                         StubResizableDirective,
                         MockPipe(
@@ -259,6 +356,7 @@ describe('StalkerLiveStreamLayoutComponent', () => {
 
     afterEach(() => {
         fixture?.destroy();
+        localStorage.removeItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY);
     });
 
     it('renders the controlled epg list and removes the load-more button', () => {
@@ -270,6 +368,170 @@ describe('StalkerLiveStreamLayoutComponent', () => {
         expect(
             fixture.nativeElement.querySelector('.load-more-epg')
         ).toBeNull();
+    });
+
+    it('restores the collapsed live EPG panel state after embedded playback starts', async () => {
+        fixture.destroy();
+        localStorage.setItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY, 'collapsed');
+
+        fixture = TestBed.createComponent(StalkerLiveStreamLayoutComponent);
+        component = fixture.componentInstance;
+        await component.playChannel(itvChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(true);
+    });
+
+    it('persists live EPG panel toggle changes', () => {
+        component.onLiveEpgPanelCollapsedChange(true);
+
+        expect(component.isLiveEpgPanelCollapsed()).toBe(true);
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'collapsed'
+        );
+
+        component.onLiveEpgPanelCollapsedChange(false);
+
+        expect(localStorage.getItem(LIVE_EPG_PANEL_STATE_STORAGE_KEY)).toBe(
+            'expanded'
+        );
+    });
+
+    it('does not render the collapsible panel for external playback', async () => {
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        await component.playChannel(itvChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('app-live-epg-panel')
+        ).toBeNull();
+        expect(
+            fixture.nativeElement
+                .querySelector('.epg')
+                .classList.contains('epg-collapsed')
+        ).toBe(false);
+    });
+
+    it('reuses a pending playback resolution during double-click activation', async () => {
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        let resolvePlayback!: (value: { streamUrl: string }) => void;
+        resolveItvPlayback.mockReturnValue(
+            new Promise((resolve) => {
+                resolvePlayback = resolve;
+            })
+        );
+
+        const firstClick = component.playChannel(itvChannels()[0], false);
+        const secondClick = component.playChannel(itvChannels()[0], false);
+        const doubleClick = component.playChannel(itvChannels()[0], true);
+
+        expect(resolveItvPlayback).toHaveBeenCalledTimes(1);
+
+        resolvePlayback({
+            streamUrl: 'https://example.com/alpha.m3u8',
+        });
+        await Promise.all([firstClick, secondClick, doubleClick]);
+
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledTimes(1);
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledWith(
+            { streamUrl: 'https://example.com/alpha.m3u8' },
+            true
+        );
+    });
+
+    it('does not attach a dangling finally cleanup to failed playback resolution', async () => {
+        const playbackError = new Error('nothing_to_play');
+        const playbackPromise = Promise.reject(playbackError);
+        const finallySpy = jest.spyOn(playbackPromise, 'finally');
+        resolveItvPlayback.mockReturnValue(playbackPromise);
+
+        await component.playChannel(itvChannels()[0]);
+
+        expect(finallySpy).not.toHaveBeenCalled();
+    });
+
+    it('starts external playback from remote channel navigation when double-click opening is enabled', async () => {
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+        selectedItem.set(itvChannels()[0]);
+        selectedItvId.set('10001');
+
+        (
+            component as unknown as {
+                handleRemoteChannelChange(direction: 'up' | 'down'): void;
+            }
+        ).handleRemoteChannelChange('down');
+        await fixture.whenStable();
+
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledWith(
+            { streamUrl: 'https://example.com/alpha.m3u8' },
+            true
+        );
+    });
+
+    it('starts external playback from remote number selection when double-click opening is enabled', async () => {
+        settingsStore.openStreamOnDoubleClick.set(true);
+        portalPlayer.isEmbeddedPlayer.mockReturnValue(false);
+
+        (
+            component as unknown as {
+                handleRemoteControlCommand(command: {
+                    type: 'channel-select-number';
+                    number: number;
+                }): void;
+            }
+        ).handleRemoteControlCommand({
+            type: 'channel-select-number',
+            number: 2,
+        });
+        await fixture.whenStable();
+
+        expect(portalPlayer.openResolvedPlayback).toHaveBeenCalledWith(
+            { streamUrl: 'https://example.com/alpha.m3u8' },
+            true
+        );
+    });
+
+    it('renders the current EPG program in the collapsible panel summary', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+
+        await component.playChannel(itvChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector('.live-epg-panel-summary')
+                .textContent
+        ).toContain('Current Show');
+    });
+
+    it('does not reset live channels when loading the next lazy page', async () => {
+        fixture.detectChanges();
+        await fixture.whenStable();
+        await new Promise<void>((resolve) => setTimeout(resolve, 120));
+
+        page.set(0);
+        hasMoreChannels.set(true);
+        stalkerStore.setItvChannels.mockClear();
+        stalkerStore.setPage.mockClear();
+
+        component.loadMore();
+        await fixture.whenStable();
+
+        expect(page()).toBe(1);
+        expect(stalkerStore.setPage).toHaveBeenCalledWith(1);
+        expect(stalkerStore.setItvChannels).not.toHaveBeenCalled();
     });
 
     it('keeps row previews empty before bulk epg is loaded', async () => {
@@ -307,6 +569,36 @@ describe('StalkerLiveStreamLayoutComponent', () => {
 
         expect(ensureBulkItvEpg).toHaveBeenCalledTimes(1);
         expect(ensureBulkItvEpg).toHaveBeenCalledWith(168);
+    });
+
+    it('renders inline audio playback and no EPG for radio stations', async () => {
+        stalkerStore.selectedContentType.set('radio');
+        selectedCategoryId.set('radio-all');
+        selectedItem.set(null);
+        selectedItvId.set(undefined);
+        fixture.detectChanges();
+
+        await component.playChannel(radioChannels()[0]);
+        await fixture.whenStable();
+        fixture.detectChanges();
+
+        expect(resolveRadioPlayback).toHaveBeenCalledWith(radioChannels()[0]);
+        expect(resolveItvPlayback).not.toHaveBeenCalled();
+        expect(ensureBulkItvEpg).not.toHaveBeenCalled();
+        expect(fetchChannelEpg).not.toHaveBeenCalled();
+        expect(portalPlayer.openResolvedPlayback).not.toHaveBeenCalled();
+        expect(fixture.nativeElement.querySelector('app-epg-list')).toBeNull();
+        expect(
+            fixture.nativeElement.querySelector('app-audio-player')
+        ).not.toBeNull();
+
+        const audioPlayer = fixture.debugElement.query(
+            By.directive(StubAudioPlayerComponent)
+        ).componentInstance as StubAudioPlayerComponent;
+        expect(audioPlayer.url()).toBe('https://stream.example/jazz.mp3');
+        expect(audioPlayer.icon()).toBe('jazz.png');
+        expect(audioPlayer.channelName()).toBe('Jazz FM');
+        expect(audioPlayer.dispatchAdjacentChannelAction()).toBe(false);
     });
 });
 

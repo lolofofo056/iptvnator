@@ -289,6 +289,60 @@ export async function importM3uPlaylistFromNativeDialog(
     await dialog.waitFor({ state: 'detached' });
 }
 
+export async function dropM3uPlaylistOntoWorkspace(
+    page: Page,
+    filePath: string
+): Promise<void> {
+    await expect(page.locator('.workspace-shell')).toBeVisible({
+        timeout: 20000,
+    });
+
+    const inputHandle = await page.evaluateHandle(() => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.style.position = 'fixed';
+        input.style.left = '-9999px';
+        document.body.append(input);
+        return input;
+    });
+    const inputElement = inputHandle.asElement();
+    if (!inputElement) {
+        await inputHandle.dispose();
+        throw new Error('Could not create temporary file input.');
+    }
+
+    await inputElement.setInputFiles(filePath);
+
+    await page.evaluate((element) => {
+        const input = element as HTMLInputElement;
+        const file = input.files?.[0];
+        if (!file) {
+            throw new Error('Temporary file input did not receive a file.');
+        }
+
+        const target = document.querySelector('.workspace-shell');
+        if (!target) {
+            throw new Error('Workspace drop target was not found.');
+        }
+
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+
+        for (const type of ['dragenter', 'dragover', 'drop']) {
+            target.dispatchEvent(
+                new DragEvent(type, {
+                    bubbles: true,
+                    cancelable: true,
+                    dataTransfer,
+                })
+            );
+        }
+
+        input.remove();
+    }, inputElement);
+    await inputHandle.dispose();
+}
+
 export async function addXtreamPortal(
     page: Page,
     options: {

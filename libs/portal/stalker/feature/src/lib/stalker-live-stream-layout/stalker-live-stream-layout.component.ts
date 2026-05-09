@@ -1,37 +1,59 @@
+import { NgTemplateOutlet } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
+    HostListener,
     computed,
     effect,
     ElementRef,
     inject,
     OnDestroy,
     signal,
+    untracked,
     viewChild,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import {
     ChannelListItemComponent,
+    ChannelListSkeletonComponent,
     ResizableDirective,
 } from 'components';
-import { PlaylistsService } from 'services';
+import { PlaylistsService, SettingsStore } from 'services';
 import {
     Channel,
     EpgItem,
     EpgProgram,
     ResolvedPortalPlayback,
 } from 'shared-interfaces';
-import { EpgListComponent } from '@iptvnator/ui/epg';
-import { WebPlayerViewComponent } from 'shared-portals';
 import {
+    EpgDateNavigationDirection,
+    EpgListComponent,
+    getTodayEpgDateKey,
+    shiftEpgDateKey,
+} from '@iptvnator/ui/epg';
+import { AudioPlayerComponent } from '@iptvnator/ui/playback';
+import {
+    LiveEpgPanelComponent,
+    LiveEpgPanelSummary,
+    WebPlayerViewComponent,
+} from 'shared-portals';
+import {
+    LiveLayoutSidebarStateService,
     PORTAL_PLAYER,
     createLogger,
     getAdjacentChannelItem,
     getChannelItemByNumber,
+    isTypingInInput,
+    LiveEpgPanelState,
+    persistLiveEpgPanelState,
+    restoreLiveEpgPanelState,
 } from '@iptvnator/portal/shared/util';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
 import {
@@ -46,9 +68,16 @@ import {
     templateUrl: './stalker-live-stream-layout.component.html',
     styleUrls: ['./stalker-live-stream-layout.component.scss'],
     imports: [
+        AudioPlayerComponent,
         ChannelListItemComponent,
+        ChannelListSkeletonComponent,
         EpgListComponent,
+        LiveEpgPanelComponent,
+        MatButtonModule,
+        MatIconModule,
         MatProgressSpinnerModule,
+        MatTooltipModule,
+        NgTemplateOutlet,
         PortalEmptyStateComponent,
         ResizableDirective,
         TranslatePipe,
@@ -59,19 +88,30 @@ import {
 export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     readonly stalkerStore = inject(StalkerStore);
     private readonly playlistService = inject(PlaylistsService);
+    private readonly settingsStore = inject(SettingsStore);
     private readonly portalPlayer = inject(PORTAL_PLAYER);
     private readonly snackBar = inject(MatSnackBar);
     private readonly translate = inject(TranslateService);
+    private readonly liveSidebarStateService = inject(
+        LiveLayoutSidebarStateService
+    );
     private readonly logger = createLogger('StalkerLiveStream');
     readonly selectedCategoryTitle = this.stalkerStore.getSelectedCategoryName;
 
     /** Channels */
+    readonly isRadioMode = computed(
+        () => this.stalkerStore.selectedContentType() === 'radio'
+    );
     readonly itvChannels = this.stalkerStore.itvChannels;
+    readonly radioChannels = this.stalkerStore.radioChannels;
+    readonly channels = computed(() =>
+        this.isRadioMode() ? this.radioChannels() : this.itvChannels()
+    );
     readonly searchTerm = computed(() =>
         this.stalkerStore.searchPhrase().trim().toLowerCase()
     );
     readonly visibleChannels = computed(() => {
-        const channels = this.itvChannels();
+        const channels = this.channels();
         const term = this.searchTerm();
 
         if (!term) {
@@ -86,17 +126,38 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     });
     readonly hasMoreItems = this.stalkerStore.hasMoreChannels;
     readonly isLoadingMore = signal(false);
+    readonly isInitialChannelsLoading = computed(
+        () =>
+            !!this.stalkerStore.selectedCategoryId() &&
+            this.channels().length === 0 &&
+            !this.searchTerm()
+    );
 
     readonly selectedChannelId = this.stalkerStore.selectedItvId;
     protected readonly normalizeStalkerEntityId = normalizeStalkerEntityId;
+    readonly openStreamOnDoubleClick = computed(() =>
+        this.settingsStore.openStreamOnDoubleClick()
+    );
 
     /** Player */
     readonly usesEmbeddedPlayer = computed(() =>
         this.portalPlayer.isEmbeddedPlayer()
     );
     readonly activePlayback = signal<ResolvedPortalPlayback | null>(null);
-    readonly streamUrl = computed(
-        () => this.activePlayback()?.streamUrl ?? ''
+    readonly streamUrl = computed(() => this.activePlayback()?.streamUrl ?? '');
+    readonly activePlaybackTitle = computed(
+        () =>
+            this.activePlayback()?.title ||
+            this.stalkerStore.selectedItem()?.o_name ||
+            this.stalkerStore.selectedItem()?.name ||
+            ''
+    );
+    readonly activePlaybackArtwork = computed(
+        () =>
+            this.activePlayback()?.thumbnail ||
+            this.stalkerStore.selectedItem()?.logo ||
+            this.stalkerStore.selectedItem()?.cover ||
+            ''
     );
 
     /** EPG */
@@ -110,6 +171,17 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     });
     readonly currentProgram = computed(() =>
         this.findCurrentProgram(this.activeEpgPrograms())
+    );
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly isSidebarCollapsed = this.liveSidebarStateService.isCollapsed;
+    readonly liveEpgPanelSummary = computed(() =>
+        this.toLiveEpgPanelSummary(this.currentProgram())
     );
     readonly controlledChannel = computed<Channel | null>(() => {
         const selectedType = this.stalkerStore.selectedContentType();
@@ -162,6 +234,13 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     private unsubscribeRemoteChannelChange?: () => void;
     private unsubscribeRemoteCommand?: () => void;
     private epgLoadRequestId = 0;
+    private playbackRequestId = 0;
+    private playbackResolution:
+        | {
+              channelId: string;
+              promise: Promise<ResolvedPortalPlayback>;
+          }
+        | null = null;
     private lastPlaylistId: string | null | undefined = undefined;
 
     constructor() {
@@ -182,13 +261,20 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
 
         // Reset channels/page on category change
         effect(() => {
+            const contentType = this.stalkerStore.selectedContentType();
             this.stalkerStore.selectedCategoryId();
-            this.stalkerStore.setItvChannels([]);
-            this.stalkerStore.setPage(0);
-            this.clearEpgPreviewMaps();
-            this.epgLoadRequestId += 1;
-            this.fallbackEpgPrograms.set([]);
-            this.isLoadingFallbackEpg.set(false);
+            untracked(() => {
+                if (contentType === 'radio') {
+                    this.stalkerStore.setRadioChannels([]);
+                } else {
+                    this.stalkerStore.setItvChannels([]);
+                }
+                this.stalkerStore.setPage(0);
+                this.clearEpgPreviewMaps();
+                this.epgLoadRequestId += 1;
+                this.fallbackEpgPrograms.set([]);
+                this.isLoadingFallbackEpg.set(false);
+            });
         });
 
         // Reset loading state when channels load and keep preview data in sync with bulk EPG.
@@ -199,6 +285,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                 if (!this.searchTerm()) {
                     setTimeout(() => this.checkIfNeedsMoreContent(), 100);
                 }
+            }
+
+            if (this.isRadioMode()) {
+                this.clearEpgPreviewMaps();
+                this.cdr.markForCheck();
+                return;
             }
 
             this.syncBulkEpgPreviews(channels);
@@ -294,19 +386,44 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         );
     }
 
-    async playChannel(item: StalkerItvChannel) {
+    async playChannel(
+        item: StalkerItvChannel,
+        startPlayback = !this.settingsStore.openStreamOnDoubleClick()
+    ) {
+        const requestId = ++this.playbackRequestId;
+        const channelId = normalizeStalkerEntityId(item.id);
         this.stalkerStore.setSelectedItem(item);
 
         try {
-            const playback = await this.stalkerStore.resolveItvPlayback(item);
+            const isRadioMode = this.isRadioMode();
+            const playback = await this.resolvePlaybackForChannel(
+                item,
+                channelId
+            );
+            if (
+                requestId !== this.playbackRequestId ||
+                this.selectedChannelId() !== channelId
+            ) {
+                return;
+            }
+
+            if (isRadioMode) {
+                this.activePlayback.set(playback);
+                return;
+            }
+
             void this.loadEpgForChannel(item);
 
             if (this.usesEmbeddedPlayer()) {
                 this.activePlayback.set(playback);
-            } else {
+            } else if (startPlayback) {
                 void this.portalPlayer.openResolvedPlayback(playback, true);
             }
         } catch (error) {
+            if (requestId !== this.playbackRequestId) {
+                return;
+            }
+
             this.logger.error('Playback failed', error);
             const errorMessage =
                 error?.message === 'nothing_to_play'
@@ -314,6 +431,34 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                     : this.translate.instant('PORTALS.PLAYBACK_ERROR');
             this.snackBar.open(errorMessage, null, { duration: 3000 });
         }
+    }
+
+    private resolvePlaybackForChannel(
+        item: StalkerItvChannel,
+        channelId: string
+    ): Promise<ResolvedPortalPlayback> {
+        const playbackChannelId = [
+            this.stalkerStore.selectedContentType(),
+            channelId,
+        ].join(':');
+        if (this.playbackResolution?.channelId === playbackChannelId) {
+            return this.playbackResolution.promise;
+        }
+
+        const promise = this.isRadioMode()
+            ? this.stalkerStore.resolveRadioPlayback(item)
+            : this.stalkerStore.resolveItvPlayback(item);
+        this.playbackResolution = { channelId: playbackChannelId, promise };
+
+        const cleanup = () => {
+            if (this.playbackResolution?.promise === promise) {
+                this.playbackResolution = null;
+            }
+        };
+
+        void promise.then(cleanup, cleanup);
+
+        return promise;
     }
 
     toggleFavorite(item: StalkerItvChannel) {
@@ -324,7 +469,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         } else {
             this.stalkerStore.addToFavorites({
                 ...item,
-                category_id: 'itv',
+                category_id: this.isRadioMode() ? 'radio' : 'itv',
                 title: item.o_name || item.name,
                 cover: item.logo,
                 added_at: new Date().toISOString(),
@@ -338,6 +483,44 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         this.isLoadingMore.set(true);
         const nextPage = this.stalkerStore.page() + 1;
         this.stalkerStore.setPage(nextPage);
+    }
+
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
+    toggleSidebar(): void {
+        this.liveSidebarStateService.toggle();
+    }
+
+    handleRadioChannelSwitch(direction: 'next' | 'previous'): void {
+        this.handleAdjacentChannelChange(
+            direction === 'next' ? 'down' : 'up'
+        );
+    }
+
+    @HostListener('document:keydown', ['$event'])
+    handleSidebarShortcut(event: KeyboardEvent): void {
+        if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === 'b' &&
+            !isTypingInInput(event)
+        ) {
+            event.preventDefault();
+            this.toggleSidebar();
+        }
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
     }
 
     private async loadEpgForChannel(item: StalkerItvChannel) {
@@ -355,12 +538,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         try {
             if (shouldEnsureBulk) {
                 await this.stalkerStore.ensureBulkItvEpg(168);
-                if (
-                    !this.isCurrentEpgRequest(
-                        requestId,
-                        normalizedChannelId
-                    )
-                ) {
+                if (!this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                     return;
                 }
             }
@@ -373,9 +551,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             const fallbackItems = await this.stalkerStore.fetchChannelEpg(
                 item.id
             );
-            if (
-                !this.isCurrentEpgRequest(requestId, normalizedChannelId)
-            ) {
+            if (!this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                 return;
             }
 
@@ -386,15 +562,11 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             );
         } catch (error) {
             this.logger.warn('Failed to load Stalker live EPG', error);
-            if (
-                this.isCurrentEpgRequest(requestId, normalizedChannelId)
-            ) {
+            if (this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                 this.fallbackEpgPrograms.set([]);
             }
         } finally {
-            if (
-                this.isCurrentEpgRequest(requestId, normalizedChannelId)
-            ) {
+            if (this.isCurrentEpgRequest(requestId, normalizedChannelId)) {
                 this.isLoadingFallbackEpg.set(false);
             }
         }
@@ -505,10 +677,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
         }
     }
 
-    private toProgram(
-        item: EpgItem,
-        channelId: string | number
-    ): EpgProgram {
+    private toProgram(item: EpgItem, channelId: string | number): EpgProgram {
         return {
             start: item.start,
             stop: item.stop || item.end,
@@ -521,6 +690,20 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                 item.stop_timestamp,
                 item.stop || item.end
             ),
+        };
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgProgram | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop,
         };
     }
 
@@ -551,7 +734,12 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
                     program.stop,
                     program.stopTimestamp
                 );
-                return start !== null && stop !== null && now >= start && now < stop;
+                return (
+                    start !== null &&
+                    stop !== null &&
+                    now >= start &&
+                    now < stop
+                );
             }) ?? null
         );
     }
@@ -579,6 +767,10 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
     }
 
     private handleRemoteChannelChange(direction: 'up' | 'down'): void {
+        this.handleAdjacentChannelChange(direction);
+    }
+
+    private handleAdjacentChannelChange(direction: 'up' | 'down'): void {
         const activeItem = this.stalkerStore.selectedItem();
         if (!activeItem?.id) {
             return;
@@ -596,7 +788,7 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             return;
         }
 
-        void this.playChannel(nextItem);
+        void this.playChannel(nextItem, true);
     }
 
     private handleRemoteControlCommand(command: {
@@ -619,6 +811,6 @@ export class StalkerLiveStreamLayoutComponent implements OnDestroy {
             return;
         }
 
-        void this.playChannel(channel);
+        void this.playChannel(channel, true);
     }
 }

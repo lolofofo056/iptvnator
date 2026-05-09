@@ -1,5 +1,6 @@
 @use '../../../libs/ui/components/src/lib/resizable/resizable.scss';
 @use './settings-theme';
+@use './cover-size';
 
 // ─── Tailwind CSS ─────────────────────────────────────────────────────────────
 // Preflight is disabled in tailwind.config.js to avoid conflicts with
@@ -26,6 +27,70 @@
 @import '@fontsource/crimson-pro/700.css';
 
 // ─── Shared Components ────────────────────────────────────────────────────────
+
+// Always-visible themed scrollbar. Apply to scroll containers that should
+// reserve gutter and not rely on macOS overlay scrollbars (which auto-fade).
+// Selector is doubled (.app-scrollbar.app-scrollbar) throughout so the rules
+// outrank both component-scoped overflow declarations and the global
+// `.dark-theme ::-webkit-scrollbar` block below.
+.app-scrollbar.app-scrollbar {
+    // !important so the utility wins over component-scoped overflow rules
+    // (Angular ViewEncapsulation adds an attribute selector that pushes
+    // host specificity above the doubled class selector).
+    overflow-y: scroll !important;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--app-muted-color) 55%, transparent)
+        transparent;
+
+    &::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: color-mix(
+            in srgb,
+            var(--app-muted-color) 70%,
+            transparent
+        );
+        border-radius: 999px;
+        border: 2px solid transparent;
+        background-clip: content-box;
+        min-height: 32px;
+
+        &:hover {
+            background-color: var(--app-muted-color);
+            background-clip: content-box;
+        }
+    }
+}
+
+// Shared count-badge pill. Section headers (dashboard rails, content rails)
+// and dense list rows (category sidebars) share a single visual treatment so
+// "count" reads consistently across the app. Theme-aware via --app-muted-color.
+.app-count-badge {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--app-muted-color, #8891a4);
+    font-variant-numeric: tabular-nums;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: color-mix(
+        in srgb,
+        var(--app-muted-color, #8891a4) 18%,
+        transparent
+    );
+    letter-spacing: 0;
+}
 
 app-root.macos-platform .current-playlist {
     padding-top: 30px;

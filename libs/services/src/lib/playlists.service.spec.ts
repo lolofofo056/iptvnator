@@ -1,6 +1,6 @@
 import { firstValueFrom, of } from 'rxjs';
 import { DbStores, Playlist, PlaylistMeta } from 'shared-interfaces';
-import { PlaylistsService } from './playlists.service';
+import { PlaylistsService, resolvePlaylistParser } from './playlists.service';
 
 const SQLITE_PLAYLIST_MIGRATION_FLAG = 'm3u-playlists-indexeddb-to-sqlite-v1';
 const STALKER_PLAYLIST_METADATA_MIGRATION_FLAG =
@@ -39,6 +39,16 @@ describe('PlaylistsService', () => {
 
         return service;
     }
+
+    it('resolves the parser from a CommonJS default dynamic import shape', () => {
+        const parse = jest.fn();
+
+        expect(
+            resolvePlaylistParser({
+                default: { parse },
+            })
+        ).toBe(parse);
+    });
 
     it('migrates legacy Stalker portal flags in SQLite before returning playlists', async () => {
         let storedPlaylists: Playlist[] = [
@@ -205,6 +215,158 @@ describe('PlaylistsService', () => {
                 hiddenGroupTitles: ['Movies', 'Sports'],
             })
         );
+    });
+
+    it('removes multiple recently-viewed identities in a single PWA write', async () => {
+        const existingPlaylist: Playlist = {
+            _id: 'playlist-3',
+            title: 'Playlist Three',
+            count: 3,
+            importDate: new Date('2026-04-11T00:00:00.000Z').toISOString(),
+            lastUsage: new Date('2026-04-11T00:00:00.000Z').toISOString(),
+            autoRefresh: false,
+            recentlyViewed: [
+                {
+                    source: 'm3u',
+                    id: 'https://example.com/1.m3u8',
+                    url: 'https://example.com/1.m3u8',
+                    title: 'A',
+                    category_id: 'live',
+                    added_at: '2026-05-04T10:00:00.000Z',
+                },
+                {
+                    source: 'm3u',
+                    id: 'https://example.com/2.m3u8',
+                    url: 'https://example.com/2.m3u8',
+                    title: 'B',
+                    category_id: 'live',
+                    added_at: '2026-05-04T10:01:00.000Z',
+                },
+                {
+                    source: 'm3u',
+                    id: 'https://example.com/3.m3u8',
+                    url: 'https://example.com/3.m3u8',
+                    title: 'C',
+                    category_id: 'live',
+                    added_at: '2026-05-04T10:02:00.000Z',
+                },
+            ],
+        } as Playlist;
+        const dbService = {
+            getAll: jest.fn(() => of([])),
+            getByID: jest.fn(() => of(existingPlaylist)),
+            update: jest.fn((_storeName: string, playlist: Playlist) =>
+                of(playlist)
+            ),
+        };
+        testWindow.electron = undefined;
+
+        const service = createService(dbService);
+
+        await firstValueFrom(
+            service.removeFromPlaylistRecentlyViewedBatch('playlist-3', [
+                'https://example.com/1.m3u8',
+                'https://example.com/2.m3u8',
+            ])
+        );
+
+        expect(dbService.update).toHaveBeenCalledTimes(1);
+        expect(dbService.update).toHaveBeenCalledWith(
+            DbStores.Playlists,
+            expect.objectContaining({
+                _id: 'playlist-3',
+                recentlyViewed: [
+                    expect.objectContaining({
+                        url: 'https://example.com/3.m3u8',
+                    }),
+                ],
+            })
+        );
+    });
+
+    it('removes multiple recently-viewed identities in a single Electron upsert', async () => {
+        const existingPlaylist: Playlist = {
+            _id: 'playlist-4',
+            title: 'Playlist Four',
+            count: 0,
+            importDate: new Date('2026-04-11T00:00:00.000Z').toISOString(),
+            lastUsage: new Date('2026-04-11T00:00:00.000Z').toISOString(),
+            autoRefresh: false,
+            recentlyViewed: [
+                {
+                    source: 'm3u',
+                    id: 'https://example.com/a.m3u8',
+                    url: 'https://example.com/a.m3u8',
+                    title: 'A',
+                    category_id: 'live',
+                    added_at: '2026-05-04T10:00:00.000Z',
+                },
+                {
+                    source: 'm3u',
+                    id: 'https://example.com/b.m3u8',
+                    url: 'https://example.com/b.m3u8',
+                    title: 'B',
+                    category_id: 'live',
+                    added_at: '2026-05-04T10:01:00.000Z',
+                },
+            ],
+        } as Playlist;
+        const electron = {
+            dbGetAppPlaylist: jest.fn(async () => existingPlaylist),
+            dbGetAppPlaylists: jest.fn(async () => []),
+            dbGetAppState: jest.fn(async (key: string) =>
+                key === SQLITE_PLAYLIST_MIGRATION_FLAG ? '1' : null
+            ),
+            dbSetAppState: jest.fn(),
+            dbUpsertAppPlaylist: jest.fn(async () => undefined),
+            dbUpsertAppPlaylists: jest.fn(),
+        };
+        testWindow.electron = electron;
+
+        const service = createService();
+
+        await firstValueFrom(
+            service.removeFromPlaylistRecentlyViewedBatch('playlist-4', [
+                'https://example.com/a.m3u8',
+                'https://example.com/b.m3u8',
+            ])
+        );
+
+        expect(electron.dbUpsertAppPlaylist).toHaveBeenCalledTimes(1);
+        expect(electron.dbUpsertAppPlaylist).toHaveBeenCalledWith(
+            expect.objectContaining({
+                _id: 'playlist-4',
+                recentlyViewed: [],
+            })
+        );
+    });
+
+    it('short-circuits removeFromPlaylistRecentlyViewedBatch when identities is empty', async () => {
+        const existingPlaylist: Playlist = {
+            _id: 'playlist-5',
+            title: 'Playlist Five',
+            count: 0,
+            importDate: new Date('2026-04-11T00:00:00.000Z').toISOString(),
+            lastUsage: new Date('2026-04-11T00:00:00.000Z').toISOString(),
+            autoRefresh: false,
+            recentlyViewed: [],
+        } as Playlist;
+        const dbService = {
+            getAll: jest.fn(() => of([])),
+            getByID: jest.fn(() => of(existingPlaylist)),
+            update: jest.fn((_storeName: string, playlist: Playlist) =>
+                of(playlist)
+            ),
+        };
+        testWindow.electron = undefined;
+
+        const service = createService(dbService);
+
+        await firstValueFrom(
+            service.removeFromPlaylistRecentlyViewedBatch('playlist-5', [])
+        );
+
+        expect(dbService.update).not.toHaveBeenCalled();
     });
 
     it('keeps hiddenGroupTitles when refreshing a playlist payload', async () => {

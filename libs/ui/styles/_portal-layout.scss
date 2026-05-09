@@ -31,6 +31,22 @@
         overflow: hidden;
         position: relative;
         container-type: inline-size;
+        transition:
+            width 0.18s ease,
+            min-width 0.18s ease,
+            border-color 0.18s ease;
+
+        &.sidebar-collapsed {
+            // Beats the inline width set by the resizable directive while
+            // preserving it so uncollapsing snaps back to the previous size.
+            width: 0 !important;
+            min-width: 0 !important;
+            border-right-color: transparent;
+        }
+
+        &.sidebar-collapsed .resize-handle {
+            display: none;
+        }
 
         app-category-view {
             flex: 1;
@@ -47,6 +63,45 @@
         flex-direction: column;
         overflow: hidden;
         min-height: 0;
+        position: relative;
+    }
+
+    // ─── Floating restore handle (visible when sidebar is collapsed) ─────────
+    // Anchored top-left of .content-container so it sits in roughly the same
+    // spot as the hide toggle that lived at the sidebar header's top-right.
+    .sidebar-restore {
+        position: absolute;
+        top: 6px;
+        left: 6px;
+        // Player internals, including the radio audio stage, may use z-index
+        // 2 inside the content area. Keep the restore affordance above them
+        // for both paint order and hit testing.
+        z-index: 5;
+        background: rgba(128, 128, 128, 0.18);
+        color: var(--mat-sys-on-surface, rgba(255, 255, 255, 0.75));
+        box-shadow: none;
+        opacity: 0.7;
+        transition:
+            opacity 0.15s ease,
+            background 0.15s ease;
+
+        .mat-mdc-button-persistent-ripple,
+        .mat-mdc-button-touch-target {
+            display: none;
+        }
+
+        mat-icon {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+        }
+
+        &:hover,
+        &:focus-visible {
+            opacity: 1;
+            background: rgba(128, 128, 128, 0.32);
+        }
     }
 
     .video-player {
@@ -65,6 +120,21 @@
         flex: 1 1 0;
         min-height: 0;
         overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition:
+            flex-basis 0.18s ease,
+            min-height 0.18s ease;
+
+        &.epg-collapsed {
+            flex: 0 0 56px;
+            min-height: 56px;
+        }
+
+        > app-live-epg-panel {
+            flex: 1;
+            min-height: 0;
+        }
     }
 
     .epg-content {
@@ -74,7 +144,8 @@
         display: flex;
         flex-direction: column;
 
-        > app-epg-view {
+        > app-epg-view,
+        > app-live-epg-panel {
             flex: 1;
             min-height: 0;
         }

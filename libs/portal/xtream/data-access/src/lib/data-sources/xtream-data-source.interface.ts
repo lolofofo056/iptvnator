@@ -184,6 +184,15 @@ export interface IXtreamDataSource {
     ): Promise<XtreamCategory[] | XtreamCategoryFromDb[]>;
 
     /**
+     * Get persisted categories without contacting the Xtream API.
+     * Electron reads SQLite; PWA has no persisted DB cache and returns [].
+     */
+    getCachedCategories(
+        playlistId: string,
+        type: CategoryType
+    ): Promise<XtreamCategoryFromDb[]>;
+
+    /**
      * Get all categories including hidden (for management)
      */
     getAllCategories(
@@ -238,6 +247,15 @@ export interface IXtreamDataSource {
         | XtreamSerieItem[]
         | XtreamContentItem[]
     >;
+
+    /**
+     * Get persisted content without contacting the Xtream API.
+     * Electron reads SQLite; PWA has no persisted DB cache and returns [].
+     */
+    getCachedContent(
+        playlistId: string,
+        type: StreamType
+    ): Promise<XtreamContentItem[]>;
 
     /**
      * Save content in bulk

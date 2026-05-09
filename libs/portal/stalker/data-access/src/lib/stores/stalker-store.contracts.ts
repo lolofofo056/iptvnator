@@ -7,7 +7,7 @@ import {
     StalkerVodSource,
 } from '../models';
 
-export type StalkerContentType = 'vod' | 'series' | 'itv';
+export type StalkerContentType = 'vod' | 'series' | 'itv' | 'radio';
 
 export interface ResourceState<T> {
     value(): T;
@@ -35,6 +35,7 @@ export interface StalkerCategorySliceContract {
     vodCategories(): StalkerCategoryItem[];
     seriesCategories(): StalkerCategoryItem[];
     itvCategories(): StalkerCategoryItem[];
+    radioCategories(): StalkerCategoryItem[];
 }
 
 export interface StalkerContentFeatureStoreContract

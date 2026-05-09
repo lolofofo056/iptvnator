@@ -13,6 +13,9 @@ import {
     signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { StorageMap } from '@ngx-pwa/local-storage';
@@ -22,8 +25,11 @@ import { isM3uCatchupPlaybackSupported } from 'm3u-utils';
 import { PlaylistContextFacade } from '@iptvnator/playlist/shared/util';
 import {
     COMPONENT_OVERLAY_REF,
+    EpgDateNavigationDirection,
     EpgListComponent,
+    getTodayEpgDateKey,
     MultiEpgContainerComponent,
+    shiftEpgDateKey,
 } from '@iptvnator/ui/epg';
 import {
     ChannelActions,
@@ -39,19 +45,23 @@ import {
     Observable,
     Subscription,
     combineLatest,
-    combineLatestWith,
-    distinctUntilChanged,
     filter,
     map,
     startWith,
-    switchMap,
     take,
 } from 'rxjs';
 import {
     getAdjacentChannelItem,
     getChannelItemByNumber,
+    isTypingInInput,
     isWorkspaceLayoutRoute,
+    LiveEpgPanelState,
+    LiveSidebarState,
+    persistLiveEpgPanelState,
+    persistLiveSidebarState,
     PORTAL_EXTERNAL_PLAYBACK,
+    restoreLiveEpgPanelState,
+    restoreLiveSidebarState,
     WorkspaceHeaderContextService,
 } from '@iptvnator/portal/shared/util';
 import { PortalEmptyStateComponent } from '@iptvnator/portal/shared/ui';
@@ -61,7 +71,9 @@ import {
     HtmlVideoPlayerComponent,
     SidebarComponent,
     VjsPlayerComponent,
+    WebPlayerViewComponent,
 } from '@iptvnator/ui/playback';
+import { LiveEpgPanelComponent, LiveEpgPanelSummary } from 'shared-portals';
 import { ChannelListLoadingStateComponent } from 'components';
 import { DataService, PlaylistsService, SettingsStore } from 'services';
 import {
@@ -71,10 +83,12 @@ import {
     PLAYLIST_PARSE_BY_URL,
     M3uRecentlyViewedItem,
     PlaylistMeta,
+    ResolvedPortalPlayback,
     STORE_KEY,
     Settings,
     VideoPlayer,
 } from 'shared-interfaces';
+import { createM3uChannelPlaybackRequest } from './m3u-channel-playback-actions';
 
 const M3U_MULTI_EPG_HEADER_ACTION_ID = 'm3u-multi-epg';
 const M3U_SIDEBAR_STORAGE_KEY = 'm3u-sidebar-width';
@@ -93,11 +107,16 @@ const M3U_SIDEBAR_DEFAULT_WIDTH = 460;
         CommonModule,
         EpgListComponent,
         HtmlVideoPlayerComponent,
+        LiveEpgPanelComponent,
+        MatButtonModule,
+        MatIconModule,
+        MatTooltipModule,
         PortalEmptyStateComponent,
         ResizableDirective,
         SidebarComponent,
         TranslatePipe,
         VjsPlayerComponent,
+        WebPlayerViewComponent,
     ],
     templateUrl: './video-player.component.html',
     styleUrl: './video-player.component.scss',
@@ -145,6 +164,38 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
             epgParams: '',
         } as Channel;
     });
+    readonly embeddedPlayback = computed<ResolvedPortalPlayback | null>(() => {
+        const activeChannel = this.activeChannel();
+        const playbackTarget = this.playbackChannel();
+
+        if (!activeChannel || !playbackTarget) {
+            return null;
+        }
+
+        const headers: Record<string, string> = {};
+        if (playbackTarget.http['user-agent']) {
+            headers['User-Agent'] = playbackTarget.http['user-agent'];
+        }
+        if (playbackTarget.http.referrer) {
+            headers['Referer'] = playbackTarget.http.referrer;
+        }
+        if (playbackTarget.http.origin) {
+            headers['Origin'] = playbackTarget.http.origin;
+        }
+
+        return {
+            streamUrl: `${playbackTarget.url}${playbackTarget.epgParams ?? ''}`,
+            title:
+                activeChannel.name?.trim() ||
+                activeChannel.tvg?.name ||
+                playbackTarget.url,
+            thumbnail: activeChannel.tvg?.logo ?? null,
+            headers: Object.keys(headers).length > 0 ? headers : undefined,
+            userAgent: playbackTarget.http['user-agent'] || undefined,
+            referer: playbackTarget.http.referrer || undefined,
+            origin: playbackTarget.http.origin || undefined,
+        };
+    });
     readonly sidebarStorageKey = computed(() =>
         this.activeView() === 'groups'
             ? M3U_GROUPS_SIDEBAR_STORAGE_KEY
@@ -153,6 +204,19 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
     readonly sidebarWidth = signal(M3U_SIDEBAR_DEFAULT_WIDTH);
     readonly sidebarMinWidth = M3U_SIDEBAR_MIN_WIDTH;
     readonly sidebarMaxWidth = M3U_SIDEBAR_MAX_WIDTH;
+    readonly liveEpgPanelState = signal<LiveEpgPanelState>(
+        restoreLiveEpgPanelState()
+    );
+    readonly selectedLiveEpgDate = signal(getTodayEpgDateKey());
+    readonly isLiveEpgPanelCollapsed = computed(
+        () => this.liveEpgPanelState() === 'collapsed'
+    );
+    readonly liveSidebarState = signal<LiveSidebarState>(
+        restoreLiveSidebarState()
+    );
+    readonly isSidebarCollapsed = computed(
+        () => this.liveSidebarState() === 'collapsed'
+    );
 
     /** Channels list */
     readonly channels$: Observable<Channel[]> = this.store.select(
@@ -161,6 +225,9 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 
     /** Current epg program */
     readonly epgProgram = this.store.selectSignal(selectCurrentEpgProgram);
+    readonly liveEpgPanelSummary = computed(() =>
+        this.toLiveEpgPanelSummary(this.epgProgram())
+    );
 
     /** Active M3U view (all, groups, favorites, recent) */
     readonly activeView = toSignal(
@@ -393,9 +460,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
                     }
 
                     this.store.dispatch(
-                        ChannelActions.setActiveChannel({
-                            channel: nextChannel,
-                        })
+                        createM3uChannelPlaybackRequest(nextChannel)
                     );
                 },
                 error: (err) => {
@@ -425,6 +490,30 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 
     onGroupedSidebarWidthRequestEnded(width: number): void {
         this.persistSidebarWidth(this.sidebarStorageKey(), width);
+    }
+
+    onLiveEpgPanelCollapsedChange(collapsed: boolean): void {
+        const state: LiveEpgPanelState = collapsed ? 'collapsed' : 'expanded';
+        this.liveEpgPanelState.set(state);
+        persistLiveEpgPanelState(state);
+    }
+
+    toggleSidebar(): void {
+        const next: LiveSidebarState = this.isSidebarCollapsed()
+            ? 'expanded'
+            : 'collapsed';
+        this.liveSidebarState.set(next);
+        persistLiveSidebarState(next);
+    }
+
+    onLiveEpgDateNavigation(direction: EpgDateNavigationDirection): void {
+        this.selectedLiveEpgDate.set(
+            shiftEpgDateKey(this.selectedLiveEpgDate(), direction)
+        );
+    }
+
+    onLiveEpgSelectedDateChange(selectedDate: string): void {
+        this.selectedLiveEpgDate.set(selectedDate);
     }
 
     /**
@@ -472,9 +561,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         );
 
         return this.clampSidebarWidth(
-            Number.isNaN(storedWidth)
-                ? M3U_SIDEBAR_DEFAULT_WIDTH
-                : storedWidth
+            Number.isNaN(storedWidth) ? M3U_SIDEBAR_DEFAULT_WIDTH : storedWidth
         );
     }
 
@@ -522,7 +609,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
                     _id: playlistId,
                     recentlyViewed: updatedPlaylist?.recentlyViewed ?? [],
                 } as PlaylistMeta,
-            }) as any
+            })
         );
     }
 
@@ -595,12 +682,22 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
 
     @HostListener('document:keydown', ['$event'])
     handleKeyPress(event: KeyboardEvent): void {
+        if (isTypingInInput(event)) {
+            return;
+        }
+        if (
+            (event.metaKey || event.ctrlKey) &&
+            event.key.toLowerCase() === 'b'
+        ) {
+            event.preventDefault();
+            this.toggleSidebar();
+            return;
+        }
+        if (event.metaKey || event.ctrlKey || event.altKey) {
+            return;
+        }
         // Only handle digit keys (0-9)
         if (event.key >= '0' && event.key <= '9') {
-            // Don't trigger hotkeys when user is typing in input fields
-            if (this.isTypingInInput(event)) {
-                return;
-            }
             event.preventDefault();
             this.handleChannelNumberInput(event.key);
         }
@@ -641,7 +738,7 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
             .subscribe((channel) => {
                 if (channel) {
                     this.store.dispatch(
-                        ChannelActions.setActiveChannel({ channel })
+                        createM3uChannelPlaybackRequest(channel)
                     );
                 }
             });
@@ -657,19 +754,6 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
             clearTimeout(this.channelNumberTimeout);
             this.channelNumberTimeout = undefined;
         }
-    }
-
-    /**
-     * Check if the user is currently typing in an input or textarea field
-     * @param event Keyboard event
-     * @returns true if the event target is an input or textarea element
-     */
-    private isTypingInInput(event: Event): boolean {
-        const target = event.target;
-        return (
-            target instanceof HTMLInputElement ||
-            target instanceof HTMLTextAreaElement
-        );
     }
 
     private handleRemoteControlCommand(command: {
@@ -724,6 +808,20 @@ export class VideoPlayerComponent implements OnInit, OnDestroy {
         }
 
         return !this.isExternalPlayer(this.playerSettings.player);
+    }
+
+    private toLiveEpgPanelSummary(
+        program: EpgProgram | null | undefined
+    ): LiveEpgPanelSummary | null {
+        if (!program) {
+            return null;
+        }
+
+        return {
+            title: program.title,
+            start: program.start,
+            stop: program.stop,
+        };
     }
 
     private getExternalSessionStateKey(

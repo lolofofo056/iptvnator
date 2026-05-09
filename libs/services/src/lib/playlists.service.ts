@@ -2,7 +2,6 @@
 import { inject, Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { TranslateService } from '@ngx-translate/core';
-import { parse } from 'iptv-playlist-parser';
 import {
     aggregateFavoriteChannels,
     createFavoritesPlaylist,
@@ -60,6 +59,20 @@ type PlaylistStorageElectronApi = {
 type PlaylistStorageWindow = Window & {
     electron?: PlaylistStorageElectronApi;
 };
+
+type PlaylistParserModule = Partial<typeof import('iptv-playlist-parser')> & {
+    default?: Partial<typeof import('iptv-playlist-parser')>;
+};
+
+export function resolvePlaylistParser(parserModule: PlaylistParserModule) {
+    const parse = parserModule.parse ?? parserModule.default?.parse;
+
+    if (!parse) {
+        throw new Error('iptv-playlist-parser parse export was not found');
+    }
+
+    return parse;
+}
 
 @Injectable({
     providedIn: 'root',
@@ -760,13 +773,18 @@ export class PlaylistsService {
         );
     }
 
-    handlePlaylistParsing(
+    async handlePlaylistParsing(
         uploadType: 'FILE' | 'URL' | 'TEXT',
         playlist: string,
         title: string,
         path?: string
     ) {
         try {
+            // Dynamic import keeps the ~130KB validator dep (transitively pulled
+            // by iptv-playlist-parser) out of the eager bundle. parse() only runs
+            // on user-triggered imports.
+            const parserModule = await import('iptv-playlist-parser');
+            const parse = resolvePlaylistParser(parserModule);
             const parsedPlaylist = parse(playlist);
             return createPlaylistObject(
                 title,
@@ -1011,6 +1029,44 @@ export class PlaylistsService {
                     )?.filter(
                         (item) =>
                             !this.matchesPlaylistRecentIdentity(item, identity)
+                    ),
+                };
+
+                if (this.isElectronStorageAvailable) {
+                    return this.upsertSqlitePlaylist(nextPlaylist);
+                }
+
+                return this.dbService.update(DbStores.Playlists, nextPlaylist);
+            })
+        );
+    }
+
+    removeFromPlaylistRecentlyViewedBatch(
+        playlistId: string,
+        identities: ReadonlyArray<string | number>
+    ) {
+        if (!playlistId) {
+            throw new Error('Playlist ID is required');
+        }
+
+        if (identities.length === 0) {
+            return this.getPlaylistById(playlistId);
+        }
+
+        return this.getPlaylistById(playlistId).pipe(
+            switchMap((playlist) => {
+                const nextPlaylist: Playlist = {
+                    ...playlist,
+                    recentlyViewed: (
+                        playlist.recentlyViewed as PlaylistRecentlyViewedItem[]
+                    )?.filter(
+                        (item) =>
+                            !identities.some((identity) =>
+                                this.matchesPlaylistRecentIdentity(
+                                    item,
+                                    identity
+                                )
+                            )
                     ),
                 };
 

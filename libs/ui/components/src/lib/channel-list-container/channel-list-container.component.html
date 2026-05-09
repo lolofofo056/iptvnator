@@ -1,16 +1,18 @@
 @if (channelsLoading()) {
     <app-channel-list-loading-state [view]="activeView()" />
 } @else if (displayedChannels().length) {
-    @if (viewTitle() && activeView() !== 'groups') {
+    @if (viewTitle() && activeView() !== 'groups' && activeView() !== 'all') {
         <header class="context-header">
             <div class="context-header__top">
                 <h2>{{ viewTitle() | translate }}</h2>
                 @if (
-                    activeView() === 'recent' &&
-                    recentChannelItems().length > 0
+                    activeView() === 'recent' && recentChannelItems().length > 0
                 ) {
                     <button mat-button (click)="clearRecentChannels()">
-                        {{ 'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION' | translate }}
+                        {{
+                            'WORKSPACE.SHELL.CLEAR_RECENTLY_VIEWED_SECTION'
+                                | translate
+                        }}
                     </button>
                 }
             </div>
@@ -27,11 +29,14 @@
                 [channelIconMap]="channelIconMap()"
                 [progressTick]="progressTick()"
                 [shouldShowEpg]="shouldShowEpg()"
+                [openOnDoubleClick]="openStreamOnDoubleClick()"
                 [itemSize]="itemSize()"
                 [activeChannelUrl]="activeChannelUrl()"
                 [favoriteIds]="favoriteIds()"
                 (channelSelected)="onChannelSelected($event)"
+                (channelPlaybackRequested)="onChannelPlaybackRequested($event)"
                 (favoriteToggled)="onFavoriteToggled($event)"
+                (sidebarToggleRequested)="sidebarToggleRequested.emit()"
             />
         }
         @case ('groups') {
@@ -42,17 +47,18 @@
                 [channelIconMap]="channelIconMap()"
                 [progressTick]="progressTick()"
                 [shouldShowEpg]="shouldShowEpg()"
+                [openOnDoubleClick]="openStreamOnDoubleClick()"
                 [activeChannelUrl]="activeChannelUrl()"
                 [favoriteIds]="favoriteIds()"
                 [hiddenGroupTitles]="hiddenGroupTitles()"
                 [sidebarWidth]="sidebarWidth()"
                 (channelSelected)="onChannelSelected($event)"
+                (channelPlaybackRequested)="onChannelPlaybackRequested($event)"
                 (favoriteToggled)="onFavoriteToggled($event)"
-                (hiddenGroupTitlesChanged)="
-                    onHiddenGroupTitlesChanged($event)
-                "
+                (hiddenGroupTitlesChanged)="onHiddenGroupTitlesChanged($event)"
                 (sidebarWidthRequested)="onSidebarWidthRequested($event)"
                 (sidebarWidthRequestEnded)="onSidebarWidthRequestEnded($event)"
+                (sidebarToggleRequested)="sidebarToggleRequested.emit()"
             />
         }
         @case ('favorites') {
@@ -65,8 +71,12 @@
                     [channelIconMap]="channelIconMap()"
                     [progressTick]="progressTick()"
                     [shouldShowEpg]="shouldShowEpg()"
+                    [openOnDoubleClick]="openStreamOnDoubleClick()"
                     [activeChannelUrl]="activeChannelUrl()"
                     (channelSelected)="onChannelSelected($event)"
+                    (channelPlaybackRequested)="
+                        onChannelPlaybackRequested($event)
+                    "
                     (favoriteToggled)="onFavoriteToggled($event)"
                     (favoritesReordered)="onFavoritesReordered($event)"
                 />
@@ -80,8 +90,10 @@
                 [channelIconMap]="channelIconMap()"
                 [progressTick]="progressTick()"
                 [shouldShowEpg]="shouldShowEpg()"
+                [openOnDoubleClick]="openStreamOnDoubleClick()"
                 [activeChannelUrl]="activeChannelUrl()"
                 (channelSelected)="onChannelSelected($event)"
+                (channelPlaybackRequested)="onChannelPlaybackRequested($event)"
                 (removeRecent)="removeRecentChannel($event)"
             />
         }

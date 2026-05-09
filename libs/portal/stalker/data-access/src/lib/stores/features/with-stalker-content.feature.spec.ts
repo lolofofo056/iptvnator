@@ -29,7 +29,7 @@ const PLAYLIST = {
 const TestContentStore = signalStore(
     withState({
         currentPlaylist: undefined as PlaylistMeta | undefined,
-        selectedContentType: 'vod' as 'vod' | 'series' | 'itv',
+        selectedContentType: 'vod' as 'vod' | 'series' | 'itv' | 'radio',
         selectedCategoryId: undefined as string | null | undefined,
         searchPhrase: '',
         page: 0,
@@ -39,7 +39,7 @@ const TestContentStore = signalStore(
         setCurrentPlaylist(playlist: PlaylistMeta | undefined) {
             patchState(store, { currentPlaylist: playlist });
         },
-        setSelectedContentType(type: 'vod' | 'series' | 'itv') {
+        setSelectedContentType(type: 'vod' | 'series' | 'itv' | 'radio') {
             patchState(store, { selectedContentType: type });
         },
         setSelectedCategory(id: string | null | undefined) {
@@ -222,6 +222,161 @@ describe('withStalkerContent failure states', () => {
         expect((store.isPaginatedContentFailed() as Error).message).toBe(
             'get_ordered_list failed'
         );
+    });
+
+    it('loads live TV channels page by page and appends later pages', async () => {
+        dataService.sendIpcEvent.mockImplementation(
+            (_event: unknown, payload: { params?: { p?: number } }) => {
+                const page = Number(payload.params?.p ?? 1);
+
+                return Promise.resolve({
+                    js: {
+                        data: [
+                            {
+                                id: `channel-${page}`,
+                                name: `Channel page ${page}`,
+                                category_id: '5',
+                            },
+                        ],
+                        total_items: 2,
+                    },
+                });
+            }
+        );
+
+        store.setSelectedContentType('itv');
+        store.setCategories('itv', [
+            {
+                category_id: '5',
+                category_name: 'News',
+            },
+        ]);
+        store.setSelectedCategory('5');
+        store.setCurrentPlaylist(PLAYLIST);
+        void store.isPaginatedContentLoading();
+
+        await waitForCondition(() => store.itvChannels().length === 1);
+
+        expect(dataService.sendIpcEvent).toHaveBeenLastCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetOrderedList,
+                    type: 'itv',
+                    category: '5',
+                    genre: '5',
+                    p: 1,
+                }),
+            })
+        );
+        expect(store.itvChannels().map((channel) => channel.name)).toEqual([
+            'Channel page 1',
+        ]);
+        expect(store.hasMoreChannels()).toBe(true);
+
+        store.setPage(1);
+
+        await waitForCondition(() => store.itvChannels().length === 2);
+
+        expect(dataService.sendIpcEvent).toHaveBeenLastCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetOrderedList,
+                    type: 'itv',
+                    category: '5',
+                    genre: '5',
+                    p: 2,
+                }),
+            })
+        );
+        expect(store.itvChannels().map((channel) => channel.name)).toEqual([
+            'Channel page 1',
+            'Channel page 2',
+        ]);
+        expect(store.hasMoreChannels()).toBe(false);
+    });
+
+    it('falls back to a synthetic all-radio category when radio categories are unavailable', async () => {
+        dataService.sendIpcEvent.mockRejectedValue(
+            new Error('radio categories unsupported')
+        );
+
+        store.setSelectedContentType('radio');
+        store.setCurrentPlaylist(PLAYLIST);
+        void store.isCategoryResourceLoading();
+
+        await waitForCondition(
+            () => dataService.sendIpcEvent.mock.calls.length > 0
+        );
+        await flushResources();
+
+        expect(dataService.sendIpcEvent).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetCategories,
+                    type: 'radio',
+                }),
+            })
+        );
+        expect(store.getCategoryResource()).toEqual([
+            {
+                category_id: '*',
+                category_name: 'PORTALS.ALL_RADIO',
+            },
+        ]);
+        expect(store.radioCategories()).toEqual([
+            {
+                category_id: '*',
+                category_name: 'PORTALS.ALL_RADIO',
+            },
+        ]);
+        expect(store.isCategoryResourceFailed()).toBeNull();
+    });
+
+    it('loads radio stations separately from live TV channels', async () => {
+        dataService.sendIpcEvent.mockResolvedValue({
+            js: {
+                data: [
+                    {
+                        id: 'radio-1',
+                        name: 'Jazz FM',
+                        cmd: 'ifm https://stream.example/jazz.mp3',
+                    },
+                ],
+                total_items: 1,
+            },
+        });
+
+        store.setSelectedContentType('radio');
+        store.setCategories('radio', [
+            {
+                category_id: 'radio-all',
+                category_name: 'Radio',
+            },
+        ]);
+        store.setSelectedCategory('radio-all');
+        store.setCurrentPlaylist(PLAYLIST);
+        void store.isPaginatedContentLoading();
+
+        await waitForCondition(() => store.radioChannels().length === 1);
+
+        expect(dataService.sendIpcEvent).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: StalkerPortalActions.GetOrderedList,
+                    type: 'radio',
+                    category: 'radio-all',
+                    p: 1,
+                }),
+            })
+        );
+        expect(store.radioChannels().map((channel) => channel.name)).toEqual([
+            'Jazz FM',
+        ]);
+        expect(store.itvChannels()).toEqual([]);
     });
 
     it('ignores stale content responses after the selected page changes', async () => {

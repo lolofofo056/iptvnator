@@ -35,7 +35,10 @@ export const ChannelActions = createActionGroup({
     events: {
         'Set Channels Loading': props<{ loading: boolean }>(),
         'Set Channels': props<{ channels: Channel[] }>(),
-        'Set Active Channel': props<{ channel: Channel }>(),
+        'Set Active Channel': props<{
+            channel: Channel;
+            startPlayback?: boolean;
+        }>(),
         'Set Active Channel Success': props<{ channel: Channel }>(),
         'Reset Active Channel': emptyProps(),
         'Set Adjacent Channel As Active': props<{

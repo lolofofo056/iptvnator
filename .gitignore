@@ -23,6 +23,9 @@ shared/*.js
 playwright-report 
 .nx
 server.js 
+.github/skills
+.github/prompts
+.agents/skills
 
 # dependencies 
 node_modules
@@ -65,4 +68,16 @@ testem.log
 Thumbs.db
 .angular
 .astro
-.claude/settings.local.json
+
+.gemini
+.cursor
+.agent
+.claude
+.codex
+.plans
+
+# Native Electron addons
+apps/electron-backend/native/build/
+vendor/embedded-mpv/darwin-*/include/
+vendor/embedded-mpv/darwin-*/lib/
+vendor/embedded-mpv/darwin-*/runtime-manifest.json

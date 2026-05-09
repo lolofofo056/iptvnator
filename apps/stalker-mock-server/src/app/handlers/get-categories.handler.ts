@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { getPortalData } from '../data-store.js';
 
 /**
- * Stalker get_categories — returns category list filtered by type (itv/vod/series).
+ * Stalker get_categories — returns category list filtered by type.
  */
 export function handleGetCategories(req: Request, res: Response): void {
     const mac = extractMac(req);
@@ -12,6 +12,8 @@ export function handleGetCategories(req: Request, res: Response): void {
     let categories;
     if (type === 'itv') {
         categories = data.itvCategories;
+    } else if (type === 'radio') {
+        categories = data.radioCategories;
     } else if (type === 'series') {
         categories = data.seriesCategories;
     } else {

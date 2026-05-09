@@ -13,7 +13,7 @@ Goal: keep this public surface stable while splitting to feature stores.
 
 Direct signal properties currently exposed by `signalStore`:
 
-- `selectedContentType: 'vod' | 'itv' | 'series'`
+- `selectedContentType: 'vod' | 'itv' | 'radio' | 'series'`
 - `selectedCategoryId: string | null | undefined`
 - `selectedVodId: string | undefined`
 - `selectedSerialId: string | undefined`
@@ -27,8 +27,10 @@ Direct signal properties currently exposed by `signalStore`:
 - `vodCategories: StalkerCategoryItem[]`
 - `seriesCategories: StalkerCategoryItem[]`
 - `itvCategories: StalkerCategoryItem[]`
+- `radioCategories: StalkerCategoryItem[]`
 - `hasMoreChannels: boolean`
 - `itvChannels: StalkerItvChannel[]`
+- `radioChannels: StalkerItvChannel[]`
 - `vodSeriesSeasons: StalkerVodSeriesSeason[]`
 - `vodSeriesEpisodes: StalkerVodSeriesEpisode[]`
 - `selectedVodSeriesSeasonId: string | undefined`
@@ -66,7 +68,7 @@ During refactor:
 
 ## Public Methods (Compatibility Contract)
 
-- `setSelectedContentType(type: 'vod' | 'itv' | 'series'): void`
+- `setSelectedContentType(type: 'vod' | 'itv' | 'radio' | 'series'): void`
 - `setSelectedCategory(id: string | number | null): void`
 - `setSelectedSerialId(id: string): void`
 - `setSelectedVodId(id: string): void`
@@ -76,15 +78,18 @@ During refactor:
 - `setCurrentPlaylist(playlist: PlaylistMeta | undefined): Promise<void>`
 - `setSelectedItem(selectedItem: StalkerVodSource | null | undefined): void`
 - `clearSelectedItem(): void`
-- `setCategories(type: 'vod' | 'series' | 'itv', categories: StalkerCategoryItem[]): void`
+- `setCategories(type: 'vod' | 'series' | 'itv' | 'radio', categories: StalkerCategoryItem[]): void`
 - `resetCategories(): void`
 - `setItvChannels(channels: StalkerItvChannel[]): void`
+- `setRadioChannels(channels: StalkerItvChannel[]): void`
 - `setSearchPhrase(phrase: string): void`
 - `fetchVodSeriesEpisodes(videoId: string, seasonId: string): Promise<StalkerVodSeriesEpisode[]>`
-- `getSelectedCategory(): { id: string | number; name: string; type: 'vod' | 'itv' | 'series' }`
+- `getSelectedCategory(): { id: string | number; name: string; type: 'vod' | 'itv' | 'radio' | 'series' }`
   Backed by `withComputed` for compatibility, not by `withMethods`.
 - `fetchLinkToPlay(portalUrl: string, macAddress: string, cmd: string, series?: number): Promise<string>`
 - `getExpireDate(): Promise<string>`
+- `resolveItvPlayback(item: StalkerPortalItem): Promise<ResolvedPortalPlayback>`
+- `resolveRadioPlayback(item: StalkerPortalItem): Promise<ResolvedPortalPlayback>`
 - `addToFavorites(item: any, onDone?: () => void): void`
 - `removeFromFavorites(favoriteId: string, onDone?: () => void): void`
 - `fetchMovieFileId(movieId: string): Promise<string | null>`
@@ -122,6 +127,9 @@ Consumer directories sampled:
 - `setSelectedCategory(...)` resets `page` to `0`.
 - `getPaginatedContent()` and `getCategoryResource()` always return arrays,
   even when the underlying request fails.
+- Radio stores stations separately in `radioChannels` and falls back to a
+  synthetic all-radio category when a portal does not support radio category
+  responses.
 - Request failures must surface through `isPaginatedContentFailed()` and
   `isCategoryResourceFailed()` rather than resource reads that throw.
 - `createLinkToPlayVod(...)` continues to:

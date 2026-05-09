@@ -1,6 +1,7 @@
 import { inject, Injectable, Provider } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { Router } from '@angular/router';
+import { PORTAL_SHELL_ACTIONS } from '@iptvnator/portal/shared/util';
 import {
     WORKSPACE_SHELL_ACTIONS,
     WorkspaceAccountInfoData,
@@ -65,6 +66,10 @@ export function provideWorkspaceShellActions(): Provider[] {
         AppWorkspaceShellActionsService,
         {
             provide: WORKSPACE_SHELL_ACTIONS,
+            useExisting: AppWorkspaceShellActionsService,
+        },
+        {
+            provide: PORTAL_SHELL_ACTIONS,
             useExisting: AppWorkspaceShellActionsService,
         },
     ];

@@ -33,7 +33,9 @@ function getStalkerSectionFromUrl(url: string): string | null {
 describe('StalkerWorkspaceRouteSession', () => {
     const routerEvents = new Subject<NavigationEnd>();
     const activePlaylist = signal<PlaylistMeta | null>(ACTIVE_PLAYLIST);
-    const selectedContentType = signal<'vod' | 'itv' | 'series'>('vod');
+    const selectedContentType = signal<'vod' | 'itv' | 'series' | 'radio'>(
+        'vod'
+    );
 
     const playlistContext = {
         activePlaylist,
@@ -45,9 +47,11 @@ describe('StalkerWorkspaceRouteSession', () => {
         setSelectedCategory: jest.fn(),
         clearSelectedItem: jest.fn(),
         setCurrentPlaylist: jest.fn().mockResolvedValue(undefined),
-        setSelectedContentType: jest.fn((type: 'vod' | 'itv' | 'series') => {
-            selectedContentType.set(type);
-        }),
+        setSelectedContentType: jest.fn(
+            (type: 'vod' | 'itv' | 'series' | 'radio') => {
+                selectedContentType.set(type);
+            }
+        ),
         setSearchPhrase: jest.fn(),
     };
 
@@ -72,6 +76,7 @@ describe('StalkerWorkspaceRouteSession', () => {
             section: getStalkerSectionFromUrl(url) as
                 | 'favorites'
                 | 'itv'
+                | 'radio'
                 | 'recent'
                 | 'search'
                 | 'series'
@@ -127,5 +132,20 @@ describe('StalkerWorkspaceRouteSession', () => {
         ).toBeGreaterThan(
             stalkerStore.setCurrentPlaylist.mock.invocationCallOrder[0]
         );
+    });
+
+    it('keeps the radio route selection after playlist bootstrap', async () => {
+        router.url = `/workspace/stalker/${PLAYLIST_ID}/radio`;
+
+        TestBed.inject(StalkerWorkspaceRouteSession);
+        await flushEffects();
+
+        expect(stalkerStore.setSelectedContentType).toHaveBeenCalledWith(
+            'radio'
+        );
+        expect(selectedContentType()).toBe('radio');
+        expect(stalkerStore.setSelectedCategory).toHaveBeenCalledWith(null);
+        expect(stalkerStore.clearSelectedItem).toHaveBeenCalled();
+        expect(stalkerStore.setSearchPhrase).toHaveBeenCalledWith('');
     });
 });

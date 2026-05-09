@@ -8,12 +8,14 @@ import {
     defaultXtreamPassword,
     defaultXtreamUsername,
     expect,
+    fillWorkspaceSearch,
     expectPathname,
     launchElectronApp,
     openWorkspaceSection,
     resetMockServers,
     test,
     waitForStalkerCatalog,
+    waitForPortalDebugEvent,
     waitForXtreamWorkspaceReady,
 } from './electron-test-fixtures';
 import {
@@ -236,6 +238,13 @@ test.describe('Electron Catalog Sorting', () => {
                 vodFixture.categoryName
             );
             await expectCatalogGridReady(app.mainWindow);
+            const vodSearchTitle = await firstVisibleGridTitle(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow);
+            await expectCatalogSearchResetsToFirstPage(
+                app.mainWindow,
+                vodSearchTitle
+            );
+            await clearCatalogSearch(app.mainWindow);
             await expectCatalogScrollResetAfterNextPage(app.mainWindow);
             await clickFirstGridListCard(app.mainWindow);
             await expectPathname(
@@ -252,6 +261,13 @@ test.describe('Electron Catalog Sorting', () => {
                 seriesFixture.categoryName
             );
             await expectCatalogGridReady(app.mainWindow);
+            const seriesSearchTitle = await firstVisibleGridTitle(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow);
+            await expectCatalogSearchResetsToFirstPage(
+                app.mainWindow,
+                seriesSearchTitle
+            );
+            await clearCatalogSearch(app.mainWindow);
             await expectCatalogScrollResetAfterNextPage(app.mainWindow);
             await clickFirstGridListCard(app.mainWindow);
             await expectPathname(
@@ -288,6 +304,16 @@ test.describe('Electron Catalog Sorting', () => {
                 vodFixture.categoryName
             );
             await expectCatalogGridReady(app.mainWindow);
+            const vodSearchTitle = await firstVisibleGridTitle(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow, {
+                expectContentChange: false,
+            });
+            await expectStalkerCatalogSearchResetsToFirstPage(app.mainWindow, {
+                categoryId: vodFixture.categoryId,
+                title: vodSearchTitle,
+                type: 'vod',
+            });
+            await clearCatalogSearch(app.mainWindow);
             await expectCatalogScrollResetAfterNextPage(app.mainWindow, {
                 expectContentChange: false,
             });
@@ -299,6 +325,16 @@ test.describe('Electron Catalog Sorting', () => {
                 seriesFixture.categoryName
             );
             await expectCatalogGridReady(app.mainWindow);
+            const seriesSearchTitle = await firstVisibleGridTitle(app.mainWindow);
+            await expectCatalogScrollResetAfterNextPage(app.mainWindow, {
+                expectContentChange: false,
+            });
+            await expectStalkerCatalogSearchResetsToFirstPage(app.mainWindow, {
+                categoryId: seriesFixture.categoryId,
+                title: seriesSearchTitle,
+                type: 'series',
+            });
+            await clearCatalogSearch(app.mainWindow);
             await expectCatalogScrollResetAfterNextPage(app.mainWindow, {
                 expectContentChange: false,
             });
@@ -401,6 +437,48 @@ async function expectCatalogScrollResetAfterNextPage(
     return visibleGridTitles(page);
 }
 
+async function expectCatalogSearchResetsToFirstPage(
+    page: Page,
+    title: string
+): Promise<void> {
+    await fillWorkspaceSearch(page, title);
+    await expectCatalogSearchQuery(page, title);
+    await expectCatalogPageQuery(page, null);
+    await expect(catalogGridCardByTitle(page, title).first()).toBeVisible({
+        timeout: 20000,
+    });
+}
+
+async function expectStalkerCatalogSearchResetsToFirstPage(
+    page: Page,
+    options: { categoryId: string; title: string; type: 'series' | 'vod' }
+): Promise<void> {
+    await expectCatalogSearchResetsToFirstPage(page, options.title);
+    await waitForPortalDebugEvent(page, {
+        provider: 'stalker',
+        operation: 'get_ordered_list',
+        predicate: (event) => {
+            const requestPayload = event.request as {
+                params?: Record<string, string | number>;
+            };
+
+            return (
+                requestPayload.params?.['type'] === options.type &&
+                String(requestPayload.params?.['category']) ===
+                    options.categoryId &&
+                requestPayload.params?.['search'] === options.title &&
+                String(requestPayload.params?.['p']) === '1'
+            );
+        },
+    });
+}
+
+async function clearCatalogSearch(page: Page): Promise<void> {
+    await fillWorkspaceSearch(page, '');
+    await expectCatalogSearchQuery(page, null);
+    await expectCatalogPageQuery(page, null);
+}
+
 async function expectStalkerDetailBackPreservesCatalogPage(
     page: Page
 ): Promise<void> {
@@ -416,11 +494,31 @@ async function expectStalkerDetailBackPreservesCatalogPage(
 
 async function expectCatalogPageQuery(
     page: Page,
-    expectedPage: string
+    expectedPage: string | null
 ): Promise<void> {
     await expect
         .poll(() => new URL(page.url()).searchParams.get('page'))
         .toBe(expectedPage);
+}
+
+async function expectCatalogSearchQuery(
+    page: Page,
+    expectedSearch: string | null
+): Promise<void> {
+    await expect
+        .poll(() => new URL(page.url()).searchParams.get('q'))
+        .toBe(expectedSearch);
+}
+
+async function firstVisibleGridTitle(page: Page): Promise<string> {
+    const titles = await visibleGridTitles(page);
+    const title = titles[0];
+
+    if (!title) {
+        throw new Error('Expected at least one visible catalog grid title.');
+    }
+
+    return title;
 }
 
 async function goBackFromDetail(page: Page): Promise<void> {
@@ -458,6 +556,14 @@ async function clickCategoryByVisibleName(
 
 function catalogGrid(page: Page) {
     return page.locator('app-category-content-view app-grid-list').first();
+}
+
+function catalogGridCardByTitle(page: Page, title: string) {
+    return page.locator('.category-content-layout mat-card').filter({
+        has: page.locator('.title', {
+            hasText: new RegExp(`^\\s*${escapeRegex(title)}\\s*$`),
+        }),
+    });
 }
 
 async function ensureCatalogCanGoNext(page: Page): Promise<void> {

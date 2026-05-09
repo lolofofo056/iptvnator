@@ -10,6 +10,7 @@ import {
     FavoritesService,
     XtreamStore,
 } from '@iptvnator/portal/xtream/data-access';
+import { SettingsStore } from 'services';
 import { PortalChannelsListComponent } from './portal-channels-list.component';
 
 function buildEpgItem(params: {
@@ -115,6 +116,12 @@ describe('PortalChannelsListComponent', () => {
                         epgResult$: epgResults$,
                         getCached: jest.fn().mockReturnValue(null),
                         enqueue: jest.fn(),
+                    },
+                },
+                {
+                    provide: SettingsStore,
+                    useValue: {
+                        openStreamOnDoubleClick: signal(false),
                     },
                 },
                 {

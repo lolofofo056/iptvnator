@@ -67,6 +67,7 @@ describe('StalkerCatalogFacadeService', () => {
                         getSelectedCategoryName: jest.fn(() => null),
                         setSelectedCategory: jest.fn(),
                         clearSelectedItem: jest.fn(),
+                        setSearchPhrase: jest.fn(),
                         setPage: jest.fn(),
                         setLimit: jest.fn(),
                         setSelectedItem: jest.fn(),
@@ -84,6 +85,17 @@ describe('StalkerCatalogFacadeService', () => {
                 },
             ],
         });
+    });
+
+    it('delegates category search query updates to the Stalker store', () => {
+        const service = TestBed.inject(StalkerCatalogFacadeService);
+        const store = TestBed.inject(StalkerStore) as unknown as {
+            setSearchPhrase: jest.Mock;
+        };
+
+        service.setSearchQuery('matrix');
+
+        expect(store.setSearchPhrase).toHaveBeenCalledWith('matrix');
     });
 
     it('persists matching external playback updates for the current playlist', async () => {

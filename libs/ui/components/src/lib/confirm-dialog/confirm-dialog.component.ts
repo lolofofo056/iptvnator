@@ -6,6 +6,7 @@ import { TranslateModule } from '@ngx-translate/core';
 export interface ConfirmDialogData {
     title: string;
     message: string;
+    width?: string;
     confirmLabel?: string;
     cancelLabel?: string;
     onConfirm: () => void;

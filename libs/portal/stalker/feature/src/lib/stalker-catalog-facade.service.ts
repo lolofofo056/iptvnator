@@ -167,6 +167,10 @@ export class StalkerCatalogFacadeService
         this.stalkerStore.clearSelectedItem();
     }
 
+    setSearchQuery(query: string): void {
+        this.stalkerStore.setSearchPhrase(query);
+    }
+
     setPage(page: number): void {
         this.stalkerStore.setPage(page);
     }

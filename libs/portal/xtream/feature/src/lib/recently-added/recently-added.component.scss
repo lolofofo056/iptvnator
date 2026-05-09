@@ -27,8 +27,8 @@
 // Projected card sizing lives on the caller — the rail shell can't reach
 // projected children through emulated encapsulation.
 .recently-added-page__rail app-content-card {
-    flex: 0 0 160px;
-    width: 160px;
+    flex: 0 0 var(--cover-rail-width, 160px);
+    width: var(--cover-rail-width, 160px);
     scroll-snap-align: start;
 }
 
@@ -57,8 +57,8 @@
 }
 
 .recently-added-page__skeleton-card {
-    flex: 0 0 160px;
-    width: 160px;
+    flex: 0 0 var(--cover-rail-width, 160px);
+    width: var(--cover-rail-width, 160px);
     aspect-ratio: 2 / 3;
     border-radius: 12px;
 }
@@ -100,7 +100,7 @@
     }
 
     .recently-added-page__skeleton-card {
-        flex: 0 0 136px;
-        width: 136px;
+        flex: 0 0 min(var(--cover-rail-width, 160px), 136px);
+        width: min(var(--cover-rail-width, 160px), 136px);
     }
 }

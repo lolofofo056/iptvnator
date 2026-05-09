@@ -18,6 +18,11 @@
         [startTime]="startTime()"
         (timeUpdate)="timeUpdate.emit($event)"
     />
+} @else if (player === 'embedded-mpv') {
+    <app-embedded-mpv-player
+        [playback]="resolvedPlayback()"
+        (timeUpdate)="timeUpdate.emit($event)"
+    />
 } @else {
     <app-vjs-player
         [options]="vjsOptions"

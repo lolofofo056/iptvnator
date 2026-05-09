@@ -1,5 +1,6 @@
 <div
     class="sidebar"
+    [class.sidebar-collapsed]="isSidebarCollapsed()"
     appResizable
     [minWidth]="250"
     [maxWidth]="600"
@@ -8,6 +9,8 @@
 >
     <app-global-favorites-list
         [channels]="channelsForList()"
+        [mode]="mode()"
+        [favoriteUids]="favoriteUids()"
         [epgMap]="epgMap()"
         [progressTick]="progressTick()"
         [activeUid]="activeUid()"
@@ -15,15 +18,20 @@
         [draggable]="mode() === 'favorites'"
         [sortMode]="sortMode()"
         (channelSelected)="onChannelSelected($event)"
+        (playbackRequested)="onChannelPlaybackRequested($event)"
         (channelsReordered)="onReorder($event)"
         (favoriteToggled)="onFavoriteToggled($event)"
+        (removeRequested)="onRemoveRequested($event)"
     />
 </div>
 
 <div class="content-container">
     @if (activeDetail()) {
         @if (shouldUseInlinePlayer()) {
-            <div class="video-player" [class.video-player--radio]="isRadioSelection()">
+            <div
+                class="video-player"
+                [class.video-player--radio]="isRadioSelection()"
+            >
                 @if (isRadioSelection()) {
                     <button
                         mat-icon-button
@@ -48,19 +56,6 @@
                         "
                     />
                 } @else {
-                    <div class="player-toolbar">
-                        <span class="player-title">{{
-                            activeDetail()?.playback?.title
-                        }}</span>
-                        <button
-                            mat-icon-button
-                            (click)="onClose()"
-                            class="close-btn"
-                        >
-                            <mat-icon>close</mat-icon>
-                        </button>
-                    </div>
-
                     @if (player() === 'videojs') {
                         <app-vjs-player
                             [options]="{
@@ -88,39 +83,73 @@
                             [showCaptions]="false"
                         />
                     }
+                    @if (player() === 'embedded-mpv') {
+                        <app-web-player-view
+                            [streamUrl]="currentStreamUrl()"
+                            [title]="activeDetail()?.playback?.title ?? ''"
+                            [playback]="activeDetail()?.playback ?? null"
+                        />
+                    }
                 }
             </div>
         }
 
         @if (!isRadioSelection()) {
-            <div class="epg">
-                @if (!shouldUseInlinePlayer()) {
-                    <div class="player-toolbar">
-                        <span class="player-title">{{
-                            activeDetail()?.playback?.title
-                        }}</span>
-                        <button
-                            mat-icon-button
-                            (click)="onClose()"
-                            class="close-btn"
-                        >
-                            <mat-icon>close</mat-icon>
-                        </button>
+            <div
+                class="epg"
+                [class.epg-collapsed]="
+                    shouldUseInlinePlayer() && isLiveEpgPanelCollapsed()
+                "
+            >
+                @if (shouldUseInlinePlayer()) {
+                    <app-live-epg-panel
+                        [collapsed]="isLiveEpgPanelCollapsed()"
+                        [summary]="liveEpgPanelSummary()"
+                        [showDateNavigator]="isM3uSelection()"
+                        [selectedDate]="selectedLiveEpgDate()"
+                        (collapsedChange)="
+                            onLiveEpgPanelCollapsedChange($event)
+                        "
+                        (dateNavigation)="onLiveEpgDateNavigation($event)"
+                    >
+                        <div class="epg-content">
+                            @if (isM3uSelection()) {
+                                <app-epg-list
+                                    [controlledChannel]="currentM3uChannel()"
+                                    [controlledPrograms]="currentM3uPrograms()"
+                                    [archivePlaybackAvailable]="
+                                        currentM3uArchivePlaybackAvailable()
+                                    "
+                                    [selectedDate]="selectedLiveEpgDate()"
+                                    [showDateNavigator]="false"
+                                    (selectedDateChange)="
+                                        onLiveEpgSelectedDateChange($event)
+                                    "
+                                />
+                            } @else {
+                                <app-epg-view
+                                    [epgItems]="currentPortalEpgItems()"
+                                />
+                            }
+                        </div>
+                    </app-live-epg-panel>
+                } @else {
+                    <div class="epg-content">
+                        @if (isM3uSelection()) {
+                            <app-epg-list
+                                [controlledChannel]="currentM3uChannel()"
+                                [controlledPrograms]="currentM3uPrograms()"
+                                [archivePlaybackAvailable]="
+                                    currentM3uArchivePlaybackAvailable()
+                                "
+                            />
+                        } @else {
+                            <app-epg-view
+                                [epgItems]="currentPortalEpgItems()"
+                            />
+                        }
                     </div>
                 }
-                <div class="epg-content">
-                    @if (isM3uSelection()) {
-                        <app-epg-list
-                            [controlledChannel]="currentM3uChannel()"
-                            [controlledPrograms]="currentM3uPrograms()"
-                            [archivePlaybackAvailable]="
-                                currentM3uArchivePlaybackAvailable()
-                            "
-                        />
-                    } @else {
-                        <app-epg-view [epgItems]="currentPortalEpgItems()" />
-                    }
-                </div>
             </div>
         }
     } @else {

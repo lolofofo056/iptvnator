@@ -7,6 +7,7 @@ import {
     effect,
     inject,
     input,
+    output,
     signal,
     viewChild,
 } from '@angular/core';
@@ -126,6 +127,8 @@ export class AudioPlayerComponent {
     readonly icon = input<string>('');
     readonly url = input.required<string>();
     readonly channelName = input<string>('');
+    readonly dispatchAdjacentChannelAction = input(true);
+    readonly channelSwitchRequested = output<'next' | 'previous'>();
 
     readonly playState = signal<'play' | 'paused'>('paused');
     readonly volume = signal(1);
@@ -238,9 +241,12 @@ export class AudioPlayerComponent {
     }
 
     switchChannel(direction: 'next' | 'previous') {
-        this.store.dispatch(
-            ChannelActions.setAdjacentChannelAsActive({ direction })
-        );
+        if (this.dispatchAdjacentChannelAction()) {
+            this.store.dispatch(
+                ChannelActions.setAdjacentChannelAsActive({ direction })
+            );
+        } else {
+            this.channelSwitchRequested.emit(direction);
+        }
     }
-
 }

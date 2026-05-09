@@ -33,6 +33,7 @@
     height: 100%;
     min-height: 0;
     padding: 16px 12px 18px;
+    grid-template-rows: auto 1fr;
 }
 
 .channels-loading-state__copy {
@@ -50,59 +51,8 @@
 
 .channels-loading-state__list,
 .groups-loading-content__list {
-    display: grid;
-    gap: 8px;
+    min-height: 0;
     overflow: hidden;
-}
-
-.channel-loading-row {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) 18px;
-    align-items: center;
-    gap: 12px;
-    min-height: 68px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: color-mix(
-        in srgb,
-        var(--app-widget-header-bg, var(--mat-sys-surface-container-high)) 88%,
-        var(--app-widget-bg, var(--mat-sys-surface-container)) 12%
-    );
-    border: 1px solid
-        color-mix(
-            in srgb,
-            var(--app-widget-header-border, var(--mat-sys-outline-variant)) 96%,
-            transparent
-        );
-}
-
-.channel-loading-row__logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-}
-
-.channel-loading-row__text {
-    min-width: 0;
-    display: grid;
-    gap: 8px;
-}
-
-.channel-loading-row__title {
-    height: 11px;
-    border-radius: 999px;
-}
-
-.channel-loading-row__meta {
-    height: 9px;
-    border-radius: 999px;
-}
-
-.channel-loading-row__favorite {
-    justify-self: end;
-    width: 18px;
-    height: 18px;
-    border-radius: 999px;
 }
 
 .groups-loading-layout {
@@ -223,18 +173,6 @@
 @container (max-width: 380px) {
     .channels-loading-state {
         padding-inline: 8px;
-    }
-
-    .channel-loading-row {
-        grid-template-columns: 40px minmax(0, 1fr) 16px;
-        gap: 10px;
-        padding-inline: 10px;
-    }
-
-    .channel-loading-row__logo {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
     }
 
     .groups-loading-nav {

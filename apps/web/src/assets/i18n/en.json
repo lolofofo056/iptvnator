@@ -109,7 +109,7 @@
             "REFRESH_XTREAM": "Refresh Xtream playlist from remote",
             "REFRESH_XTREAM_DIALOG": {
                 "TITLE": "Refresh Xtream Playlist",
-                "MESSAGE": "This will delete locally cached categories and streams and re-import everything from the remote server. Your favorites and recently viewed items will be preserved. Are you sure you want to continue?",
+                "MESSAGE": "This will delete the local Xtream cache and re-import categories and streams from the remote server. Favorites, recently viewed items, hidden category visibility, and playback progress are restored after a successful re-import when matching content still exists. If the server cannot be reached, the restore remains pending until a later successful refresh. Continue?",
                 "STARTED": "Refresh started. Navigating to playlist...",
                 "ERROR": "Failed to refresh playlist. Please try again.",
                 "IN_PROGRESS": "Refreshing playlist...",
@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "Add one or more URLs as EPG sources",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Prefer your EPG sources for Xtream playlists",
+        "PREFER_UPLOADED_EPG_HINT": "By default, Xtream playlists use the program guide from your provider, and your uploaded EPG only fills missing channels. Turn this on to use your uploaded EPG first instead.",
         "DATA": "Data",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",
@@ -244,6 +246,8 @@
         "NEW_VERSION_AVAILABLE": "There is a new version available",
         "LATEST_VERSION": "You are using the latest version",
         "STREAM_FORMAT": "Stream Format",
+        "OPEN_EXTERNAL_PLAYER_ON_DOUBLE_CLICK": "Start MPV/VLC with double-click",
+        "OPEN_EXTERNAL_PLAYER_ON_DOUBLE_CLICK_DESCRIPTION": "Require a double-click on channel rows before MPV or VLC playback starts.",
         "LANGUAGE": "Language",
         "SETTINGS_SAVED": "Success! Configuration was saved.",
         "THEME": "Visual theme",
@@ -264,6 +268,11 @@
         "STREAM_FORMAT_DESCRIPTION": "Select default stream format (xtream)",
         "LANGUAGE_DESCRIPTION": "Select language of the application",
         "THEME_DESCRIPTION": "Select visual theme of the application",
+        "COVER_SIZE": "Cover size",
+        "COVER_SIZE_DESCRIPTION": "Adjust the size of poster cards across grids and rails. Larger sizes are easier to see on TVs; smaller sizes show more content per row on big monitors.",
+        "COVER_SIZE_SMALL": "Small",
+        "COVER_SIZE_MEDIUM": "Medium",
+        "COVER_SIZE_LARGE": "Large",
         "STARTUP_BEHAVIOR": "Startup view",
         "STARTUP_BEHAVIOR_DESCRIPTION": "Choose whether IPTVnator opens the first available workspace view or restores your last section-level view. First view means Dashboard when enabled, otherwise Sources.",
         "STARTUP_BEHAVIOR_FIRST_VIEW": "First available view",
@@ -318,6 +327,8 @@
         "VLC_PLAYER_PATH_LABEL": "VLC path",
         "VLC_PLAYER_PATH_DESCRIPTION": "Set path to VLC player in your system. It will use the provided path to a VLC binary instead of the default path for our system.",
         "VLC_PLAYER_PATH": "VLC player path",
+        "VLC_REUSE_INSTANCE_LABEL": "Reuse VLC instance",
+        "VLC_REUSE_INSTANCE_DESCRIPTION": "When enabled, the same VLC window will be reused for playing different streams. When disabled, each stream opens in a new VLC window.",
         "REMOTE_CONTROL": "Remote control",
         "REMOTE_CONTROL_DESCRIPTION": "Enable remote control of the application.",
         "REMOTE_CONTROL_PORT": "Remote control port",
@@ -342,6 +353,11 @@
         "DARK_THEME": "Dark theme",
         "LIGHT_THEME": "Light theme",
         "SYSTEM_THEME": "System theme"
+    },
+    "LAYOUT": {
+        "HIDE_CHANNELS_LIST": "Hide channels list",
+        "SHOW_CHANNELS_LIST": "Show channels list",
+        "TOGGLE_SIDEBAR_TOOLTIP": "Toggle channels list (⌘/Ctrl+B)"
     },
     "CHANNELS": {
         "SEARCH_CHANNEL": "Search channel",
@@ -372,6 +388,7 @@
         "LOADING_MORE": "Loading more...",
         "NO_SEARCH_RESULTS": "No channels found",
         "NO_CHANNELS_FOUND": "No channels found",
+        "NO_GROUPS_FOUND": "No groups found",
         "TRY_DIFFERENT_SEARCH": "Try a different search term",
         "DETAILS_DIALOG": {
             "TITLE": "Channel details",
@@ -432,7 +449,8 @@
         "TIMESHIFT_AVAILABLE": "Timeshift is available, click to play",
         "ARCHIVE_PLAYBACK_UNAVAILABLE_TITLE": "Archive playback is unavailable",
         "ARCHIVE_PLAYBACK_UNAVAILABLE_DESCRIPTION": "This provider exposes schedule history for the channel, but does not expose playable archive/catch-up playback.",
-        "EPG_NOT_AVAILABLE_DATE": "Ooops, EPG is not available for the selected date",
+        "EPG_NOT_AVAILABLE_DATE": "No program guide",
+        "NO_GUIDE_HINT": "Try a different date or refresh the playlist.",
         "EPG_NOT_AVAILABLE_CHANNEL_TITLE": "Ooops, EPG is not available for this channel.",
         "EPG_NOT_AVAILABLE_CHANNEL_DESCRIPTION": "Please add/change the URL of the EPG list in the settings of the app.",
         "FETCH_EPG": "Fetching EPG data...",
@@ -459,7 +477,10 @@
         "TOTAL_CHANNELS": "Total channels",
         "TOTAL_PROGRAMS": "Total programs",
         "UP_TO_DATE": "EPG is up-to-date, no sync needed",
-        "RETRY": "Retry"
+        "RETRY": "Retry",
+        "CURRENT_PROGRAM": "Current program",
+        "COLLAPSE_PANEL": "Collapse EPG panel",
+        "EXPAND_PANEL": "Expand EPG panel"
     },
     "LANGUAGES": {
         "ARABIC": "العربية",
@@ -573,6 +594,7 @@
             "DESELECT_ALL": "Deselect All",
             "SEARCH_PLACEHOLDER": "Search categories...",
             "NO_RESULTS": "No matching categories found",
+            "NO_CATEGORIES": "No categories available",
             "SAVE": "Save"
         }
     },
@@ -654,7 +676,7 @@
         },
         "EMPTY_LIST_VIEW": {
             "TITLE": "No results found",
-            "NO_SEARCH_RESULTS": "Nothing found, try to change you search request"
+            "NO_SEARCH_RESULTS": "Nothing found, try to change your search request."
         },
         "SEARCH_VIEW": {
             "INITIAL_TITLE": "Search for content",
@@ -672,7 +694,8 @@
         "CONTENT_NOT_AVAILABLE": "This content is not available on this server",
         "PLAYBACK_ERROR": "Failed to get playback URL",
         "LOADING_SEASONS": "Loading seasons...",
-        "NO_EPISODES": "No episodes available"
+        "NO_EPISODES": "No episodes available",
+        "ALL_RADIO": "All radio"
     },
     "INFORMATION": "Information",
     "DOWNLOADS": {
@@ -757,7 +780,7 @@
             "OPEN_DASHBOARD": "Open dashboard",
             "RAIL_SOURCES": "Sources",
             "OPEN_SOURCES": "Open sources",
-            "RAIL_GLOBAL_FAVORITES": "Global favorites",
+            "RAIL_GLOBAL_FAVORITES": "Favorites",
             "RAIL_GLOBAL_RECENT": "Recently viewed",
             "RAIL_SETTINGS": "Settings",
             "OPEN_SETTINGS": "Open settings",
@@ -871,8 +894,18 @@
                 "GO_TO_LIVE_LABEL": "Live TV",
                 "GO_TO_LIVE_DESCRIPTION": "Jump to live TV section",
                 "GO_TO_SERIES_LABEL": "Series",
-                "GO_TO_SERIES_DESCRIPTION": "Jump to series section"
-            }
+                "GO_TO_SERIES_DESCRIPTION": "Jump to series section",
+                "SWITCH_PLAYER_LABEL": "Switch player to {{name}}",
+                "SWITCH_PLAYER_DESCRIPTION": "Set {{name}} as the active video player",
+                "SWITCH_PLAYER_FEEDBACK": "Player set to {{name}}"
+            },
+            "XTREAM_REFRESH_TITLE": "Refreshing playlist",
+            "XTREAM_REFRESH_COLLECTING_DATA": "Preserving your library data...",
+            "XTREAM_REFRESH_DELETING_CONTENT": "Removing cached streams...",
+            "XTREAM_REFRESH_DELETING_CATEGORIES": "Removing cached categories...",
+            "XTREAM_REFRESH_DETAIL_LOCAL": "Keeping favorites, watch history, hidden categories, and playback progress ready for restore after sync.",
+            "XTREAM_REFRESH_PROGRESS": "Local records processed: {{current}} / {{total}}",
+            "RAIL_RADIO": "Radio"
         },
         "SOURCES": {
             "TITLE": "Sources",
@@ -903,7 +936,8 @@
             "ITEM_COUNT_ONE": "1 item",
             "ITEM_COUNT_OTHER": "{{count}} items",
             "SEARCH": "Search",
-            "SEARCH_CATEGORIES": "Search categories"
+            "SEARCH_CATEGORIES": "Search categories",
+            "RADIO_CATEGORIES": "Radio Categories"
         },
         "COMMAND_PALETTE": {
             "TITLE": "Command palette",
@@ -914,7 +948,8 @@
             "GROUP_GLOBAL": "Global actions",
             "GROUP_PLAYLIST": "This playlist",
             "GROUP_VIEW": "Current view",
-            "GROUP_SECTION": "This section"
+            "GROUP_SECTION": "This section",
+            "GROUP_RECENT": "Recently used"
         },
         "GLOBAL_FAVORITES": {
             "TITLE": "Global Favorites",
