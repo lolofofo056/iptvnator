@@ -101,7 +101,6 @@ export class WorkspaceContextPanelComponent {
     readonly canManageXtreamCategories = computed(
         () =>
             this.isXtreamCategories() &&
-            this.xtreamCategories().length > 0 &&
             this.xtreamSelectedTypeCountsReady()
     );
     readonly xtreamStatusText = computed(() => {

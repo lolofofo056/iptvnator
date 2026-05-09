@@ -1,7 +1,6 @@
 import { Locator, Page } from '@playwright/test';
 import {
     addXtreamPortal,
-    clickCategoryById,
     closeElectronApp,
     expect,
     launchElectronApp,
@@ -205,6 +204,86 @@ test.describe('Electron Xtream Category Management', () => {
             await closeElectronApp(app);
         }
     });
+
+    test('allows restoring live categories after every category is hidden', async ({
+        dataDir,
+        request,
+    }) => {
+        await resetMockServers(request, ['xtream']);
+        const portalName = 'All Hidden Categories Xtream';
+        const app = await launchElectronApp(dataDir);
+
+        try {
+            await addXtreamPortal(app.mainWindow, {
+                name: portalName,
+            });
+            await waitForXtreamWorkspaceReady(app.mainWindow);
+            await openWorkspaceSection(app.mainWindow, 'Live TV');
+            await app.mainWindow.waitForURL(
+                /\/workspace\/xtreams\/[^/]+\/live/
+            );
+
+            await expect
+                .poll(() => readVisibleSidebarCategoryNames(app.mainWindow), {
+                    timeout: 15000,
+                })
+                .not.toEqual([]);
+            const initialCategoryNames = await readVisibleSidebarCategoryNames(
+                app.mainWindow
+            );
+
+            let dialog = await openManageCategoriesDialog(app.mainWindow);
+            await dialog
+                .getByRole('button', {
+                    name: 'Deselect All',
+                    exact: true,
+                })
+                .click();
+            await expect(
+                dialog.locator('.category-item mat-checkbox input:checked')
+            ).toHaveCount(0);
+            await dialog
+                .getByRole('button', { name: 'Save', exact: true })
+                .click();
+            await app.mainWindow.waitForSelector('mat-dialog-container', {
+                state: 'detached',
+            });
+
+            await expect
+                .poll(() => readVisibleSidebarCategoryNames(app.mainWindow), {
+                    timeout: 15000,
+                })
+                .toEqual([]);
+
+            await expect(
+                app.mainWindow.getByRole('button', {
+                    name: 'Manage categories',
+                    exact: true,
+                })
+            ).toBeEnabled();
+
+            dialog = await openManageCategoriesDialog(app.mainWindow);
+            await dialog
+                .getByRole('button', { name: 'Select All', exact: true })
+                .click();
+            await expect(
+                dialog.locator('.category-item mat-checkbox input:checked')
+            ).toHaveCount(initialCategoryNames.length);
+            await dialog
+                .getByRole('button', { name: 'Save', exact: true })
+                .click();
+            await app.mainWindow.waitForSelector('mat-dialog-container', {
+                state: 'detached',
+            });
+
+            await expectVisibleSidebarCategoryNames(
+                app.mainWindow,
+                initialCategoryNames
+            );
+        } finally {
+            await closeElectronApp(app);
+        }
+    });
 });
 
 async function openManageCategoriesDialog(page: Page) {
@@ -266,6 +345,10 @@ async function expectVisibleSidebarCategoryNames(
             .toEqual(expectedNames);
     } catch (error) {
         const actualNames = await readVisibleSidebarCategoryNames(page);
+        if (stringArraysEqual(actualNames, expectedNames)) {
+            return;
+        }
+
         throw new Error(
             `Expected visible sidebar categories ${JSON.stringify(
                 expectedNames
@@ -298,6 +381,13 @@ async function readVisibleSidebarCategoryNames(page: Page): Promise<string[]> {
     }
 
     return actualNames;
+}
+
+function stringArraysEqual(left: string[], right: string[]): boolean {
+    return (
+        left.length === right.length &&
+        left.every((value, index) => value === right[index])
+    );
 }
 
 async function pickSidebarCategory(
