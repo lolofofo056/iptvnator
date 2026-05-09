@@ -46,4 +46,12 @@ export interface Settings {
     downloadFolder?: string;
     /** Cover/poster sizing preset applied across grids and rails */
     coverSize?: CoverSize;
+    /**
+     * When true, the locally-parsed XMLTV programs (loaded from `epgUrl`)
+     * take precedence over the Xtream provider's EPG for live TV channels.
+     * When false (default), the Xtream provider's EPG is preferred and
+     * XMLTV is consulted only when the provider returns no programs.
+     * Only meaningful for Xtream playlists in Electron.
+     */
+    preferUploadedEpgOverXtream?: boolean;
 }

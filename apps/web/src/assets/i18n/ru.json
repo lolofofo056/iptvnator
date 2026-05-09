@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "Добавьте один или несколько URL-адресов источников EPG",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Предпочитать ваши источники EPG для плейлистов Xtream",
+        "PREFER_UPLOADED_EPG_HINT": "По умолчанию плейлисты Xtream используют программу передач от вашего провайдера, а ваши источники EPG заполняют только недостающие каналы. Включите, чтобы сначала использовать ваш загруженный EPG.",
         "DATA": "Данные",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

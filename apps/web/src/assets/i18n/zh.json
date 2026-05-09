@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "添加一个或多个 URL 作为 EPG 源",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "为 Xtream 播放列表优先使用上传的 EPG",
+        "PREFER_UPLOADED_EPG_HINT": "默认情况下,Xtream 播放列表使用提供商的节目指南,您上传的 EPG 仅用于补充缺失的频道。启用此选项可优先使用您上传的 EPG。",
         "DATA": "数据",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

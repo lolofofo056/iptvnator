@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "Προσθέστε μία ή περισσότερες διευθύνσεις URL ως πηγές EPG",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Προτίμηση των δικών σου πηγών EPG για λίστες Xtream",
+        "PREFER_UPLOADED_EPG_HINT": "Από προεπιλογή, οι λίστες Xtream χρησιμοποιούν τον οδηγό προγράμματος του παρόχου σου και οι δικές σου πηγές EPG συμπληρώνουν μόνο τα κανάλια που λείπουν. Ενεργοποίησέ το για να χρησιμοποιείται πρώτα το EPG που ανέβασες.",
         "DATA": "Δεδομένα",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",

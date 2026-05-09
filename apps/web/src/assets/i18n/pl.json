@@ -202,6 +202,8 @@
         "EPG_SOURCES_DESCRIPTION": "Dodaj jeden lub więcej adresów URL jako źródła EPG",
         "EPG_EMPTY_TITLE": "No EPG sources yet",
         "EPG_EMPTY_HINT": "Add a URL to fetch program data for your channels.",
+        "PREFER_UPLOADED_EPG_TITLE": "Preferuj własne źródła EPG dla playlist Xtream",
+        "PREFER_UPLOADED_EPG_HINT": "Domyślnie playlisty Xtream korzystają z przewodnika po programie od dostawcy, a Twoje źródła EPG uzupełniają tylko brakujące kanały. Włącz, aby najpierw używać przesłanego EPG.",
         "DATA": "Dane",
         "BACKUP": "Backup",
         "BACKUP_DESCRIPTION": "Export your library as a snapshot, or restore from a previous backup.",
