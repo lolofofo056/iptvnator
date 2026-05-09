@@ -24,6 +24,8 @@
         "**/*.dylib"
     ],
     "extraMetadata": {
+        "name": "iptvnator",
+        "productName": "IPTVnator",
         "main": "electron-backend/main.js"
     },
     "extraResources": ["dist/apps/electron-backend/workers"],
@@ -43,6 +45,12 @@
     },
     "linux": {
         "category": "Video",
+        "executableName": "iptvnator",
+        "desktop": {
+            "entry": {
+                "StartupWMClass": "iptvnator"
+            }
+        },
         "target": [
             {
                 "target": "AppImage",
