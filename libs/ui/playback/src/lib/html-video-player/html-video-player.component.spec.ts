@@ -56,4 +56,57 @@ describe('HtmlVideoPlayerComponent', () => {
 
         expect(component.playChannel).toHaveBeenCalledWith(TEST_CHANNEL);
     });
+
+    it('emits a playback issue when the native video element reports an unsupported source', () => {
+        const issues: unknown[] = [];
+        component.channel = TEST_CHANNEL as never;
+        component.playbackIssue.subscribe((issue) => issues.push(issue));
+
+        Object.defineProperty(component.videoPlayer.nativeElement, 'error', {
+            configurable: true,
+            value: {
+                code: 4,
+                message: 'No compatible source was found',
+            },
+        });
+
+        component.videoPlayer.nativeElement.dispatchEvent(new Event('error'));
+
+        expect(issues).toEqual([
+            expect.objectContaining({
+                code: 'unsupported-container',
+                source: 'native',
+                sourceUrl: 'http://test.ts',
+                externalFallbackRecommended: true,
+            }),
+        ]);
+    });
+
+    it('does not emit a playback issue when HLS.js reports a recoverable error', () => {
+        const issues: unknown[] = [];
+        component.playbackIssue.subscribe((issue) => {
+            if (issue) issues.push(issue);
+        });
+
+        (
+            component as unknown as {
+                handleHlsError: (
+                    url: string,
+                    data: {
+                        type: string;
+                        details: string;
+                        fatal: boolean;
+                        error?: Error;
+                    }
+                ) => void;
+            }
+        ).handleHlsError('https://example.com/live/playlist.m3u8', {
+            type: 'networkError',
+            details: 'fragLoadError',
+            fatal: false,
+            error: new Error('segment retry'),
+        });
+
+        expect(issues).toEqual([]);
+    });
 });

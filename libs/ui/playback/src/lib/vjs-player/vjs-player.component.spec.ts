@@ -17,6 +17,9 @@ jest.unstable_mockModule('mpegts.js', () => ({
     default: {
         createPlayer: jest.fn(),
         isSupported: mpegTsIsSupportedMock,
+        Events: {
+            ERROR: 'error',
+        },
     },
 }));
 
@@ -24,11 +27,18 @@ describe('VjsPlayerComponent', () => {
     let VjsPlayerComponent: typeof import('./vjs-player.component').VjsPlayerComponent;
     let component: VjsPlayerComponentInstance;
     let player: VjsPlayerComponentInstance['player'];
+
     type SignalApiShape = {
         options: () => unknown;
         volume: () => number;
         startTime: () => number;
         timeUpdate: { emit: (event: unknown) => void };
+        playbackIssue: {
+            emit: (event: unknown) => void;
+            subscribe: (callback: (event: unknown) => void) => {
+                unsubscribe: () => void;
+            };
+        };
     };
 
     beforeAll(async () => {
@@ -40,8 +50,10 @@ describe('VjsPlayerComponent', () => {
             imports: [VjsPlayerComponent],
         }).compileComponents();
 
-        component = TestBed.createComponent(VjsPlayerComponent).componentInstance;
+        component =
+            TestBed.createComponent(VjsPlayerComponent).componentInstance;
         player = {
+            error: jest.fn(),
             src: jest.fn(),
             reset: jest.fn(),
             volume: jest.fn(),
@@ -57,6 +69,7 @@ describe('VjsPlayerComponent', () => {
         expect(signalComponent.volume()).toBe(1);
         expect(signalComponent.startTime()).toBe(0);
         expect(typeof signalComponent.timeUpdate.emit).toBe('function');
+        expect(typeof signalComponent.playbackIssue.emit).toBe('function');
     });
 
     it('does not reset VideoJS when options change without changing the source', () => {
@@ -134,6 +147,46 @@ describe('VjsPlayerComponent', () => {
 
         expect(player.src).not.toHaveBeenCalled();
         expect(player.volume).toHaveBeenCalledWith(0.75);
+    });
+
+    it('emits a playback issue when VideoJS reports an unsupported source', () => {
+        const issues: unknown[] = [];
+        const videoElement = document.createElement('video');
+        const testComponent = component as unknown as SignalApiShape & {
+            options: () => {
+                sources: Array<{ src: string; type: string }>;
+            };
+            target: () => { nativeElement: HTMLVideoElement };
+            handleVideoJsPlaybackError: () => void;
+        };
+        testComponent.options = () => ({
+            sources: [
+                {
+                    src: 'https://example.com/archive/movie.mkv',
+                    type: 'video/matroska',
+                },
+            ],
+        });
+        testComponent.target = () => ({ nativeElement: videoElement });
+        jest.mocked(player.error).mockReturnValue({
+            code: 4,
+            message: 'No compatible source was found',
+        });
+
+        const subscription = component.playbackIssue.subscribe((issue) =>
+            issues.push(issue)
+        );
+        testComponent.handleVideoJsPlaybackError();
+        subscription.unsubscribe();
+
+        expect(issues).toEqual([
+            expect.objectContaining({
+                code: 'unsupported-container',
+                source: 'native',
+                sourceUrl: 'https://example.com/archive/movie.mkv',
+                externalFallbackRecommended: true,
+            }),
+        ]);
     });
 
     it('tears down mpegts playback when options clear the source', () => {
