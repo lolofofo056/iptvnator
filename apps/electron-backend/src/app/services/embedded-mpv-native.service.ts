@@ -1,5 +1,12 @@
-import { app, powerSaveBlocker } from 'electron';
-import { existsSync, readFileSync } from 'fs';
+import { app, dialog, powerSaveBlocker } from 'electron';
+import {
+    closeSync,
+    existsSync,
+    mkdirSync,
+    openSync,
+    readFileSync,
+    unlinkSync,
+} from 'fs';
 import { createRequire } from 'module';
 import path from 'path';
 import App from '../app';
@@ -7,6 +14,8 @@ import {
     EmbeddedMpvAudioTrack,
     EmbeddedMpvBounds,
     EmbeddedMpvCapabilities,
+    EmbeddedMpvRecordingStartOptions,
+    EmbeddedMpvRecordingState,
     EmbeddedMpvSession,
     EmbeddedMpvSessionStatus,
     EmbeddedMpvSubtitleTrack,
@@ -27,6 +36,7 @@ interface NativeEmbeddedMpvSessionSnapshot {
     selectedSubtitleTrackId?: number | null;
     playbackSpeed?: number;
     aspectOverride?: string;
+    recording?: EmbeddedMpvRecordingState;
     error?: string;
 }
 
@@ -47,6 +57,8 @@ interface NativeEmbeddedMpvAddon {
     setSubtitleTrack?(sessionId: string, trackId: number): void;
     setSpeed?(sessionId: string, speed: number): void;
     setAspect?(sessionId: string, aspect: string): void;
+    startRecording?(sessionId: string, targetPath: string): void;
+    stopRecording?(sessionId: string): void;
     getSessionSnapshot(
         sessionId: string
     ): NativeEmbeddedMpvSessionSnapshot | null;
@@ -63,11 +75,12 @@ interface EmbeddedMpvRuntimeSession {
     lastStatus: EmbeddedMpvSessionStatus | null;
 }
 
-const EMBEDDED_MPV_EXPERIMENT_ENV =
-    'IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT';
+const EMBEDDED_MPV_EXPERIMENT_ENV = 'IPTVNATOR_ENABLE_EMBEDDED_MPV_EXPERIMENT';
 
 function dedupePaths(paths: Array<string | undefined>): string[] {
-    return [...new Set(paths.filter((value): value is string => Boolean(value)))];
+    return [
+        ...new Set(paths.filter((value): value is string => Boolean(value))),
+    ];
 }
 
 export class EmbeddedMpvNativeService {
@@ -85,6 +98,9 @@ export class EmbeddedMpvNativeService {
             playbackSpeed: typeof addon?.setSpeed === 'function',
             aspectOverride: typeof addon?.setAspect === 'function',
             screenshot: false,
+            recording:
+                typeof addon?.startRecording === 'function' &&
+                typeof addon?.stopRecording === 'function',
         };
     }
 
@@ -125,9 +141,7 @@ export class EmbeddedMpvNativeService {
                     supported: false,
                     platform: process.platform,
                     reason:
-                        error instanceof Error
-                            ? error.message
-                            : String(error),
+                        error instanceof Error ? error.message : String(error),
                 };
             }
         }
@@ -160,8 +174,9 @@ export class EmbeddedMpvNativeService {
             };
         }
 
-        const missingRuntimeReason =
-            this.getMissingRuntimeReason(existingCandidatePath);
+        const missingRuntimeReason = this.getMissingRuntimeReason(
+            existingCandidatePath
+        );
         if (missingRuntimeReason) {
             return {
                 supported: false,
@@ -170,11 +185,28 @@ export class EmbeddedMpvNativeService {
             };
         }
 
-        return {
-            supported: true,
-            platform: process.platform,
-            capabilities: this.detectCapabilities(),
-        };
+        try {
+            const addon = this.getAddon();
+            if (!addon.isSupported()) {
+                return {
+                    supported: false,
+                    platform: process.platform,
+                    reason: 'The native embedded MPV addon reported itself as unsupported.',
+                };
+            }
+
+            return {
+                supported: true,
+                platform: process.platform,
+                capabilities: this.detectCapabilities(),
+            };
+        } catch (error) {
+            return {
+                supported: false,
+                platform: process.platform,
+                reason: error instanceof Error ? error.message : String(error),
+            };
+        }
     }
 
     prepareAddon(): EmbeddedMpvSupport {
@@ -202,10 +234,7 @@ export class EmbeddedMpvNativeService {
             return {
                 supported: false,
                 platform: process.platform,
-                reason:
-                    error instanceof Error
-                        ? error.message
-                        : String(error),
+                reason: error instanceof Error ? error.message : String(error),
             };
         }
     }
@@ -237,23 +266,26 @@ export class EmbeddedMpvNativeService {
         });
 
         this.ensurePolling();
-        return this.refreshSession(sessionId) ?? {
-            id: sessionId,
-            title,
-            streamUrl: '',
-            status: 'idle',
-            positionSeconds: 0,
-            durationSeconds: null,
-            volume: 1,
-            audioTracks: [],
-            selectedAudioTrackId: null,
-            subtitleTracks: [],
-            selectedSubtitleTrackId: null,
-            playbackSpeed: 1,
-            aspectOverride: 'no',
-            startedAt,
-            updatedAt: startedAt,
-        };
+        return (
+            this.refreshSession(sessionId) ?? {
+                id: sessionId,
+                title,
+                streamUrl: '',
+                status: 'idle',
+                positionSeconds: 0,
+                durationSeconds: null,
+                volume: 1,
+                audioTracks: [],
+                selectedAudioTrackId: null,
+                subtitleTracks: [],
+                selectedSubtitleTrackId: null,
+                playbackSpeed: 1,
+                aspectOverride: 'no',
+                recording: { active: false },
+                startedAt,
+                updatedAt: startedAt,
+            }
+        );
     }
 
     loadPlayback(sessionId: string, playback: ResolvedPortalPlayback): void {
@@ -290,7 +322,10 @@ export class EmbeddedMpvNativeService {
         return this.refreshSession(sessionId);
     }
 
-    setAudioTrack(sessionId: string, trackId: number): EmbeddedMpvSession | null {
+    setAudioTrack(
+        sessionId: string,
+        trackId: number
+    ): EmbeddedMpvSession | null {
         this.assertEmbeddedMpvEnabled();
         this.getAddon().setAudioTrack(sessionId, trackId);
         return this.refreshSession(sessionId);
@@ -335,14 +370,84 @@ export class EmbeddedMpvNativeService {
         return this.refreshSession(sessionId);
     }
 
+    startRecording(
+        sessionId: string,
+        options: EmbeddedMpvRecordingStartOptions = {}
+    ): EmbeddedMpvSession | null {
+        this.assertEmbeddedMpvEnabled();
+        const addon = this.getAddon();
+        if (
+            typeof addon.startRecording !== 'function' ||
+            typeof addon.stopRecording !== 'function'
+        ) {
+            throw new Error(
+                'Embedded MPV addon does not support stream recording. Rebuild the native addon to enable this feature.'
+            );
+        }
+
+        const session = this.getRuntimeSession(sessionId);
+        const directory =
+            options.directory?.trim() || this.getDefaultRecordingFolder();
+        mkdirSync(directory, { recursive: true });
+
+        const targetPath = this.reserveRecordingTargetPath(
+            directory,
+            options.title || session.title || 'IPTVnator recording'
+        );
+        try {
+            addon.startRecording(sessionId, targetPath);
+        } catch (error) {
+            this.releaseReservedRecordingTargetPath(targetPath);
+            throw error;
+        }
+        return this.refreshSession(sessionId);
+    }
+
+    stopRecording(sessionId: string): EmbeddedMpvSession | null {
+        this.assertEmbeddedMpvEnabled();
+        const addon = this.getAddon();
+        if (typeof addon.stopRecording !== 'function') {
+            throw new Error(
+                'Embedded MPV addon does not support stream recording. Rebuild the native addon to enable this feature.'
+            );
+        }
+        addon.stopRecording(sessionId);
+        return this.refreshSession(sessionId);
+    }
+
+    getDefaultRecordingFolder(): string {
+        return app.getPath('downloads');
+    }
+
+    async selectRecordingFolder(): Promise<string | null> {
+        const result = await dialog.showOpenDialog({
+            properties: ['openDirectory', 'createDirectory'],
+            title: 'Select Recording Folder',
+            defaultPath: this.getDefaultRecordingFolder(),
+        });
+
+        if (result.canceled || result.filePaths.length === 0) {
+            return null;
+        }
+
+        return result.filePaths[0];
+    }
+
     disposeSession(sessionId: string): EmbeddedMpvSession | null {
         const session = this.sessions.get(sessionId);
         if (!session) {
             return null;
         }
 
+        let lastRecording: EmbeddedMpvRecordingState | undefined;
         try {
-            this.getAddon().disposeSession(sessionId);
+            const addon = this.getAddon();
+            try {
+                lastRecording = addon.getSessionSnapshot(sessionId)?.recording;
+            } catch {
+                lastRecording = undefined;
+            }
+            addon.disposeSession(sessionId);
         } finally {
             this.sessions.delete(sessionId);
             const payload: EmbeddedMpvSession = {
@@ -359,6 +464,7 @@ export class EmbeddedMpvNativeService {
                 selectedSubtitleTrackId: null,
                 playbackSpeed: 1,
                 aspectOverride: 'no',
+                recording: this.createClosedRecordingState(lastRecording),
                 startedAt: session.startedAt,
                 updatedAt: new Date().toISOString(),
             };
@@ -445,6 +551,7 @@ export class EmbeddedMpvNativeService {
                 typeof snapshot.aspectOverride === 'string'
                     ? snapshot.aspectOverride
                     : 'no',
+            recording: snapshot.recording ?? { active: false },
             startedAt: session.startedAt,
             updatedAt: new Date().toISOString(),
             ...(snapshot.error ? { error: snapshot.error } : {}),
@@ -510,7 +617,9 @@ export class EmbeddedMpvNativeService {
     private getRuntimeSession(sessionId: string): EmbeddedMpvRuntimeSession {
         const session = this.sessions.get(sessionId);
         if (!session) {
-            throw new Error(`Embedded MPV session "${sessionId}" was not found.`);
+            throw new Error(
+                `Embedded MPV session "${sessionId}" was not found.`
+            );
         }
 
         return session;
@@ -522,6 +631,76 @@ export class EmbeddedMpvNativeService {
         }
 
         return App.mainWindow.getNativeWindowHandle();
+    }
+
+    private reserveRecordingTargetPath(
+        directory: string,
+        title: string
+    ): string {
+        const baseName = this.sanitizeRecordingFileName(title);
+        const timestamp = this.formatRecordingTimestamp(new Date());
+        let candidate = path.join(directory, `${baseName}-${timestamp}.ts`);
+        let suffix = 2;
+
+        while (true) {
+            try {
+                const fd = openSync(candidate, 'wx');
+                closeSync(fd);
+                return candidate;
+            } catch (error) {
+                if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+                    candidate = path.join(
+                        directory,
+                        `${baseName}-${timestamp}-${suffix}.ts`
+                    );
+                    suffix += 1;
+                    continue;
+                }
+
+                throw error;
+            }
+        }
+    }
+
+    private releaseReservedRecordingTargetPath(targetPath: string): void {
+        try {
+            unlinkSync(targetPath);
+        } catch {
+            // Ignore cleanup failures; the start error is more useful.
+        }
+    }
+
+    private createClosedRecordingState(
+        recording?: EmbeddedMpvRecordingState
+    ): EmbeddedMpvRecordingState {
+        return {
+            active: false,
+            ...(recording?.targetPath
+                ? { targetPath: recording.targetPath }
+                : {}),
+            ...(recording?.error ? { error: recording.error } : {}),
+        };
+    }
+
+    private sanitizeRecordingFileName(title: string): string {
+        const normalized = title
+            .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return (normalized || 'IPTVnator recording').slice(0, 120);
+    }
+
+    private formatRecordingTimestamp(date: Date): string {
+        const parts = [
+            date.getFullYear(),
+            date.getMonth() + 1,
+            date.getDate(),
+            date.getHours(),
+            date.getMinutes(),
+            date.getSeconds(),
+        ].map((part) => String(part).padStart(2, '0'));
+
+        return `${parts[0]}${parts[1]}${parts[2]}-${parts[3]}${parts[4]}${parts[5]}`;
     }
 
     private isExperimentEnabled(): boolean {
@@ -563,7 +742,9 @@ export class EmbeddedMpvNativeService {
             this.addonLoadError = new Error(
                 [
                     'Unable to locate the embedded MPV native addon.',
-                    ...candidatePaths.map((candidatePath) => `- ${candidatePath}`),
+                    ...candidatePaths.map(
+                        (candidatePath) => `- ${candidatePath}`
+                    ),
                 ].join('\n')
             );
             throw this.addonLoadError;
@@ -625,8 +806,16 @@ export class EmbeddedMpvNativeService {
 
         return dedupePaths(
             app.isPackaged
-                ? [...packagedAddonPaths, ...distAddonPaths, localBuildAddonPath]
-                : [localBuildAddonPath, ...distAddonPaths, ...packagedAddonPaths]
+                ? [
+                      ...packagedAddonPaths,
+                      ...distAddonPaths,
+                      localBuildAddonPath,
+                  ]
+                : [
+                      localBuildAddonPath,
+                      ...distAddonPaths,
+                      ...packagedAddonPaths,
+                  ]
         );
     }
 
