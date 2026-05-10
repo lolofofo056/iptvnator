@@ -1,15 +1,14 @@
 import {
     Component,
     ElementRef,
-    EventEmitter,
-    Input,
     OnChanges,
     OnDestroy,
     OnInit,
-    Output,
     SimpleChanges,
-    ViewChild,
     ViewEncapsulation,
+    input,
+    output,
+    viewChild,
 } from '@angular/core';
 import '@yangkghjh/videojs-aspect-ratio-panel';
 import { getExtensionFromUrl } from 'm3u-utils';
@@ -88,16 +87,16 @@ type VideoJsPlayer = Omit<
 })
 export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
     /** DOM-element reference */
-    @ViewChild('target', { static: true }) target!: ElementRef<Element>;
+    readonly target = viewChild.required<ElementRef<Element>>('target');
     /** Options of VideoJs player */
-    @Input() options!: VideoPlayerOptions;
+    readonly options = input.required<VideoPlayerOptions>();
     /** VideoJs object */
     player!: VideoJsPlayer;
     /** mpegts.js player for raw MPEG-TS streams */
     private mpegtsPlayer: mpegts.Player | null = null;
-    @Input() volume = 1;
-    @Input() startTime = 0;
-    @Output() timeUpdate = new EventEmitter<{
+    readonly volume = input(1);
+    readonly startTime = input(0);
+    readonly timeUpdate = output<{
         currentTime: number;
         duration: number;
     }>();
@@ -106,27 +105,27 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
      * Instantiate Video.js on component init
      */
     ngOnInit(): void {
-        const source = this.options?.sources?.[0];
+        const source = this.options().sources?.[0];
         const isMpegTs = this.isMpegTsSource(source?.src);
 
         // For raw MPEG-TS streams, init Video.js without a source (UI/controls only)
         const vjsOptions = isMpegTs
-            ? { ...this.options, sources: [], autoplay: false }
-            : { ...this.options, autoplay: true };
+            ? { ...this.options(), sources: [], autoplay: false }
+            : { ...this.options(), autoplay: true };
 
         this.player = videoJs(
-            this.target.nativeElement,
+            this.target().nativeElement,
             vjsOptions,
             () => {
                 console.log(
                     'Setting VideoJS player initial volume to:',
-                    this.volume
+                    this.volume()
                 );
-                this.player.volume(this.volume);
+                this.player.volume(this.volume());
 
                 this.player.on('loadedmetadata', () => {
-                    if (this.startTime > 0) {
-                        this.player.currentTime(this.startTime);
+                    if (this.startTime() > 0) {
+                        this.player.currentTime(this.startTime());
                     }
                     this.logAudioTracks();
                     this.setupAudioTrackMenu();
@@ -198,14 +197,19 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
      */
     ngOnChanges(changes: SimpleChanges): void {
         if (changes['options']?.previousValue) {
-            const newSource = changes['options'].currentValue.sources[0];
-            if (this.isMpegTsSource(newSource?.src)) {
+            const previousSource =
+                changes['options'].previousValue.sources?.[0];
+            const newSource = changes['options'].currentValue.sources?.[0];
+            if (this.hasSourceChanged(previousSource, newSource)) {
                 this.destroyMpegTs();
-                this.player.reset();
-                this.initMpegTs(newSource.src);
-            } else {
-                this.destroyMpegTs();
-                this.player.src(newSource);
+                if (!newSource) {
+                    this.player.reset();
+                } else if (this.isMpegTsSource(newSource.src)) {
+                    this.player.reset();
+                    this.initMpegTs(newSource.src);
+                } else {
+                    this.player.src(newSource);
+                }
             }
         }
         if (changes['volume']?.currentValue !== undefined && this.player) {
@@ -230,6 +234,16 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
     private isMpegTsSource(url?: string): boolean {
         if (!url) return false;
         return getExtensionFromUrl(url) === 'ts' && mpegts.isSupported();
+    }
+
+    private hasSourceChanged(
+        previousSource: VideoPlayerSource | undefined,
+        newSource: VideoPlayerSource | undefined
+    ): boolean {
+        return (
+            previousSource?.src !== newSource?.src ||
+            previousSource?.type !== newSource?.type
+        );
     }
 
     private initMpegTs(url: string): void {
