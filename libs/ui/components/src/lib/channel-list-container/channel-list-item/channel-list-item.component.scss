@@ -203,9 +203,9 @@
     margin-inline-start: auto;
 
     button {
-        width: 34px;
-        height: 34px;
-        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        /* border-radius: 10px; */
         color: inherit;
         opacity: 0.76;
         transition:
@@ -216,7 +216,7 @@
         &:hover {
             opacity: 1;
             background: color-mix(in srgb, currentColor 10%, transparent);
-            transform: translateY(-1px);
+            /* transform: translateY(-1px); */
         }
     }
 
@@ -298,4 +298,8 @@
     .channel-content {
         gap: 0;
     }
+}
+
+.favorite-button, .program-info-button {
+    padding: 0;
 }
