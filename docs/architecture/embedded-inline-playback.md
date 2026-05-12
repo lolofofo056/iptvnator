@@ -117,7 +117,7 @@ an owner of embedded UI playback state.
 ## Series Quick Start CTA
 
 Xtream and Stalker series detail views share the quick-start decision helper in
-`/Users/4gray/Code/iptvnator/libs/portal/shared/util/src/lib/series-quick-start.ts`.
+`libs/portal/shared/util/src/lib/series-quick-start.ts`.
 The helper flattens the loaded season/episode map, sorts seasons and episodes in
 natural order, and returns the hero CTA state.
 

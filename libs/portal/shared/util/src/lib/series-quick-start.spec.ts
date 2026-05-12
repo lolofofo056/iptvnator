@@ -1,9 +1,8 @@
 import { PlaybackPositionData, XtreamSerieEpisode } from 'shared-interfaces';
 import {
     SERIES_QUICK_START_ACTION_KIND,
+    formatSeriesEpisodeCode,
     getSeriesQuickStartAction,
-    getPositiveInteger,
-    padEpisodePart,
 } from './series-quick-start';
 
 function episode(
@@ -57,7 +56,6 @@ describe('getSeriesQuickStartAction', () => {
             icon: 'play_arrow',
             episode: firstEpisode,
             position: null,
-            startTime: undefined,
             disabled: false,
         });
     });
@@ -92,7 +90,7 @@ describe('getSeriesQuickStartAction', () => {
         expect(action?.labelKey).toBe('XTREAM.RESUME_EPISODE');
         expect(action?.episodeLabel).toBe('S01E02 · Episode 2');
         expect(action?.episode).toBe(latestEpisode);
-        expect(action?.startTime).toBe(30);
+        expect(action?.position?.positionSeconds).toBe(30);
     });
 
     it('plays the next unwatched episode after watched episodes', () => {
@@ -175,7 +173,6 @@ describe('getSeriesQuickStartAction', () => {
             icon: 'check_circle',
             episode: finalEpisode,
             position: expect.any(Object),
-            startTime: undefined,
             disabled: true,
         });
     });
@@ -246,16 +243,14 @@ describe('getSeriesQuickStartAction', () => {
     });
 });
 
-describe('episode label helpers', () => {
-    it('normalizes only positive integers', () => {
-        expect(getPositiveInteger(1)).toBe(1);
-        expect(getPositiveInteger(0)).toBeNull();
-        expect(getPositiveInteger(1.5)).toBeNull();
-        expect(getPositiveInteger(Number.NaN)).toBeNull();
+describe('formatSeriesEpisodeCode', () => {
+    it('formats season and episode numbers with two digit minimums', () => {
+        expect(formatSeriesEpisodeCode(1, 2)).toBe('S01E02');
+        expect(formatSeriesEpisodeCode(12, 14)).toBe('S12E14');
     });
 
-    it('pads single digit episode label parts', () => {
-        expect(padEpisodePart(1)).toBe('01');
-        expect(padEpisodePart(10)).toBe('10');
+    it('falls back to S01E01 for invalid positive integer parts', () => {
+        expect(formatSeriesEpisodeCode(0, -1)).toBe('S01E01');
+        expect(formatSeriesEpisodeCode(Number.NaN, 2)).toBe('S01E02');
     });
 });
