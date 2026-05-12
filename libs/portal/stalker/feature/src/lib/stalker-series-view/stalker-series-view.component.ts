@@ -8,6 +8,7 @@ import {
     output,
     signal,
 } from '@angular/core';
+import { MatIcon } from '@angular/material/icon';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
@@ -26,8 +27,13 @@ import {
     PORTAL_EXTERNAL_PLAYBACK,
     PORTAL_PLAYBACK_POSITIONS,
     PORTAL_PLAYER,
+    SERIES_QUICK_START_ACTION_KIND,
+    SeriesQuickStartAction,
     createLogger,
+    getPositiveInteger,
+    getSeriesQuickStartAction,
     getStalkerReturnToState,
+    padEpisodePart,
 } from '@iptvnator/portal/shared/util';
 import {
     getVodSeriesSeasonKey,
@@ -50,6 +56,15 @@ import {
 } from '@iptvnator/ui/playback';
 import { DownloadsService } from 'services';
 
+interface StalkerQuickStartButton {
+    labelKey: string;
+    episodeLabel: string | null;
+    icon: string;
+    disabled: boolean;
+    action: SeriesQuickStartAction | null;
+    lazySeason: VodSeriesSeasonVm | null;
+}
+
 /**
  * Component for displaying series/episodes for Stalker portal content.
  * Supports three modes:
@@ -67,6 +82,7 @@ import { DownloadsService } from 'services';
         PortalInlinePlayerComponent,
         TranslatePipe,
         SeasonContainerComponent,
+        MatIcon,
     ],
 })
 export class StalkerSeriesViewComponent implements OnDestroy {
@@ -142,14 +158,11 @@ export class StalkerSeriesViewComponent implements OnDestroy {
             const playlist = this.stalkerStore.currentPlaylist();
             if (item && playlist?._id) {
                 const normalizedSeriesId = this.toSeriesId(item.id);
-                this.logger.debug(
-                    'Loading positions for series',
-                    {
-                        id: item.id,
-                        seriesId: normalizedSeriesId,
-                        isSeries: item.is_series,
-                    }
-                );
+                this.logger.debug('Loading positions for series', {
+                    id: item.id,
+                    seriesId: normalizedSeriesId,
+                    isSeries: item.is_series,
+                });
                 if (!isNaN(normalizedSeriesId)) {
                     void this.loadSeriesPositions(
                         playlist._id,
@@ -258,6 +271,41 @@ export class StalkerSeriesViewComponent implements OnDestroy {
         }
     );
 
+    readonly quickStartAction = computed<StalkerQuickStartButton | null>(() => {
+        const action = getSeriesQuickStartAction({
+            seasons: this.mappedSeasons(),
+            playbackPositions: this.episodePlaybackPositions(),
+        });
+
+        const lazySeason = this.getQuickStartLazyVodSeriesSeason(action);
+        if (lazySeason) {
+            return {
+                labelKey:
+                    action?.kind === SERIES_QUICK_START_ACTION_KIND.Completed
+                        ? 'XTREAM.PLAY_NEXT_EPISODE'
+                        : 'XTREAM.PLAY_FIRST_EPISODE',
+                episodeLabel: this.getLazyVodSeriesEpisodeLabel(lazySeason),
+                icon: 'play_arrow',
+                disabled: lazySeason.isLoading,
+                action: null,
+                lazySeason,
+            };
+        }
+
+        if (!action) {
+            return null;
+        }
+
+        return {
+            labelKey: action.labelKey,
+            episodeLabel: action.episodeLabel,
+            icon: action.icon,
+            disabled: action.disabled,
+            action,
+            lazySeason: null,
+        };
+    });
+
     /**
      * Handles season selection from the container.
      * For VOD Series, triggers lazy loading of episodes.
@@ -354,6 +402,22 @@ export class StalkerSeriesViewComponent implements OnDestroy {
                 mappedEpisode.originalCmd,
                 trackingId
             );
+        }
+    }
+
+    async playQuickStartEpisode(): Promise<void> {
+        const quickStart = this.quickStartAction();
+        if (!quickStart || quickStart.disabled) {
+            return;
+        }
+
+        if (quickStart.action) {
+            this.onEpisodeClicked(quickStart.action.episode);
+            return;
+        }
+
+        if (quickStart.lazySeason) {
+            await this.loadAndPlayVodSeriesSeason(quickStart.lazySeason);
         }
     }
 
@@ -513,8 +577,7 @@ export class StalkerSeriesViewComponent implements OnDestroy {
         } catch (error) {
             this.logger.error('Failed to start inline series playback', error);
             const errorMessage =
-                error instanceof Error &&
-                error.message === 'nothing_to_play'
+                error instanceof Error && error.message === 'nothing_to_play'
                     ? this.translateService.instant(
                           'PORTALS.CONTENT_NOT_AVAILABLE'
                       )
@@ -589,7 +652,8 @@ export class StalkerSeriesViewComponent implements OnDestroy {
         const posterUrl = episodeInfo?.movie_image;
         const seasonNum = Number(episode.season || 1);
         const episodeNum = episode.episode_num || 1;
-        const seriesTitle = item.info?.name || this.displayItem()?.info?.name || 'Series';
+        const seriesTitle =
+            item.info?.name || this.displayItem()?.info?.name || 'Series';
         const episodeTitle = `${seriesTitle} - S${String(seasonNum).padStart(
             2,
             '0'
@@ -621,10 +685,11 @@ export class StalkerSeriesViewComponent implements OnDestroy {
         playlistId: string,
         seriesXtreamId: number
     ): Promise<void> {
-        const positions = await this.playbackPositions.getSeriesPlaybackPositions(
-            playlistId,
-            seriesXtreamId
-        );
+        const positions =
+            await this.playbackPositions.getSeriesPlaybackPositions(
+                playlistId,
+                seriesXtreamId
+            );
         const positionsMap = new Map<number, PlaybackPositionData>();
         positions.forEach((position) => {
             positionsMap.set(position.contentXtreamId, position);
@@ -632,7 +697,86 @@ export class StalkerSeriesViewComponent implements OnDestroy {
         this.episodePlaybackPositions.set(positionsMap);
     }
 
-    private updateEpisodePlaybackPosition(position: PlaybackPositionData): void {
+    private async loadAndPlayVodSeriesSeason(
+        season: VodSeriesSeasonVm
+    ): Promise<void> {
+        if (season.episodes.length === 0) {
+            await this.loadEpisodesForSeason(season);
+        }
+
+        const loadedSeason =
+            this.vodSeriesSeasons().find((item) => item.id === season.id) ??
+            season;
+        const seasonKey = getVodSeriesSeasonKey(loadedSeason);
+        const episode = this.mappedSeasons()[seasonKey]?.[0];
+
+        if (episode) {
+            this.onEpisodeClicked(episode);
+        }
+    }
+
+    private getQuickStartLazyVodSeriesSeason(
+        action: SeriesQuickStartAction | null
+    ): VodSeriesSeasonVm | null {
+        if (!this.isVodSeries()) {
+            return null;
+        }
+
+        const seasons = this.vodSeriesSeasons();
+        if (!action) {
+            return this.getFirstUnloadedVodSeriesSeason(seasons);
+        }
+
+        if (action.kind !== SERIES_QUICK_START_ACTION_KIND.Completed) {
+            return null;
+        }
+
+        const completedSeasonIndex = this.findVodSeriesSeasonIndexForEpisode(
+            action.episode,
+            seasons
+        );
+        if (completedSeasonIndex === -1) {
+            return null;
+        }
+
+        return this.getFirstUnloadedVodSeriesSeason(
+            seasons.slice(completedSeasonIndex + 1)
+        );
+    }
+
+    private getFirstUnloadedVodSeriesSeason(
+        seasons: ReadonlyArray<VodSeriesSeasonVm>
+    ): VodSeriesSeasonVm | null {
+        return seasons.find((season) => season.episodes.length === 0) ?? null;
+    }
+
+    private findVodSeriesSeasonIndexForEpisode(
+        episode: XtreamSerieEpisode,
+        seasons: ReadonlyArray<VodSeriesSeasonVm>
+    ): number {
+        const mappedSeasons = this.mappedSeasons();
+
+        return seasons.findIndex((season) =>
+            (mappedSeasons[getVodSeriesSeasonKey(season)] ?? []).some(
+                (mappedEpisode) => mappedEpisode.id === episode.id
+            )
+        );
+    }
+
+    private getLazyVodSeriesEpisodeLabel(season: VodSeriesSeasonVm): string {
+        const seasonIndex = this.vodSeriesSeasons().findIndex(
+            (item) => item.id === season.id
+        );
+        const seasonNumber =
+            getPositiveInteger(Number(season.season_number)) ??
+            (seasonIndex >= 0 ? seasonIndex + 1 : 1);
+
+        return `S${padEpisodePart(seasonNumber)}E01`;
+    }
+
+    private updateEpisodePlaybackPosition(
+        position: PlaybackPositionData
+    ): void {
         const updated = new Map(this.episodePlaybackPositions());
         updated.set(position.contentXtreamId, position);
         this.episodePlaybackPositions.set(updated);
