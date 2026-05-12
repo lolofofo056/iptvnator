@@ -445,4 +445,116 @@ describe('StreamResolverService', () => {
             channel: '77',
         });
     });
+
+    it('resolves Stalker radio collection items with radio playback and no EPG request', async () => {
+        playlistsService.getPlaylistById.mockReturnValue(
+            of({
+                _id: 'stalker-1',
+                portalUrl: 'https://stalker.example.com/portal.php',
+                macAddress: '00:11:22:33:44:55',
+                isFullStalkerPortal: false,
+            } satisfies Partial<Playlist>)
+        );
+        dataService.sendIpcEvent.mockResolvedValue({
+            js: {
+                cmd: 'ffmpeg https://media.example.com/jazz.mp3',
+            },
+        });
+
+        const detail = await service.resolveLiveDetail({
+            uid: 'stalker::stalker-1::40001',
+            name: 'Jazz Radio',
+            contentType: 'live',
+            sourceType: 'stalker',
+            playlistId: 'stalker-1',
+            playlistName: 'Stalker',
+            stalkerId: '40001',
+            stalkerCmd: 'ffrt4://radio/40001/index.mp3',
+            logo: 'jazz.png',
+            radio: 'true',
+        } satisfies UnifiedCollectionItem);
+
+        expect(dataService.sendIpcEvent).toHaveBeenCalledTimes(1);
+        expect(dataService.sendIpcEvent).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+                params: expect.objectContaining({
+                    action: 'create_link',
+                    type: 'radio',
+                    cmd: 'ffrt4://radio/40001/index.mp3',
+                }),
+            })
+        );
+        expect(detail).toEqual(
+            expect.objectContaining({
+                epgMode: 'portal',
+                epgItems: [],
+                channel: expect.objectContaining({
+                    id: '40001',
+                    name: 'Jazz Radio',
+                    radio: 'true',
+                }),
+                playback: expect.objectContaining({
+                    streamUrl: 'https://media.example.com/jazz.mp3',
+                    title: 'Jazz Radio',
+                    thumbnail: 'jazz.png',
+                }),
+            })
+        );
+    });
+
+    it('uses direct Stalker radio HTTP commands without create_link', async () => {
+        playlistsService.getPlaylistById.mockReturnValue(
+            of({
+                _id: 'stalker-1',
+                portalUrl: 'https://stalker.example.com/portal.php',
+                macAddress: '00:11:22:33:44:55',
+                isFullStalkerPortal: false,
+                userAgent: 'IPTVnator',
+                referrer: 'https://ref.example.com',
+                origin: 'https://origin.example.com',
+            } satisfies Partial<Playlist>)
+        );
+
+        const detail = await service.resolveLiveDetail({
+            uid: 'stalker::stalker-1::40002',
+            name: 'Direct Radio',
+            contentType: 'live',
+            sourceType: 'stalker',
+            playlistId: 'stalker-1',
+            playlistName: 'Stalker',
+            stalkerId: '40002',
+            stalkerCmd: 'ffmpeg https://media.example.com/direct-radio.mp3',
+            logo: 'direct-radio.png',
+            radio: 'true',
+        } satisfies UnifiedCollectionItem);
+
+        expect(dataService.sendIpcEvent).not.toHaveBeenCalled();
+        expect(stalkerSession.makeAuthenticatedRequest).not.toHaveBeenCalled();
+        expect(detail).toEqual(
+            expect.objectContaining({
+                epgMode: 'portal',
+                epgItems: [],
+                channel: expect.objectContaining({
+                    id: '40002',
+                    name: 'Direct Radio',
+                    radio: 'true',
+                    url: 'https://media.example.com/direct-radio.mp3',
+                    http: expect.objectContaining({
+                        referrer: 'https://ref.example.com',
+                        'user-agent': 'IPTVnator',
+                        origin: 'https://origin.example.com',
+                    }),
+                }),
+                playback: expect.objectContaining({
+                    streamUrl: 'https://media.example.com/direct-radio.mp3',
+                    title: 'Direct Radio',
+                    thumbnail: 'direct-radio.png',
+                    userAgent: 'IPTVnator',
+                    referer: 'https://ref.example.com',
+                    origin: 'https://origin.example.com',
+                }),
+            })
+        );
+    });
 });
