@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import Artplayer from 'artplayer';
 import Hls, { type ErrorData, type ManifestParsedData } from 'hls.js';
-import { getExtensionFromUrl } from 'm3u-utils';
+import { getStreamExtensionFromUrl } from 'm3u-utils';
 import mpegts from 'mpegts.js';
 import { Channel } from 'shared-interfaces';
 import {
@@ -131,8 +131,8 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
         const el = this.elementRef.nativeElement.querySelector(
             '.artplayer-container'
         );
-        const extension = getExtensionFromUrl(this.channel?.url ?? '');
-        const isLive = extension === 'm3u8' || extension === 'ts';
+        const extension = getStreamExtensionFromUrl(this.channel?.url ?? '');
+        const isLive = extension === 'm3u8' || extension === 'ts' || !extension;
 
         this.player = new Artplayer({
             container: el,
@@ -325,7 +325,7 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
     }
 
     private getVideoType(url: string): string {
-        const extension = getExtensionFromUrl(url);
+        const extension = getStreamExtensionFromUrl(url);
         switch (extension) {
             case 'mkv':
                 return 'video/matroska';
@@ -336,7 +336,9 @@ export class ArtPlayerComponent implements OnInit, OnDestroy, OnChanges {
             case 'ts':
                 return 'ts';
             default:
-                return 'auto';
+                // No recognized extension (e.g. IPTV proxy URL) → default to
+                // MPEG-TS which is the most common format for live IPTV streams.
+                return extension ? 'auto' : 'ts';
         }
     }
 

@@ -13,7 +13,7 @@ import {
 } from '@angular/core';
 import Hls, { type ErrorData, type ManifestParsedData } from 'hls.js';
 import mpegts from 'mpegts.js';
-import { getExtensionFromUrl } from 'm3u-utils';
+import { getStreamExtensionFromUrl } from 'm3u-utils';
 import { DataService } from 'services';
 import { Channel } from 'shared-interfaces';
 import {
@@ -143,7 +143,7 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
         if (channel.url) {
             this.playbackIssue.emit(null);
             const url = channel.url + (channel.epgParams ?? '');
-            const extension = getExtensionFromUrl(channel.url);
+            const extension = getStreamExtensionFromUrl(channel.url);
 
             // Set user agent if specified on channel
             if (channel.http?.['user-agent']) {
@@ -153,7 +153,7 @@ export class HtmlVideoPlayerComponent implements OnInit, OnChanges, OnDestroy {
                 );
             }
 
-            if (extension === 'ts' && mpegts.isSupported()) {
+            if ((extension === 'ts' || !extension) && mpegts.isSupported()) {
                 console.log('Using mpegts.js for TS stream:', channel.name, url);
                 this.mpegtsPlayer = mpegts.createPlayer({
                     type: 'mpegts',

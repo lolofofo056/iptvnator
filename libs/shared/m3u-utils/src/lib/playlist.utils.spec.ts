@@ -1,5 +1,9 @@
 import { Channel, Playlist } from 'shared-interfaces';
-import { aggregateFavoriteChannels } from './playlist.utils';
+import {
+    aggregateFavoriteChannels,
+    getExtensionFromUrl,
+    getStreamExtensionFromUrl,
+} from './playlist.utils';
 
 function createChannel(id: string, url: string, name = id): Channel {
     return {
@@ -74,5 +78,31 @@ describe('playlist utils', () => {
         ]);
 
         expect(result).toEqual([first, third]);
+    });
+
+    describe('getExtensionFromUrl', () => {
+        it.each([
+            ['https://host/path/file.ts?token=x', 'ts'],
+            ['https://host/ace/getstream?infohash=x', undefined],
+            ['https://host/path.with.dots/stream?x=y', undefined],
+            ['https://host/path/file.m3u8', 'm3u8'],
+            ['https://host/path/.ts', undefined],
+        ])('extracts the path extension from %s', (url, expected) => {
+            expect(getExtensionFromUrl(url)).toBe(expected);
+        });
+    });
+
+    describe('getStreamExtensionFromUrl', () => {
+        it.each([
+            ['https://host/play?extension=m3u8&token=x', 'm3u8'],
+            ['https://host/live.php?stream=123&extension=ts', 'ts'],
+            ['https://host/path/file.ts?token=x', 'ts'],
+            ['https://host/ace/getstream?infohash=x', undefined],
+        ])(
+            'prefers declared stream extension metadata from %s',
+            (url, expected) => {
+                expect(getStreamExtensionFromUrl(url)).toBe(expected);
+            }
+        );
     });
 });
