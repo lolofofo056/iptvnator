@@ -13,10 +13,17 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatIconButton } from '@angular/material/button';
 import { MatDialog } from '@angular/material/dialog';
 import { MatIcon } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltip } from '@angular/material/tooltip';
 import { Router } from '@angular/router';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import { StalkerStore } from '@iptvnator/portal/stalker/data-access';
+import {
+    PortalCategorySortMode,
+    persistPortalCategorySortMode,
+    restorePortalCategorySortMode,
+    sortPortalCategoryItems,
+} from '@iptvnator/portal/shared/util';
 import { XtreamStore } from '@iptvnator/portal/xtream/data-access';
 import { WorkspaceContextCategoryViewComponent } from './components/workspace-context-category-view.component';
 import { WorkspaceContextErrorViewComponent } from './components/workspace-context-error-view.component';
@@ -34,11 +41,19 @@ interface XtreamCategoryLike {
     category_id?: number | string;
 }
 
+interface WorkspaceCategoryLike {
+    readonly category_id?: string | number;
+    readonly category_name?: string;
+    readonly id?: string | number;
+    readonly name?: string;
+}
+
 @Component({
     selector: 'app-workspace-context-panel',
     imports: [
         MatIconButton,
         MatIcon,
+        MatMenuModule,
         MatTooltip,
         TranslatePipe,
         WorkspaceContextCategoryViewComponent,
@@ -100,9 +115,7 @@ export class WorkspaceContextPanelComponent {
         this.isXtreamCategoryInteractionEnabled() ? 'ready' : 'loading'
     );
     readonly canManageXtreamCategories = computed(
-        () =>
-            this.isXtreamCategories() &&
-            this.xtreamSelectedTypeCountsReady()
+        () => this.isXtreamCategories() && this.xtreamSelectedTypeCountsReady()
     );
     readonly xtreamStatusText = computed(() => {
         if (
@@ -140,39 +153,78 @@ export class WorkspaceContextPanelComponent {
         viewChild<ElementRef<HTMLInputElement>>('searchInput');
     readonly isSearchOpen = signal(false);
     readonly categorySearchTerm = signal('');
+    readonly categorySortMode = signal<PortalCategorySortMode>(
+        restorePortalCategorySortMode()
+    );
+    readonly categorySortLabelKey = computed(() =>
+        this.getCategorySortLabelKey(this.categorySortMode())
+    );
+    readonly categorySortOptions: ReadonlyArray<{
+        mode: PortalCategorySortMode;
+        translationKey: string;
+        icon: string;
+    }> = [
+        {
+            mode: 'server',
+            translationKey: 'WORKSPACE.SORT_SERVER',
+            icon: 'dns',
+        },
+        {
+            mode: 'name-asc',
+            translationKey: 'WORKSPACE.SORT_NAME_ASC',
+            icon: 'sort_by_alpha',
+        },
+        {
+            mode: 'name-desc',
+            translationKey: 'WORKSPACE.SORT_NAME_DESC',
+            icon: 'arrow_downward',
+        },
+    ];
+    readonly categorySortIcon = computed(
+        () =>
+            this.categorySortOptions.find(
+                (option) => option.mode === this.categorySortMode()
+            )?.icon ?? 'dns'
+    );
 
     readonly canSearchCategories = computed(
         () =>
-            (this.isXtreamCategories() &&
-                this.xtreamCategories().length > 0) ||
-            (this.isStalkerCategories() &&
-                this.stalkerCategories().length > 0)
+            (this.isXtreamCategories() && this.xtreamCategories().length > 0) ||
+            (this.isStalkerCategories() && this.stalkerCategories().length > 0)
     );
 
     readonly filteredXtreamCategories = computed(() => {
         const cats = this.xtreamCategories();
         const term = this.categorySearchTerm().trim().toLowerCase();
-        if (!term) return cats;
-        return cats.filter((c) => {
-            const label =
-                (c as { category_name?: string }).category_name ??
-                (c as { name?: string }).name ??
-                '';
-            return label.toLowerCase().includes(term);
-        });
+        const filtered = term
+            ? cats.filter((category) =>
+                  this.getCategoryLabel(category).toLowerCase().includes(term)
+              )
+            : cats;
+
+        return sortPortalCategoryItems(
+            filtered,
+            this.categorySortMode(),
+            (category) => this.getCategoryLabel(category),
+            (category) => this.isAllCategory(category)
+        );
     });
 
     readonly filteredStalkerCategories = computed(() => {
         const cats = this.stalkerCategories();
         const term = this.categorySearchTerm().trim().toLowerCase();
-        if (!term) return cats;
-        return cats.filter((c) => {
-            const label =
-                (c as { name?: string }).name ??
-                (c as { category_name?: string }).category_name ??
-                '';
-            return label.toLowerCase().includes(term);
-        });
+        const filtered = term
+            ? cats.filter((category) =>
+                  this.getCategoryLabel(category).toLowerCase().includes(term)
+              )
+            : cats;
+
+        return sortPortalCategoryItems(
+            filtered,
+            this.categorySortMode(),
+            (category) => this.getCategoryLabel(category),
+            (category) => this.isAllCategory(category)
+        );
     });
 
     readonly title = computed(() => {
@@ -240,6 +292,11 @@ export class WorkspaceContextPanelComponent {
         this.searchInput()?.nativeElement.focus();
     }
 
+    setCategorySortMode(mode: PortalCategorySortMode): void {
+        this.categorySortMode.set(mode);
+        persistPortalCategorySortMode(mode);
+    }
+
     openManageCategories(): void {
         if (!this.canManageXtreamCategories()) {
             return;
@@ -262,7 +319,8 @@ export class WorkspaceContextPanelComponent {
                         data: {
                             playlistId: context.playlistId,
                             contentType,
-                            itemCounts: this.xtreamStore.getCategoryItemCounts(),
+                            itemCounts:
+                                this.xtreamStore.getCategoryItemCounts(),
                         },
                         width: '500px',
                         maxHeight: '90vh',
@@ -395,5 +453,25 @@ export class WorkspaceContextPanelComponent {
             default:
                 return '';
         }
+    }
+
+    private getCategorySortLabelKey(mode: PortalCategorySortMode): string {
+        switch (mode) {
+            case 'name-asc':
+                return 'WORKSPACE.SORT_NAME_ASC';
+            case 'name-desc':
+                return 'WORKSPACE.SORT_NAME_DESC';
+            case 'server':
+            default:
+                return 'WORKSPACE.SORT_SERVER';
+        }
+    }
+
+    private getCategoryLabel(category: WorkspaceCategoryLike): string {
+        return category.category_name ?? category.name ?? '';
+    }
+
+    private isAllCategory(category: WorkspaceCategoryLike): boolean {
+        return String(category.category_id ?? category.id) === '*';
     }
 }
