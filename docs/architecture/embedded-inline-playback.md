@@ -165,6 +165,8 @@ The banner keeps the primary message compact, then exposes technical details on 
 
 URL extension metadata is filtered before diagnostics and player selection use it. Web script extensions such as `.php` are not shown as stream containers; explicit media query metadata such as `extension=ts` or `format=m3u8` is preferred when present.
 
+Portal VOD and episode payloads with `contentInfo` are treated as non-live by the Video.js MPEG-TS path unless `isLive` is explicitly set. If Chromium leaves the underlying MediaSource duration at `Infinity` for a finite TS VOD, the Video.js wrapper normalizes its UI duration from the finite `seekable` or `buffered` range. This removes the misleading `LIVE` control state without changing stream decoding, diagnostics, or external fallback behavior.
+
 When a diagnostic is actionable in Electron, the inline banner may offer `Open in MPV`, `Open in VLC`, and `Copy URL`. Web builds only expose copy/help text. MPV/VLC fallback requests carry the original `ResolvedPortalPlayback` payload so headers, referer, origin, user-agent, content metadata, and resume offset stay intact.
 
 `PortalPlayer.openExternalPlayback(playback, player)` is the forced external launch API. It sends the playback payload to MPV or VLC regardless of the current saved player setting, so fallback buttons do not mutate preferences.

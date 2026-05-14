@@ -201,6 +201,36 @@ describe('WebPlayerViewComponent', () => {
         ]);
     });
 
+    it('marks portal VOD playback as non-live for Video.js MPEG-TS playback', () => {
+        const streamUrl = 'https://example.com/movie/123.ts';
+        fixture.componentRef.setInput('playback', {
+            streamUrl,
+            title: 'Example Movie',
+            contentInfo: {
+                playlistId: 'playlist-1',
+                contentXtreamId: 123,
+                contentType: 'vod',
+            },
+        });
+
+        fixture.detectChanges();
+
+        const player = fixture.debugElement.query(
+            By.directive(StubVjsPlayerComponent)
+        ).componentInstance as StubVjsPlayerComponent;
+        expect(player.options()).toEqual(
+            expect.objectContaining({
+                isLive: false,
+                sources: [
+                    {
+                        src: streamUrl,
+                        type: 'video/mp2t',
+                    },
+                ],
+            })
+        );
+    });
+
     it('uses browser access diagnostic translation keys', () => {
         const issue = createBrowserAccessDiagnostic();
 

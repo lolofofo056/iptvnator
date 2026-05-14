@@ -35,6 +35,7 @@ type VideoPlayerSource = {
 
 type VideoPlayerOptions = Record<string, unknown> & {
     autoplay?: boolean;
+    isLive?: boolean;
     sources?: VideoPlayerSource[];
 };
 
@@ -104,6 +105,14 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
     player!: VideoJsPlayer;
     /** mpegts.js player for raw MPEG-TS streams */
     private mpegtsPlayer: mpegts.Player | null = null;
+    private mpegTsVodDurationTarget: HTMLVideoElement | null = null;
+    private readonly mpegTsVodDurationEvents = [
+        'durationchange',
+        'loadedmetadata',
+        'progress',
+        'timeupdate',
+        'error',
+    ] as const;
     readonly volume = input(1);
     readonly startTime = input(0);
     readonly timeUpdate = output<{
@@ -114,6 +123,10 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
 
     private readonly clearPlaybackIssue = () => {
         this.playbackIssue.emit(null);
+    };
+    private readonly scheduleMpegTsVodDurationSync = () => {
+        this.syncMpegTsVodDuration();
+        this.queueDurationSync(() => this.syncMpegTsVodDuration());
     };
 
     /**
@@ -288,15 +301,22 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
         if (!videoEl) return;
 
         console.log('Using mpegts.js for TS stream:', url);
+        const isLive = this.options().isLive !== false;
         this.mpegtsPlayer = mpegts.createPlayer({
             type: 'mpegts',
-            isLive: true,
+            isLive,
             url: url,
         });
         this.mpegtsPlayer.attachMediaElement(videoEl as HTMLVideoElement);
+        if (!isLive) {
+            this.attachMpegTsVodDurationNormalization(
+                videoEl as HTMLVideoElement
+            );
+        }
         this.mpegtsPlayer.on(
             mpegts.Events.ERROR,
             (type: string, details: string, info: unknown): void => {
+                this.syncMpegTsVodDuration();
                 this.playbackIssue.emit(
                     classifyMpegTsPlaybackIssue(
                         {
@@ -322,6 +342,7 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
                 : null;
         const nativeError = targetVideo?.error ?? null;
 
+        this.syncMpegTsVodDuration();
         this.playbackIssue.emit(
             classifyNativePlaybackIssue(
                 videoJsError ?? nativeError,
@@ -333,6 +354,83 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
         );
     }
 
+    private attachMpegTsVodDurationNormalization(
+        videoEl: HTMLVideoElement
+    ): void {
+        this.detachMpegTsVodDurationNormalization();
+        this.mpegTsVodDurationTarget = videoEl;
+        for (const eventName of this.mpegTsVodDurationEvents) {
+            videoEl.addEventListener(
+                eventName,
+                this.scheduleMpegTsVodDurationSync
+            );
+        }
+        this.syncMpegTsVodDuration();
+    }
+
+    private detachMpegTsVodDurationNormalization(): void {
+        if (!this.mpegTsVodDurationTarget) {
+            return;
+        }
+
+        for (const eventName of this.mpegTsVodDurationEvents) {
+            this.mpegTsVodDurationTarget.removeEventListener(
+                eventName,
+                this.scheduleMpegTsVodDurationSync
+            );
+        }
+        this.mpegTsVodDurationTarget = null;
+    }
+
+    private syncMpegTsVodDuration(): void {
+        if (this.options().isLive !== false || !this.mpegTsVodDurationTarget) {
+            return;
+        }
+
+        const duration = this.getFiniteMpegTsVodDuration(
+            this.mpegTsVodDurationTarget
+        );
+        if (!duration) {
+            return;
+        }
+
+        if (this.player.duration() !== duration) {
+            this.player.duration(duration);
+        }
+    }
+
+    private getFiniteMpegTsVodDuration(videoEl: HTMLVideoElement): number {
+        return (
+            this.getFiniteTimeRangeEnd(videoEl.seekable) ??
+            this.getFiniteTimeRangeEnd(videoEl.buffered) ??
+            0
+        );
+    }
+
+    private getFiniteTimeRangeEnd(ranges: TimeRanges): number | null {
+        for (let index = ranges.length - 1; index >= 0; index--) {
+            try {
+                const end = ranges.end(index);
+                if (Number.isFinite(end) && end > 0) {
+                    return end;
+                }
+            } catch {
+                continue;
+            }
+        }
+
+        return null;
+    }
+
+    private queueDurationSync(callback: () => void): void {
+        if (typeof queueMicrotask === 'function') {
+            queueMicrotask(callback);
+            return;
+        }
+
+        void Promise.resolve().then(callback);
+    }
+
     private createSourceMetadata(url: string, mimeType?: string) {
         return createPlaybackSourceMetadata({
             url,
@@ -342,6 +440,7 @@ export class VjsPlayerComponent implements OnInit, OnChanges, OnDestroy {
     }
 
     private destroyMpegTs(): void {
+        this.detachMpegTsVodDurationNormalization();
         if (this.mpegtsPlayer) {
             this.mpegtsPlayer.pause();
             this.mpegtsPlayer.unload();

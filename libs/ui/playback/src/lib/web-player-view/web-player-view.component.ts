@@ -82,7 +82,10 @@ export class WebPlayerViewComponent {
 
     channel!: { url: string };
     player!: VideoPlayer;
-    vjsOptions!: { sources: { src: string; type: string }[] };
+    vjsOptions!: {
+        isLive: boolean;
+        sources: { src: string; type: string }[];
+    };
     readonly isDesktop = signal(this.detectDesktop());
     readonly playbackDiagnostic = signal<PlaybackDiagnostic | null>(null);
     readonly canShowExternalFallbackActions = computed(
@@ -117,11 +120,14 @@ export class WebPlayerViewComponent {
             const playback = this.resolvedPlayback();
             this.playbackDiagnostic.set(null);
             this.setChannel(playback.streamUrl);
-            this.setVjsOptions(playback.streamUrl);
+            this.setVjsOptions(
+                playback.streamUrl,
+                this.isLivePlayback(playback)
+            );
         });
     }
 
-    setVjsOptions(streamUrl: string) {
+    setVjsOptions(streamUrl: string, isLive = true) {
         const extension = getPlaybackMediaExtensionFromUrl(streamUrl);
         const mimeType =
             extension === 'm3u' || extension === 'm3u8'
@@ -131,6 +137,7 @@ export class WebPlayerViewComponent {
                   : 'video/mp4';
 
         this.vjsOptions = {
+            isLive,
             sources: [{ src: streamUrl, type: mimeType }],
         };
     }
@@ -248,6 +255,14 @@ export class WebPlayerViewComponent {
 
     private detectDesktop(): boolean {
         return typeof window !== 'undefined' && !!window.electron;
+    }
+
+    private isLivePlayback(playback: ResolvedPortalPlayback): boolean {
+        if (typeof playback.isLive === 'boolean') {
+            return playback.isLive;
+        }
+
+        return !playback.contentInfo;
     }
 
     private formatPlayer(player: PlaybackDiagnostic['player']): string {
