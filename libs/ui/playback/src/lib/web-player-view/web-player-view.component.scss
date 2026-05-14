@@ -1,7 +1,8 @@
-:host {
+.web-player-view {
     display: block;
     height: 100%;
     position: relative;
+    overflow: hidden;
 }
 
 app-art-player,
@@ -25,6 +26,8 @@ app-html-video-player {
     gap: 8px 12px;
     align-items: start;
     padding: 14px 16px;
+    max-block-size: calc(100% - 32px);
+    overflow: auto;
     border: 1px solid color-mix(in srgb, var(--mat-sys-error) 36%, transparent);
     border-radius: 8px;
     background: color-mix(
@@ -83,6 +86,7 @@ app-html-video-player {
     .web-player-diagnostic {
         inset-inline: 8px;
         bottom: var(--web-player-diagnostic-bottom, 8px);
+        max-block-size: calc(100% - 16px);
         grid-template-areas:
             'icon body'
             'actions actions';

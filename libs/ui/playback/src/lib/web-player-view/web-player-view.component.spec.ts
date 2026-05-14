@@ -82,9 +82,8 @@ describe('WebPlayerViewComponent', () => {
     const originalElectron = window.electron;
 
     beforeAll(async () => {
-        ({ WebPlayerViewComponent } = await import(
-            './web-player-view.component'
-        ));
+        ({ WebPlayerViewComponent } =
+            await import('./web-player-view.component'));
     });
 
     beforeEach(async () => {
@@ -122,6 +121,12 @@ describe('WebPlayerViewComponent', () => {
     afterEach(() => {
         window.electron = originalElectron;
         fixture.destroy();
+    });
+
+    it('anchors overlay UI to the player view host', () => {
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.classList).toContain('web-player-view');
     });
 
     it('renders diagnostics and emits MPV fallback requests on desktop', () => {

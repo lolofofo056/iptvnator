@@ -39,6 +39,9 @@ import { VjsPlayerComponent } from '../vjs-player/vjs-player.component';
     selector: 'app-web-player-view',
     templateUrl: './web-player-view.component.html',
     styleUrls: ['./web-player-view.component.scss'],
+    host: {
+        class: 'web-player-view',
+    },
     imports: [
         ArtPlayerComponent,
         ClipboardModule,
