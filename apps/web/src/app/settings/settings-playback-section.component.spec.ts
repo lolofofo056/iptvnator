@@ -11,6 +11,9 @@ const MPV_COMPATIBLE_PLAYER_TIP =
     'IINA can be launched as an MPV-compatible player on macOS, but use its executable path, such as /Applications/IINA.app/Contents/MacOS/iina-cli or /Applications/IINA.app/Contents/MacOS/IINA. IPTVnator controls, position polling, and reuse-instance behavior are guaranteed only for MPV IPC.';
 const VLC_PATH_DESCRIPTION =
     'Set the path to VLC. On macOS you can use the VLC app bundle, such as /Applications/VLC.app, or the executable path.';
+const MPV_ARGUMENTS_PLACEHOLDER =
+    '--ontop\n--autofit=640x360\n--geometry=+80+80';
+const VLC_ARGUMENTS_PLACEHOLDER = '--video-on-top\n--width=640\n--height=360';
 
 describe('SettingsPlaybackSectionComponent', () => {
     let fixture: ComponentFixture<SettingsPlaybackSectionComponent>;
@@ -226,6 +229,56 @@ describe('SettingsPlaybackSectionComponent', () => {
             )
         ).toBeNull();
     });
+
+    it('shows MPV command-line arguments only when MPV is selected', () => {
+        fixture.componentRef.setInput('form', createForm(VideoPlayer.MPV));
+        fixture.componentRef.setInput('isDesktop', true);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="mpv-player-arguments-setting"]'
+            )
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="vlc-player-arguments-setting"]'
+            )
+        ).toBeNull();
+        expect(fixture.nativeElement.textContent).toContain(
+            'SETTINGS.MPV_PLAYER_ARGUMENTS_LABEL'
+        );
+        expect(
+            fixture.nativeElement.querySelector<HTMLTextAreaElement>(
+                '#mpvPlayerArguments'
+            )?.placeholder
+        ).toBe(MPV_ARGUMENTS_PLACEHOLDER);
+    });
+
+    it('shows VLC command-line arguments only when VLC is selected', () => {
+        fixture.componentRef.setInput('form', createForm(VideoPlayer.VLC));
+        fixture.componentRef.setInput('isDesktop', true);
+        fixture.detectChanges();
+
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="vlc-player-arguments-setting"]'
+            )
+        ).not.toBeNull();
+        expect(
+            fixture.nativeElement.querySelector(
+                '[data-test-id="mpv-player-arguments-setting"]'
+            )
+        ).toBeNull();
+        expect(fixture.nativeElement.textContent).toContain(
+            'SETTINGS.VLC_PLAYER_ARGUMENTS_LABEL'
+        );
+        expect(
+            fixture.nativeElement.querySelector<HTMLTextAreaElement>(
+                '#vlcPlayerArguments'
+            )?.placeholder
+        ).toBe(VLC_ARGUMENTS_PLACEHOLDER);
+    });
 });
 
 function createForm(player = VideoPlayer.VideoJs): FormGroup {
@@ -235,8 +288,10 @@ function createForm(player = VideoPlayer.VideoJs): FormGroup {
         openStreamOnDoubleClick: new FormControl(false),
         showExternalPlaybackBar: new FormControl(true),
         mpvPlayerPath: new FormControl(''),
+        mpvPlayerArguments: new FormControl(''),
         mpvReuseInstance: new FormControl(false),
         vlcPlayerPath: new FormControl(''),
+        vlcPlayerArguments: new FormControl(''),
         vlcReuseInstance: new FormControl(false),
         recordingFolder: new FormControl(''),
     });

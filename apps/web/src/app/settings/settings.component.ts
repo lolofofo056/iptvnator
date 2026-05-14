@@ -47,6 +47,7 @@ import {
     EmbeddedMpvSupport,
     CoverSize,
     Language,
+    normalizeExternalPlayerArguments,
     StartupBehavior,
     StreamFormat,
     Theme,
@@ -187,8 +188,10 @@ export class SettingsComponent implements OnInit, OnDestroy {
         showExternalPlaybackBar: true,
         theme: Theme.SystemTheme,
         mpvPlayerPath: '',
+        mpvPlayerArguments: '',
         mpvReuseInstance: false,
         vlcPlayerPath: '',
+        vlcPlayerArguments: '',
         vlcReuseInstance: false,
         remoteControl: false,
         remoteControlPort: [
@@ -465,13 +468,21 @@ export class SettingsComponent implements OnInit, OnDestroy {
      * the indexed db store
      */
     onSubmit(): void {
-        const settings = this.settingsForm.value;
-        const mpvPlayerPath = this.normalizeExternalPlayerPath(
-            settings.mpvPlayerPath
-        );
-        const vlcPlayerPath = this.normalizeExternalPlayerPath(
-            settings.vlcPlayerPath
-        );
+        const settings = {
+            ...this.settingsForm.value,
+            mpvPlayerPath: this.normalizeExternalPlayerPath(
+                this.settingsForm.value.mpvPlayerPath
+            ),
+            vlcPlayerPath: this.normalizeExternalPlayerPath(
+                this.settingsForm.value.vlcPlayerPath
+            ),
+            mpvPlayerArguments: normalizeExternalPlayerArguments(
+                this.settingsForm.value.mpvPlayerArguments
+            ),
+            vlcPlayerArguments: normalizeExternalPlayerArguments(
+                this.settingsForm.value.vlcPlayerArguments
+            ),
+        };
 
         this.settingsStore.updateSettings(settings).then(() => {
             this.applyChangedSettings();
@@ -479,8 +490,8 @@ export class SettingsComponent implements OnInit, OnDestroy {
             if (window.electron) {
                 window.electron.updateSettings(settings);
 
-                window.electron.setMpvPlayerPath(mpvPlayerPath);
-                window.electron.setVlcPlayerPath(vlcPlayerPath);
+                window.electron.setMpvPlayerPath(settings.mpvPlayerPath);
+                window.electron.setVlcPlayerPath(settings.vlcPlayerPath);
             }
         });
         if (this.isDialog) {
