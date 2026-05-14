@@ -1,145 +1,37 @@
-import { getExtensionFromUrl } from 'm3u-utils';
-import type { ExternalPlayerName, ResolvedPortalPlayback } from 'shared-interfaces';
+import type {
+    HlsPlaybackErrorInput,
+    MpegTsPlaybackErrorInput,
+    NativePlaybackErrorInput,
+    PlaybackDiagnostic,
+    PlaybackDiagnosticCode,
+    PlaybackDiagnosticSource,
+    PlaybackSourceMetadata,
+} from './playback-diagnostics.model';
+import { PlaybackDiagnosticCode as DiagnosticCode } from './playback-diagnostics.model';
+import { PlaybackDiagnosticSource as DiagnosticSource } from './playback-diagnostics.model';
+import {
+    isBrowserAccessFailure,
+    isCodecFailure,
+    isDrmOrEncryptionFailure,
+    isEarlyEofFailure,
+    isNetworkFailure,
+    normalizeErrorDetails,
+} from './playback-error-patterns.util';
+import {
+    isLikelyContainerIssue,
+    mergeCodecMetadata,
+} from './playback-media-source.util';
 
-export const PlaybackDiagnosticCode = {
-    UnsupportedContainer: 'unsupported-container',
-    UnsupportedCodec: 'unsupported-codec',
-    MediaDecodeError: 'media-decode-error',
-    NetworkError: 'network-error',
-    DrmOrEncryption: 'drm-or-encryption',
-    UnknownPlaybackError: 'unknown-playback-error',
-} as const;
-
-export type PlaybackDiagnosticCode =
-    (typeof PlaybackDiagnosticCode)[keyof typeof PlaybackDiagnosticCode];
-
-export const PlaybackDiagnosticSource = {
-    Source: 'source',
-    Native: 'native',
-    Hls: 'hls',
-    MpegTs: 'mpegts',
-} as const;
-
-export type PlaybackDiagnosticSource =
-    (typeof PlaybackDiagnosticSource)[keyof typeof PlaybackDiagnosticSource];
-
-export const InlinePlaybackPlayer = {
-    VideoJs: 'videojs',
-    Html5: 'html5',
-    ArtPlayer: 'artplayer',
-} as const;
-
-export type InlinePlaybackPlayer =
-    (typeof InlinePlaybackPlayer)[keyof typeof InlinePlaybackPlayer];
-
-export interface PlaybackSourceMetadataInput {
-    readonly url: string;
-    readonly mimeType?: string;
-    readonly player?: InlinePlaybackPlayer;
-    readonly audioCodecs?: readonly string[];
-    readonly videoCodecs?: readonly string[];
-}
-
-export interface PlaybackSourceMetadata {
-    readonly url: string;
-    readonly extension: string;
-    readonly container: string;
-    readonly mimeType?: string;
-    readonly player?: InlinePlaybackPlayer;
-    readonly audioCodecs: readonly string[];
-    readonly videoCodecs: readonly string[];
-}
-
-export interface NativePlaybackErrorInput {
-    readonly code?: number;
-    readonly message?: string;
-}
-
-export interface HlsPlaybackErrorInput {
-    readonly type?: string;
-    readonly details?: string;
-    readonly fatal?: boolean;
-    readonly message?: string;
-    readonly error?: unknown;
-    readonly audioCodecs?: readonly string[];
-    readonly videoCodecs?: readonly string[];
-}
-
-export interface MpegTsPlaybackErrorInput {
-    readonly type?: string;
-    readonly details?: string;
-    readonly message?: string;
-    readonly info?: unknown;
-}
-
-export interface PlaybackDiagnostic {
-    readonly code: PlaybackDiagnosticCode;
-    readonly source: PlaybackDiagnosticSource;
-    readonly sourceUrl: string;
-    readonly container: string;
-    readonly mimeType?: string;
-    readonly player?: InlinePlaybackPlayer;
-    readonly audioCodecs: readonly string[];
-    readonly videoCodecs: readonly string[];
-    readonly details?: string;
-    readonly nativeErrorCode?: number;
-    readonly nativeErrorMessage?: string;
-    readonly externalFallbackRecommended: boolean;
-}
-
-export interface PlaybackFallbackRequest {
-    readonly player: ExternalPlayerName;
-    readonly playback: ResolvedPortalPlayback;
-    readonly diagnostic: PlaybackDiagnostic;
-}
-
-const UNSUPPORTED_CONTAINER_EXTENSIONS = new Set([
-    'avi',
-    'asf',
-    'divx',
-    'flv',
-    'm2ts',
-    'm4v',
-    'mkv',
-    'mov',
-    'mpeg',
-    'mpg',
-    'rm',
-    'rmvb',
-    'ts',
-    'vob',
-    'wmv',
-]);
-
-const NON_MEDIA_URL_EXTENSIONS = new Set([
-    'asp',
-    'aspx',
-    'cgi',
-    'jsp',
-    'php',
-    'pl',
-]);
+export * from './playback-diagnostics.model';
+export {
+    createPlaybackSourceMetadata,
+    getLikelyBrowserUnsupportedCodecLabels,
+    getPlaybackMediaExtensionFromUrl,
+} from './playback-media-source.util';
 
 const SOURCE_NOT_SUPPORTED_CODE = 4;
 const DECODE_ERROR_CODE = 3;
 const NETWORK_ERROR_CODE = 2;
-
-export function createPlaybackSourceMetadata(
-    input: PlaybackSourceMetadataInput
-): PlaybackSourceMetadata {
-    const extension = getMediaExtensionFromUrl(input.url);
-    const mimeType = input.mimeType?.trim() || undefined;
-
-    return {
-        url: input.url,
-        extension,
-        container: extension || inferContainerFromMimeType(mimeType),
-        mimeType,
-        player: input.player,
-        audioCodecs: normalizeCodecs(input.audioCodecs),
-        videoCodecs: normalizeCodecs(input.videoCodecs),
-    };
-}
 
 export function classifyNativePlaybackIssue(
     error: NativePlaybackErrorInput | MediaError | null | undefined,
@@ -147,11 +39,17 @@ export function classifyNativePlaybackIssue(
 ): PlaybackDiagnostic {
     const nativeErrorCode = error?.code;
     const nativeErrorMessage = error?.message || undefined;
+    const lowerNativeErrorMessage = nativeErrorMessage?.toLowerCase() ?? '';
 
     if (nativeErrorCode === NETWORK_ERROR_CODE) {
+        // Native MediaError details are often opaque for browser security
+        // failures. Only classify browser access when the runtime exposes a
+        // concrete CORS/mixed-content/CSP-style message.
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.NetworkError,
-            source: PlaybackDiagnosticSource.Native,
+            code: isBrowserAccessFailure(lowerNativeErrorMessage)
+                ? DiagnosticCode.BrowserAccessError
+                : DiagnosticCode.NetworkError,
+            source: DiagnosticSource.Native,
             metadata,
             nativeErrorCode,
             nativeErrorMessage,
@@ -160,8 +58,8 @@ export function classifyNativePlaybackIssue(
 
     if (nativeErrorCode === DECODE_ERROR_CODE) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.MediaDecodeError,
-            source: PlaybackDiagnosticSource.Native,
+            code: DiagnosticCode.MediaDecodeError,
+            source: DiagnosticSource.Native,
             metadata,
             nativeErrorCode,
             nativeErrorMessage,
@@ -171,9 +69,9 @@ export function classifyNativePlaybackIssue(
     if (nativeErrorCode === SOURCE_NOT_SUPPORTED_CODE) {
         return createDiagnostic({
             code: isLikelyContainerIssue(metadata)
-                ? PlaybackDiagnosticCode.UnsupportedContainer
-                : PlaybackDiagnosticCode.UnsupportedCodec,
-            source: PlaybackDiagnosticSource.Native,
+                ? DiagnosticCode.UnsupportedContainer
+                : DiagnosticCode.UnsupportedCodec,
+            source: DiagnosticSource.Native,
             metadata,
             nativeErrorCode,
             nativeErrorMessage,
@@ -181,8 +79,8 @@ export function classifyNativePlaybackIssue(
     }
 
     return createDiagnostic({
-        code: PlaybackDiagnosticCode.UnknownPlaybackError,
-        source: PlaybackDiagnosticSource.Native,
+        code: DiagnosticCode.UnknownPlaybackError,
+        source: DiagnosticSource.Native,
         metadata,
         nativeErrorCode,
         nativeErrorMessage,
@@ -203,8 +101,10 @@ export function classifyHlsPlaybackIssue(
 
     if (isNetworkFailure(lowerType, lowerDetails)) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.NetworkError,
-            source: PlaybackDiagnosticSource.Hls,
+            code: isBrowserAccessFailure(lowerDetails)
+                ? DiagnosticCode.BrowserAccessError
+                : DiagnosticCode.NetworkError,
+            source: DiagnosticSource.Hls,
             metadata: mergedMetadata,
             details,
         });
@@ -212,8 +112,8 @@ export function classifyHlsPlaybackIssue(
 
     if (isDrmOrEncryptionFailure(lowerDetails)) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.DrmOrEncryption,
-            source: PlaybackDiagnosticSource.Hls,
+            code: DiagnosticCode.DrmOrEncryption,
+            source: DiagnosticSource.Hls,
             metadata: mergedMetadata,
             details,
         });
@@ -221,8 +121,8 @@ export function classifyHlsPlaybackIssue(
 
     if (isCodecFailure(lowerDetails)) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.UnsupportedCodec,
-            source: PlaybackDiagnosticSource.Hls,
+            code: DiagnosticCode.UnsupportedCodec,
+            source: DiagnosticSource.Hls,
             metadata: mergedMetadata,
             details,
         });
@@ -230,16 +130,16 @@ export function classifyHlsPlaybackIssue(
 
     if (lowerType.includes('media') || lowerType.includes('mux')) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.MediaDecodeError,
-            source: PlaybackDiagnosticSource.Hls,
+            code: DiagnosticCode.MediaDecodeError,
+            source: DiagnosticSource.Hls,
             metadata: mergedMetadata,
             details,
         });
     }
 
     return createDiagnostic({
-        code: PlaybackDiagnosticCode.UnknownPlaybackError,
-        source: PlaybackDiagnosticSource.Hls,
+        code: DiagnosticCode.UnknownPlaybackError,
+        source: DiagnosticSource.Hls,
         metadata: mergedMetadata,
         details,
     });
@@ -253,10 +153,21 @@ export function classifyMpegTsPlaybackIssue(
     const lowerDetails = details.toLowerCase();
     const lowerType = (error.type ?? '').toLowerCase();
 
+    if (isEarlyEofFailure(lowerDetails)) {
+        return createDiagnostic({
+            code: DiagnosticCode.MediaDecodeError,
+            source: DiagnosticSource.MpegTs,
+            metadata,
+            details,
+        });
+    }
+
     if (isNetworkFailure(lowerType, lowerDetails)) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.NetworkError,
-            source: PlaybackDiagnosticSource.MpegTs,
+            code: isBrowserAccessFailure(lowerDetails)
+                ? DiagnosticCode.BrowserAccessError
+                : DiagnosticCode.NetworkError,
+            source: DiagnosticSource.MpegTs,
             metadata,
             details,
         });
@@ -264,8 +175,8 @@ export function classifyMpegTsPlaybackIssue(
 
     if (lowerDetails.includes('codec')) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.UnsupportedCodec,
-            source: PlaybackDiagnosticSource.MpegTs,
+            code: DiagnosticCode.UnsupportedCodec,
+            source: DiagnosticSource.MpegTs,
             metadata,
             details,
         });
@@ -273,8 +184,8 @@ export function classifyMpegTsPlaybackIssue(
 
     if (lowerDetails.includes('format') || lowerDetails.includes('mse')) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.UnsupportedContainer,
-            source: PlaybackDiagnosticSource.MpegTs,
+            code: DiagnosticCode.UnsupportedContainer,
+            source: DiagnosticSource.MpegTs,
             metadata,
             details,
         });
@@ -282,16 +193,16 @@ export function classifyMpegTsPlaybackIssue(
 
     if (lowerType.includes('media')) {
         return createDiagnostic({
-            code: PlaybackDiagnosticCode.MediaDecodeError,
-            source: PlaybackDiagnosticSource.MpegTs,
+            code: DiagnosticCode.MediaDecodeError,
+            source: DiagnosticSource.MpegTs,
             metadata,
             details,
         });
     }
 
     return createDiagnostic({
-        code: PlaybackDiagnosticCode.UnknownPlaybackError,
-        source: PlaybackDiagnosticSource.MpegTs,
+        code: DiagnosticCode.UnknownPlaybackError,
+        source: DiagnosticSource.MpegTs,
         metadata,
         details,
     });
@@ -312,8 +223,8 @@ export function classifyUnsupportedHlsManifestCodecs(
     }
 
     return createDiagnostic({
-        code: PlaybackDiagnosticCode.UnsupportedCodec,
-        source: PlaybackDiagnosticSource.Source,
+        code: DiagnosticCode.UnsupportedCodec,
+        source: DiagnosticSource.Source,
         metadata,
         details: mimeType,
     });
@@ -354,148 +265,11 @@ function createDiagnostic(options: {
 
 function isExternalFallbackRecommended(code: PlaybackDiagnosticCode): boolean {
     return (
-        code === PlaybackDiagnosticCode.UnsupportedContainer ||
-        code === PlaybackDiagnosticCode.UnsupportedCodec ||
-        code === PlaybackDiagnosticCode.MediaDecodeError ||
-        code === PlaybackDiagnosticCode.DrmOrEncryption
-    );
-}
-
-function mergeCodecMetadata(
-    metadata: PlaybackSourceMetadata,
-    codecs: Pick<PlaybackSourceMetadataInput, 'audioCodecs' | 'videoCodecs'>
-): PlaybackSourceMetadata {
-    const audioCodecs = normalizeCodecs([
-        ...metadata.audioCodecs,
-        ...(codecs.audioCodecs ?? []),
-    ]);
-    const videoCodecs = normalizeCodecs([
-        ...metadata.videoCodecs,
-        ...(codecs.videoCodecs ?? []),
-    ]);
-
-    return {
-        ...metadata,
-        audioCodecs,
-        videoCodecs,
-    };
-}
-
-function normalizeCodecs(codecs: readonly string[] | undefined): string[] {
-    return Array.from(
-        new Set(
-            (codecs ?? [])
-                .map((codec) => codec.trim())
-                .filter((codec) => codec.length > 0)
-        )
-    );
-}
-
-function normalizeToken(value: string | undefined): string {
-    return value?.trim().toLowerCase() ?? '';
-}
-
-function normalizeExtensionToken(value: string | undefined): string {
-    return normalizeToken(value).replace(/^\.+/, '');
-}
-
-function getMediaExtensionFromUrl(url: string): string {
-    const queryExtension = getMediaExtensionFromQuery(url);
-    if (queryExtension) {
-        return queryExtension;
-    }
-
-    const pathExtension = normalizeExtensionToken(getExtensionFromUrl(url));
-    if (NON_MEDIA_URL_EXTENSIONS.has(pathExtension)) {
-        return '';
-    }
-
-    return pathExtension;
-}
-
-function getMediaExtensionFromQuery(url: string): string {
-    try {
-        const parsedUrl = new URL(url, 'http://iptvnator.local');
-        const declaredExtension = normalizeExtensionToken(
-            parsedUrl.searchParams.get('extension') ?? undefined
-        );
-
-        if (!declaredExtension) {
-            return '';
-        }
-
-        return NON_MEDIA_URL_EXTENSIONS.has(declaredExtension)
-            ? ''
-            : declaredExtension;
-    } catch {
-        return '';
-    }
-}
-
-function inferContainerFromMimeType(mimeType: string | undefined): string {
-    if (!mimeType) {
-        return '';
-    }
-
-    const subtype = mimeType.split(';')[0]?.split('/')[1] ?? '';
-    return subtype.toLowerCase();
-}
-
-function isLikelyContainerIssue(metadata: PlaybackSourceMetadata): boolean {
-    return (
-        UNSUPPORTED_CONTAINER_EXTENSIONS.has(metadata.extension) ||
-        metadata.mimeType === 'video/matroska'
-    );
-}
-
-function normalizeErrorDetails(
-    error: HlsPlaybackErrorInput | MpegTsPlaybackErrorInput
-): string {
-    const hlsError = 'error' in error ? error.error : undefined;
-    const mpegTsInfo = 'info' in error ? error.info : undefined;
-    const errorMessage =
-        hlsError instanceof Error
-            ? hlsError.message
-            : typeof hlsError === 'string'
-              ? hlsError
-              : '';
-    const info =
-        typeof mpegTsInfo === 'string'
-            ? mpegTsInfo
-            : mpegTsInfo
-              ? JSON.stringify(mpegTsInfo)
-              : '';
-
-    return [error.details, error.message, errorMessage, info]
-        .filter((part): part is string => Boolean(part))
-        .join(' ');
-}
-
-function isNetworkFailure(type: string, details: string): boolean {
-    return (
-        type.includes('network') ||
-        details.includes('network') ||
-        details.includes('loaderror') ||
-        details.includes('timeout') ||
-        details.includes('status')
-    );
-}
-
-function isCodecFailure(details: string): boolean {
-    return (
-        details.includes('codec') ||
-        details.includes('incompatiblecodecs') ||
-        details.includes('addcodec')
-    );
-}
-
-function isDrmOrEncryptionFailure(details: string): boolean {
-    return (
-        details.includes('decrypt') ||
-        details.includes('keysystem') ||
-        details.includes('keyload') ||
-        details.includes('license') ||
-        details.includes('drm')
+        code === DiagnosticCode.UnsupportedContainer ||
+        code === DiagnosticCode.UnsupportedCodec ||
+        code === DiagnosticCode.MediaDecodeError ||
+        code === DiagnosticCode.BrowserAccessError ||
+        code === DiagnosticCode.DrmOrEncryption
     );
 }
 
