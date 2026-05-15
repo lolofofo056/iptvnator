@@ -5,7 +5,7 @@ import { SwUpdate } from '@angular/service-worker';
 import { Store } from '@ngrx/store';
 import { TranslateService } from '@ngx-translate/core';
 import { PlaylistActions } from '@iptvnator/m3u-state';
-import { catchError, firstValueFrom, throwError } from 'rxjs';
+import { catchError, firstValueFrom, from, switchMap, throwError } from 'rxjs';
 import { DataService } from '@iptvnator/services';
 import {
     ERROR,
@@ -25,6 +25,7 @@ import {
     logPortalDebugEvent,
     logPortalDebugRequest,
 } from '@iptvnator/portal/shared/util';
+import { getRuntimeBackendUrl } from './runtime-config';
 
 interface PwaXtreamResponse {
     readonly payload?: unknown;
@@ -48,6 +49,10 @@ interface ErrorStatus {
     readonly status?: number;
 }
 
+interface ProviderTargetRegistration {
+    readonly targetId: string;
+}
+
 @Injectable({
     providedIn: 'root',
 })
@@ -58,6 +63,7 @@ export class PwaService extends DataService {
     private readonly store = inject(Store);
     private readonly swUpdate = inject(SwUpdate);
     private readonly translateService = inject(TranslateService);
+    private readonly providerTargetIds = new Map<string, Promise<string>>();
     private readonly silentXtreamActions = new Set<string>([
         XtreamCodeActions.GetAccountInfo,
         XtreamCodeActions.GetLiveCategories,
@@ -69,7 +75,7 @@ export class PwaService extends DataService {
     ]);
 
     /** Proxy URL to avoid CORS issues */
-    corsProxyUrl = AppConfig.BACKEND_URL;
+    corsProxyUrl = getRuntimeBackendUrl();
 
     constructor() {
         super();
@@ -123,6 +129,7 @@ export class PwaService extends DataService {
                     url: string;
                     macAddress: string;
                     params: Record<string, string>;
+                    token?: string;
                 }
             ) as T;
         }
@@ -269,39 +276,49 @@ export class PwaService extends DataService {
                   },
               }
             : {};
-        const requestPayload = {
-            method: 'GET',
-            url: `${this.corsProxyUrl}/xtream`,
-            params: {
-                url: payload.url,
-                ...payload.params,
-            },
-            ...(payload.macAddress
-                ? {
-                      headers: {
-                          Cookie: `mac=${payload.macAddress}`,
-                      },
-                  }
-                : {}),
-        };
-        const context = createPortalDebugRequestContext({
+        let context = createPortalDebugRequestContext({
             provider: 'xtream',
             operation: payload.params?.action ?? 'unknown',
             transport: 'pwa-http',
-            request: requestPayload,
+            request: {
+                method: 'GET',
+                params: payload.params,
+                url: `${this.corsProxyUrl}/xtream`,
+            },
         });
-        logPortalDebugRequest(context);
 
         try {
+            const targetId = await this.getProviderTargetId(payload.url);
+            const requestParams = {
+                targetId,
+                ...payload.params,
+            };
+            const requestPayload = {
+                method: 'GET',
+                params: requestParams,
+                url: `${this.corsProxyUrl}/xtream`,
+                ...(payload.macAddress
+                    ? {
+                          headers: {
+                              Cookie: `mac=${payload.macAddress}`,
+                          },
+                      }
+                    : {}),
+            };
+            context = createPortalDebugRequestContext({
+                provider: 'xtream',
+                operation: payload.params?.action ?? 'unknown',
+                transport: 'pwa-http',
+                request: requestPayload,
+            });
+            logPortalDebugRequest(context);
+
             let result: PwaErrorResult | PwaXtreamResult;
             const response = (await firstValueFrom(
                 this.http.get<PwaXtreamResponse>(
                     `${this.corsProxyUrl}/xtream`,
                     {
-                        params: {
-                            url: payload.url,
-                            ...payload.params,
-                        },
+                        params: requestParams,
                         ...headers,
                     }
                 )
@@ -440,30 +457,42 @@ export class PwaService extends DataService {
         url: string;
         params: Record<string, string>;
         macAddress: string;
+        token?: string;
     }) {
-        const params = new URLSearchParams({
-            url: payload.url,
-            ...payload.params,
-            macAddress: payload.macAddress,
-        });
-        const requestUrl = `${this.corsProxyUrl}/stalker?${params.toString()}`;
-        const context = createPortalDebugRequestContext({
+        let context = createPortalDebugRequestContext({
             provider: 'stalker',
             operation: payload.params?.action ?? 'unknown',
             transport: 'pwa-http',
             request: {
                 method: 'GET',
-                url: requestUrl,
-                params: {
-                    url: payload.url,
-                    ...payload.params,
-                    macAddress: payload.macAddress,
-                },
+                params: payload.params,
+                url: `${this.corsProxyUrl}/stalker`,
             },
         });
-        logPortalDebugRequest(context);
 
         try {
+            const targetId = await this.getProviderTargetId(payload.url);
+            const token = payload.token ?? payload.params.token;
+            const requestParams = {
+                targetId,
+                ...payload.params,
+                macAddress: payload.macAddress,
+                ...(token ? { token } : {}),
+            };
+            const params = new URLSearchParams(requestParams);
+            const requestUrl = `${this.corsProxyUrl}/stalker?${params.toString()}`;
+            context = createPortalDebugRequestContext({
+                provider: 'stalker',
+                operation: payload.params?.action ?? 'unknown',
+                transport: 'pwa-http',
+                request: {
+                    method: 'GET',
+                    params: requestParams,
+                    url: requestUrl,
+                },
+            });
+            logPortalDebugRequest(context);
+
             // Make the fetch request
             const response = await fetch(requestUrl);
 
@@ -496,9 +525,35 @@ export class PwaService extends DataService {
     }
 
     getPlaylistFromUrl(url: string) {
-        return this.http.get(`${this.corsProxyUrl}/parse`, {
-            params: { url },
-        });
+        return from(this.getProviderTargetId(url)).pipe(
+            switchMap((targetId) =>
+                this.http.get(`${this.corsProxyUrl}/parse`, {
+                    params: { targetId },
+                })
+            )
+        );
+    }
+
+    private getProviderTargetId(url: string): Promise<string> {
+        const cachedTargetId = this.providerTargetIds.get(url);
+        if (cachedTargetId) {
+            return cachedTargetId;
+        }
+
+        const targetIdRequest = firstValueFrom(
+            this.http.post<ProviderTargetRegistration>(
+                `${this.corsProxyUrl}/provider-targets`,
+                { url }
+            )
+        )
+            .then((response) => response.targetId)
+            .catch((error) => {
+                this.providerTargetIds.delete(url);
+                throw error;
+            });
+
+        this.providerTargetIds.set(url, targetIdRequest);
+        return targetIdRequest;
     }
 
     removeAllListeners(type: string): void {
